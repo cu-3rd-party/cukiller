@@ -4,9 +4,10 @@ from aiogram.types import Message
 
 import db
 
-start_router = Router()
+router = Router()
 
-@start_router.message(CommandStart())
+
+@router.message(CommandStart())
 async def start_command(message: Message) -> None:
     db.try_register_user(message.chat.id, message.from_user.id, message.from_user.username)
     await message.answer(text="Hello, world!")
