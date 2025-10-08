@@ -1,4 +1,7 @@
-FROM python:3.12-alpine3.21
+FROM python:3.12-alpine
+
+RUN apk update \
+    apk add musl-dev libpq-dev gcc
 
 WORKDIR /usr/src/app
 
