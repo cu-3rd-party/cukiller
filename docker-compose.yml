@@ -11,7 +11,6 @@ services:
     restart: always
     depends_on:
       - db
-      - redis
       - web
     env_file: .env
 
@@ -29,7 +28,6 @@ services:
     restart: always
     depends_on:
       - db
-      - redis
     env_file: .env
 
   db:
@@ -42,19 +40,6 @@ services:
     ports:
       - "5433:5432"
 
-  redis:
-    container_name: ${PROJECT_NAME}-redis
-    image: redis:7.2-rc3-alpine
-    restart: always
-    env_file:
-      - .env
-    ports:
-      - ${REDIS_PORT}:${REDIS_PORT}
-    expose:
-      - ${REDIS_PORT}
-    volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-
   adminer:
     image: adminer
     restart: always
@@ -63,4 +48,3 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:

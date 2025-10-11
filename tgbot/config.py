@@ -12,12 +12,12 @@ from environs import Env
 #     port: str
 
 
-@dataclass
-class Redis:
-    use_redis: bool
-    host: str
-    port: str
-    password: str | None
+# @dataclass
+# class Redis:
+#     use_redis: bool
+#     host: str
+#     port: str
+#     password: str | None
 
 
 @dataclass
@@ -34,7 +34,7 @@ class Miscellaneous:
 @dataclass
 class Config:
     tg_bot: TgBot
-    redis: Redis
+    # redis: Redis
     # db: DbConfig
     misc: Miscellaneous
 
@@ -47,12 +47,6 @@ def load_config(path: str = None):
         tg_bot=TgBot(
             token=env.str("BOT_TOKEN"),
             admin_ids=list(map(int, env.list("ADMINS"))),
-        ),
-        redis=Redis(
-            host=env.str("REDIS_HOST"),
-            port=env.str("REDIS_PORT"),
-            password=env.str("REDIS_PASSWORD"),
-            use_redis=env.bool("USE_REDIS", 'False')
         ),
         # db=DbConfig(
         #     host=env.str('POSTGRES_HOST'),
