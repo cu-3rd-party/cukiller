@@ -55,5 +55,5 @@ def load_config(path: str = None):
         #     name=env.str('POSTGRES_DB'),
         #     port=env.str('POSTGRES_PORT')
         # ),
-        misc=Miscellaneous()
+        misc=Miscellaneous(),
     )

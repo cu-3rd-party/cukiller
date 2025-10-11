@@ -1,0 +1,47 @@
+name: Ruff format
+
+on:
+  workflow_dispatch:
+  push:
+#  pull_request: # comment out because it'll just double run on pull requests because push: is already specified`
+
+permissions:
+  contents: write
+
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.12]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff formatter
+        run: ruff format .
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "${{ secrets.RUFF_USERNAME }}"
+          git config user.email "${{ secrets.RUFF_EMAIL }}"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add -A
+            git commit -m "Run Ruff format"
+            git push
+          else
+            echo "No formatting changes detected."
+          fi

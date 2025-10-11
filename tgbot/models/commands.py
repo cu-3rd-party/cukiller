@@ -3,7 +3,7 @@
 import os, django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dj_ac.settings")
-os.environ.update({'DJANGO_ALLOW_ASYNC_UNSAFE': "true"})
+os.environ.update({"DJANGO_ALLOW_ASYNC_UNSAFE": "true"})
 django.setup()
 
 import logging
