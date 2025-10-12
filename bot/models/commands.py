@@ -13,7 +13,6 @@ async def add_or_create_user(
     last_name: str | None = None,
     language_code: str | None = None,
 ) -> tuple[TGUser, bool]:
-
     defaults = {
         "username": username,
         "first_name": first_name,
