@@ -6,8 +6,21 @@ class UsersStates(StatesGroup):
     Класс реализует состояние пользователя внутри сценария.
     Атрибуты заполняются во время опроса пользователя.
 
-    Attributes:
-        last_command (str): команда, которую ввёл пользователь.
+    :param last_command команда, которую ввёл пользователь.
+
+    :param screen может быть:
+    - Title
+    - Registration
+    - Edit
+    - Overview
+    - Play
+    - TargetInfo
+    - TargetPick
+    - TargetQueue
+    - SubmitDeath
+    - SubmitKill
+
     """
 
-    last_command = State()
+    screen = State()
+    profile = State()
