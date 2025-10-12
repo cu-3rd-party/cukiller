@@ -1,4 +1,6 @@
-from aiogram import Router, Bot
+from typing import Optional
+
+from aiogram import Router, Bot, Dispatcher
 from aiogram.enums import ContentType
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
@@ -12,6 +14,8 @@ from tgbot.config import Config
 from tgbot.misc.states import RegisterForm, MainLoop
 from tgbot.models.commands import add_or_create_user
 from tgbot.services import admin_chat
+
+router = Router()
 
 
 async def on_name_input(
@@ -46,9 +50,10 @@ async def on_photo_input(
     await manager.next()
 
 
-async def on_finish(callback: CallbackQuery, button, manager: DialogManager, config: Config):
+async def on_finish(callback: CallbackQuery, button, manager: DialogManager):
     bot: Bot = manager.event.bot
     chat_id: int = callback.message.chat.id
+    config: Config = manager.middleware_data["config"]
 
     name = manager.dialog_data.get("name")
     desc = manager.dialog_data.get("description")
@@ -56,17 +61,25 @@ async def on_finish(callback: CallbackQuery, button, manager: DialogManager, con
     photo = manager.dialog_data.get("photo")
 
     text = (
-        f"<b>Имя:</b> {name}\n"
-        f"<b>Поток:</b> {dep}\n"
-        f"<b>Описание:</b> {desc}\n\n"
+        f"<b>Имя:</b> {name}\n<b>Поток:</b> {dep}\n<b>Описание:</b> {desc}\n\n"
     )
 
-    await bot.send_photo(chat_id=, photo=photo, caption=text, parse_mode="HTML")
-    await admin_chat.send_photo(photo=photo, caption=text, )
+    await admin_chat.send_profile_confirmation_request(
+        photo=photo,
+        user_id=callback.from_user.id,
+        text=text,
+        config=config,
+        bot=bot,
+        tag="profile_confirm",
+    )
 
-    await bot.send_message(chat_id=chat_id, text="Все, отправил на проверку", parse_mode="HTML")
+    await bot.send_message(
+        chat_id=chat_id, text="Все, отправил на проверку", parse_mode="HTML"
+    )
 
-    await manager.done() # TODO: make it send before sending "Все, отправил на проверку"
+    await (
+        manager.done()
+    )  # TODO: make it send before sending "Все, отправил на проверку"
 
 
 register = [
@@ -127,7 +140,6 @@ register = [
     ),
 ]
 
-router = Router()
 register_dialog = Dialog(
     *register,
     name="user_dialog",

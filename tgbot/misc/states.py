@@ -8,8 +8,10 @@ class RegisterForm(StatesGroup):
     departament = State()
     confirm = State()
 
+
 class ConfirmProfileForm(StatesGroup):
     user_id = State()
+
 
 class MainLoop(StatesGroup):
     title = State()
