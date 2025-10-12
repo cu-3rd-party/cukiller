@@ -1,6 +1,7 @@
 # Не оптимизировать импорты и не менять их порядок
 
 import os, django
+from typing import Tuple
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dj_ac.settings")
 os.environ.update({"DJANGO_ALLOW_ASYNC_UNSAFE": "true"})
@@ -16,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 @sync_to_async
-def add_or_create_user(user_id: int) -> TGUser:
+def add_or_create_user(user_id: int) -> Tuple[TGUser, bool]:
     user, created = TGUser.objects.get_or_create(tg_id=user_id)
     if created:
         logger.info(f"user {user.tg_id} was added to DB")
     else:
         logger.info(f"User {user.tg_id} is already exist")
-    return user
+    return user, created

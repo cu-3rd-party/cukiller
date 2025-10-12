@@ -24,6 +24,7 @@ from environs import Env
 class TgBot:
     token: str
     admin_ids: list[int]
+    admin_chat_id: int
 
 
 @dataclass
@@ -47,6 +48,7 @@ def load_config(path: str = None):
         tg_bot=TgBot(
             token=env.str("BOT_TOKEN"),
             admin_ids=list(map(int, env.list("ADMINS"))),
+            admin_chat_id=env.int("ADMIN_CHAT"),
         ),
         # db=DbConfig(
         #     host=env.str('POSTGRES_HOST'),
