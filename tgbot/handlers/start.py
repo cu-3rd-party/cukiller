@@ -24,7 +24,11 @@ async def user_start(
     states = await state.get_data()
     await message.answer(f"вы ввели команду, {states.get('last_command')}")
 
-    mention_text = f"@{message.from_user.username}" if message.from_user.username is not None else None
+    mention_text = (
+        f"@{message.from_user.username}"
+        if message.from_user.username is not None
+        else None
+    )
     if created:
         await send_admin_chat_message(
             f"Пользователь {message.from_user.mention_html(mention_text)} использовал команду /start в первый раз",
