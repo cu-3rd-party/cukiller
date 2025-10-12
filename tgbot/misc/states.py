@@ -1,5 +1,6 @@
 from aiogram.fsm.state import StatesGroup, State
 
+
 class UsersStates(StatesGroup):
     """
     Класс реализует состояние пользователя внутри сценария.
