@@ -1,7 +1,7 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
-class UsersStates(StatesGroup):
+class UserState(StatesGroup):
     """
     Класс реализует состояние пользователя внутри сценария.
     Атрибуты заполняются во время опроса пользователя.
@@ -30,6 +30,7 @@ class UsersStates(StatesGroup):
     register_description = State()
     register_photo = State()
     register_departament = State()
+    register_confirm = State()
 
     edit = State()
     overview = State()
@@ -38,4 +39,5 @@ class UsersStates(StatesGroup):
     target_queue = State()
     submit_death = State()
     submit_kill = State()
+
     profile = State()

@@ -68,3 +68,6 @@ postgres_db/
 db.sqlite3
 
 redis.conf
+
+# Database
+pfp/

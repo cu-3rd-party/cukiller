@@ -93,3 +93,6 @@ venv/
 # Project files
 postgres_db/
 redis.conf
+
+# Database
+pfp/

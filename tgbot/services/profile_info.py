@@ -19,4 +19,4 @@ class ProfileInfo:
     name: str
     description: str = ""
     department: Optional[str] = None
-    profile_photo: Optional[Image] = None
+    photo_id: Optional[int] = None
