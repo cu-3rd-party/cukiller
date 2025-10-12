@@ -1,12 +1,24 @@
-FROM python:3.10-slim-buster
+FROM python:3.12-slim
 
-ENV PROJECT_NAME=$PROJECT_NAME
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-WORKDIR /usr/src/app/"${PROJECT_NAME:-web}"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /usr/src/app/"${PROJECT_NAME:-web}"
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r /usr/src/app/"${PROJECT_NAME:-web}"/requirements.txt
-COPY . /usr/src/app/"${PROJECT_NAME:-web}"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:8000"]
