@@ -39,5 +39,3 @@ class UserState(StatesGroup):
     target_queue = State()
     submit_death = State()
     submit_kill = State()
-
-    profile = State()
