@@ -22,9 +22,15 @@ class UsersStates(StatesGroup):
 
     """
 
-    start = State()
+    title_register = State()
     title = State()
     register = State()
+
+    register_name = State()
+    register_description = State()
+    register_photo = State()
+    register_departament = State()
+
     edit = State()
     overview = State()
     play = State()
