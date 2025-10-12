@@ -21,6 +21,7 @@ class ProfileInfo:
     :param department: На каком потоке учится цель (значение может быть разработка/ИИ/бизнес-аналитика). Может быть None, тогда просто поток не указывается
     :param profile_photo: Фотка цели. Может быть None, тогда вместо нее должен идти знак вопроса
     """
+
     user_id: int
     name: str
     description: str = ""
@@ -42,19 +43,25 @@ class ProfileImageGenerator:
     background_color = (0, 0, 0)  # простой черный фон, в идеале его не видно
 
     @staticmethod
-    def generate_wanted_single(
-            user_info: ProfileInfo
-    ) -> bytes:
+    def generate_wanted_single(user_info: ProfileInfo) -> bytes:
         """
         Функция, которая генерирует одиночное превью цели
         :param user_info: Информация о цели, смотри описание датакласса
         :return:
         """
-        logger.debug(f"Запросили генерацию превьюшки для пользователя {user_info.user_id}")
+        logger.debug(
+            f"Запросили генерацию превьюшки для пользователя {user_info.user_id}"
+        )
         try:
             # Создаем основной холст
-            image = Image.new('RGB', (ProfileImageGenerator.image_width, ProfileImageGenerator.image_height),
-                              ProfileImageGenerator.background_color)
+            image = Image.new(
+                "RGB",
+                (
+                    ProfileImageGenerator.image_width,
+                    ProfileImageGenerator.image_height,
+                ),
+                ProfileImageGenerator.background_color,
+            )
 
             # Здесь должна идти логика рисования превьюхи на холсте
             ...
@@ -63,17 +70,21 @@ class ProfileImageGenerator:
             image.save(img_buffer, format="PNG")
             img_buffer.seek(0)
 
-            logger.debug(f"Превьюшка для пользователя {user_info.user_id} успешно сгенерирована")
+            logger.debug(
+                f"Превьюшка для пользователя {user_info.user_id} успешно сгенерирована"
+            )
 
             return img_buffer.getvalue()
 
         except Exception as e:
-            logger.error(f"Error generating profile image for user {user_info.user_id}: {e}")
+            logger.error(
+                f"Error generating profile image for user {user_info.user_id}: {e}"
+            )
             return ProfileImageGenerator._generate_error_image(str(e))
 
     @staticmethod
     def generate_wanted_multiple(
-           users: List[ProfileInfo],
+        users: List[ProfileInfo],
     ):
         """
         По дизайну эта функция сделана, чтоб работать исключительно для 3-х профилей
