@@ -1,4 +1,4 @@
-FROM python:3.10-slim-buster
+FROM python:3.12-slim-buster
 
 ENV BOT_NAME=$BOT_NAME
 ENV PYTHONDONTWRITEBYTECODE 1
