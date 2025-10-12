@@ -78,4 +78,3 @@ ignore = [
 ]
 select = ["ALL"]
 task-tags = ["TODO"]
-
