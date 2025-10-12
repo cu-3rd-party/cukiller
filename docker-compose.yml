@@ -1,50 +1,48 @@
 services:
-  bot:
-    container_name: ${PROJECT_NAME}-bot
-    build:
-      dockerfile: Dockerfile.bot
-      context: .
-    working_dir: "/usr/src/app/${BOT_NAME:-tg_bot}"
+  db:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME:-app}-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - .:/usr/src/app/${BOT_NAME:-tg_bot}
-    command: python bot.py
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     restart: always
-    depends_on:
-      - db
-      - web
-    env_file: .env
 
   web:
-    container_name: ${PROJECT_NAME}-web
     build:
-      dockerfile: Dockerfile.web
       context: .
-    working_dir: "/usr/src/app/${PROJECT_NAME:-web}"
-    volumes:
-      - .:/usr/src/app/${PROJECT_NAME:-web}
-    command: python manage.py runserver 0.0.0.0:8000
+      dockerfile: Dockerfile.web
+    container_name: ${PROJECT_NAME:-app}-web
+    env_file: .env
+    depends_on:
+      - db
     ports:
       - "8000:8000"
     restart: always
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: ${PROJECT_NAME:-app}-bot
+    env_file: .env
     depends_on:
       - db
-    env_file: .env
-
-  db:
-    image: postgres:15.0-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - web
     restart: always
-    container_name: ${PROJECT_NAME}-db
-    env_file: .env
-    ports:
-      - "5433:5432"
 
   adminer:
     image: adminer
-    restart: always
+    container_name: ${PROJECT_NAME:-app}-adminer
+    depends_on:
+      - db
     ports:
       - "8080:8080"
+    restart: always
 
 volumes:
   postgres_data:
