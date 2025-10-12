@@ -1,15 +1,15 @@
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import Media
 
 from tgbot.config import Config
-from tgbot.misc.states import UserState
+from tgbot.misc.states import RegisterForm, MainLoop
 from tgbot.models.commands import add_or_create_user
 from tgbot.services import admin_chat
 
@@ -18,7 +18,7 @@ async def on_name_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
     # TODO: add restrictions and validation
-    manager.dialog_data["register_name"] = message.text
+    manager.dialog_data["name"] = message.text
     await manager.next()
 
 
@@ -26,12 +26,12 @@ async def on_description_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
     # TODO: add restrictions and validation
-    manager.dialog_data["register_description"] = message.text
+    manager.dialog_data["description"] = message.text
     await manager.next()
 
 
 async def set_department(event, button, manager, value):
-    manager.dialog_data["register_departament"] = value
+    manager.dialog_data["departament"] = value
     await manager.next()  # or any next step if you have one
 
 
@@ -42,25 +42,31 @@ async def on_photo_input(
         await message.answer("Please send a photo.")
         return
     photo_id = message.photo[-1].file_id
-    manager.dialog_data["register_photo"] = photo_id
+    manager.dialog_data["photo"] = photo_id
     await manager.next()
 
 
-async def on_finish(callback, button, manager: DialogManager):
-    name = manager.dialog_data.get("register_name")
-    desc = manager.dialog_data.get("register_description")
-    dep = manager.dialog_data.get("register_departament")
-    photo = manager.dialog_data.get("register_photo")
+async def on_finish(callback: CallbackQuery, button, manager: DialogManager, config: Config):
+    bot: Bot = manager.event.bot
+    chat_id: int = callback.message.chat.id
 
-    # text = (
-    #     f"<b>Имя:</b> {name}\n"
-    #     f"<b>Поток:</b> {dep}\n"
-    #     f"<b>Описание:</b> {desc}\n\n"
-    # )
-    #
-    # await callback.message.answer_photo(photo=photo, caption=text, parse_mode="HTML")
+    name = manager.dialog_data.get("name")
+    desc = manager.dialog_data.get("description")
+    dep = manager.dialog_data.get("departament")
+    photo = manager.dialog_data.get("photo")
 
-    await manager.done()
+    text = (
+        f"<b>Имя:</b> {name}\n"
+        f"<b>Поток:</b> {dep}\n"
+        f"<b>Описание:</b> {desc}\n\n"
+    )
+
+    await bot.send_photo(chat_id=, photo=photo, caption=text, parse_mode="HTML")
+    await admin_chat.send_photo(photo=photo, caption=text, )
+
+    await bot.send_message(chat_id=chat_id, text="Все, отправил на проверку", parse_mode="HTML")
+
+    await manager.done() # TODO: make it send before sending "Все, отправил на проверку"
 
 
 register = [
@@ -70,7 +76,7 @@ register = [
             "Помни, что вся информация которую ты подашь будет проходить модерацию, так что не лукавь"
         ),
         MessageInput(on_name_input, content_types=ContentType.TEXT),
-        state=UserState.register_name,
+        state=RegisterForm.name,
     ),
     Window(
         Format("С какого ты потока? (разработка / ИИ / бизнес-аналитика)"),
@@ -93,17 +99,17 @@ register = [
                 ),
             ),
         ),
-        state=UserState.register_departament,
+        state=RegisterForm.departament,
     ),
     Window(
         Format("А теперь напиши пару строк о себе"),
         MessageInput(on_description_input, content_types=ContentType.TEXT),
-        state=UserState.register_description,
+        state=RegisterForm.description,
     ),
     Window(
         Format("Отлично, теперь отправь мне свою фотку"),
         MessageInput(on_photo_input, content_types=ContentType.PHOTO),
-        state=UserState.register_photo,
+        state=RegisterForm.photo,
     ),
     Window(
         Format("Все, шик, отправляю твой профиль на проверку?"),
@@ -114,19 +120,19 @@ register = [
             Button(
                 Format("Нет, давай сначала"),
                 id="waiting_room",
-                on_click=lambda e, b, m: m.switch_to(UserState.register_name),
+                on_click=lambda e, b, m: m.switch_to(RegisterForm.name),
             ),
         ),
-        state=UserState.register_confirm,
+        state=RegisterForm.confirm,
     ),
 ]
 
 router = Router()
-user_dialog = Dialog(
+register_dialog = Dialog(
     *register,
     name="user_dialog",
 )
-router.include_router(user_dialog)
+router.include_router(register_dialog)
 
 
 @router.message(CommandStart())
@@ -149,6 +155,6 @@ async def user_start(
         )
 
     if not user.profile:
-        await dialog_manager.start(UserState.register_name)
+        await dialog_manager.start(RegisterForm.name)
     else:
-        await dialog_manager.start(UserState.title)
+        await dialog_manager.start(MainLoop.title)

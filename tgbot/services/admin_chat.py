@@ -13,3 +13,15 @@ async def send_message(
         text=text if not tag else f"#{tag}\n\n{text}",
         parse_mode="HTML",
     )
+
+
+async def send_photo(
+        photo, caption: str, bot: Bot, tag: Optional[str] = None
+):
+    await bot.send_photo(chat_id=config.tg_bot)
+
+confirm_profile = [
+    Window(
+        Format()
+    )
+]
