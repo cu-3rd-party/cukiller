@@ -19,4 +19,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY . .
 
-CMD ["uv", "run", "python", "bot.main.py"]
+CMD ["uv", "run", "python", "-m", "bot.main"]

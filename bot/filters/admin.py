@@ -4,7 +4,7 @@ from aiogram.types import Message
 from settings import Settings
 
 
-# TODO(Serafim): Перписать фильтр на использование БД
+# TODO(Serafim): Переписать фильтр на использование БД
 class AdminFilter(BaseFilter):
     def __init__(self, *, is_admin: bool = True) -> None:
         self.is_admin = is_admin
