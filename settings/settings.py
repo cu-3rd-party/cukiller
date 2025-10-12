@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     pg_user: str = Field(default="admin", alias="POSTGRES_USER")
     pg_password: str = Field(default="admin", alias="POSTGRES_PASSWORD")
 
+    # ^ Redis
+    redis_host: str = Field(default="redis", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+
     @computed_field
     @property
     def postgres_dsn(self) -> str:
