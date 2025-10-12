@@ -5,9 +5,7 @@ from db.models import User
 
 
 class AdminFilter(BaseFilter):
-    async def __call__(
-        self, message: Message, **kwargs
-    ) -> bool:
+    async def __call__(self, message: Message, **kwargs) -> bool:
         telegram_user = message.from_user
         if telegram_user is None:
             return False
@@ -20,9 +18,7 @@ class AdminFilter(BaseFilter):
 
 
 class NotAdminFilter(BaseFilter):
-    async def __call__(
-        self, message: Message, **kwargs
-    ) -> bool:
+    async def __call__(self, message: Message, **kwargs) -> bool:
         telegram_user = message.from_user
         if telegram_user is None:
             return False
