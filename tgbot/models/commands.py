@@ -30,6 +30,7 @@ def add_or_create_user(user_id: int) -> Tuple[TGUser, bool]:
         logger.info(f"User {user.tg_id} is already exist")
     return user, created
 
+
 @sync_to_async
 def get_user_profile(user_id: int) -> Optional[ProfileInfo]:
     """
@@ -39,5 +40,10 @@ def get_user_profile(user_id: int) -> Optional[ProfileInfo]:
     if not user_obj.exists():
         return None
 
-
-    return ProfileInfo(user_id, "Вася Пупкин", "Hello, world", "Разработка", PILImage.open("assets/mock-pfp.jpg"))
+    return ProfileInfo(
+        user_id,
+        "Вася Пупкин",
+        "Hello, world",
+        "Разработка",
+        PILImage.open("assets/mock-pfp.jpg"),
+    )

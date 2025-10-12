@@ -22,5 +22,14 @@ class UsersStates(StatesGroup):
 
     """
 
-    screen = State()
+    start = State()
+    title = State()
+    register = State()
+    edit = State()
+    overview = State()
+    play = State()
+    target_info = State()
+    target_queue = State()
+    submit_death = State()
+    submit_kill = State()
     profile = State()
