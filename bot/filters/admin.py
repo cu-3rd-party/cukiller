@@ -1,25 +1,34 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from settings import Settings
+from db.models import User
 
 
-# TODO(Serafim): Переписать фильтр на использование БД
 class AdminFilter(BaseFilter):
-    def __init__(self, *, is_admin: bool = True) -> None:
-        self.is_admin = is_admin
-
     async def __call__(
-        self, message: Message, config: Settings, **kwargs
+        self, message: Message, **kwargs
     ) -> bool:
-        if not self.is_admin:
-            return True
-
         telegram_user = message.from_user
         if telegram_user is None:
             return False
 
-        if not config.admin_ids:
-            return True
+        user: User | None = await User.get_or_none(
+            telegram_id=telegram_user.id
+        )
 
-        return telegram_user.id in config.admin_ids
+        return user is not None and user.is_admin
+
+
+class NotAdminFilter(BaseFilter):
+    async def __call__(
+        self, message: Message, **kwargs
+    ) -> bool:
+        telegram_user = message.from_user
+        if telegram_user is None:
+            return False
+
+        user: User | None = await User.get_or_none(
+            telegram_id=telegram_user.id
+        )
+
+        return user is None or not user.is_admin

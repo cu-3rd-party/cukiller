@@ -3,9 +3,8 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from bot.models.commands import add_or_create_user
-from bot.services import admin_chat
-from settings import Settings
+from bot.services.admin_chat import AdminChatService
+from db.models.user import User
 
 router = Router()
 
@@ -15,7 +14,6 @@ async def user_start(
     message: Message,
     state: FSMContext,
     bot: Bot,
-    config: Settings,
 ):
     await state.clear()
 
@@ -26,13 +24,14 @@ async def user_start(
         await message.answer("Не удалось определить пользователя.")
         return
 
-    user, created = await add_or_create_user(
-        user_id=telegram_user.id,
+    user, created = await User().get_or_create(
+        tg_id=telegram_user.id,
         username=telegram_user.username,
         first_name=telegram_user.first_name,
         last_name=telegram_user.last_name,
-        language_code=telegram_user.language_code,
     )
+    await user.save()
+
     await message.answer(f"Привет. Вы в базе с id {user.tg_id}")
 
     states = await state.get_data()
@@ -44,9 +43,9 @@ async def user_start(
         else None
     )
     if created:
+        admin_chat = AdminChatService(bot=bot)
         await admin_chat.send_message(
-            f"Пользователь {message.from_user.mention_html(mention_text)} использовал команду /start в первый раз",
-            bot,
-            config=config,
+            key="logs",
+            text=f"Пользователь {message.from_user.mention_html(mention_text)} использовал команду /start в первый раз",
             tag="start",
         )

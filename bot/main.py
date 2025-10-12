@@ -20,8 +20,8 @@ HANDLERS_PACKAGE = "bot.handlers"
 HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 
-def register_all_middlewares(dp: Dispatcher, config: Settings) -> None:
-    environment = EnvironmentMiddleware(config=config, dp=dp)
+def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
+    environment = EnvironmentMiddleware(config=settings, dp=dp)
     dp.update.middleware(environment)
 
 
@@ -48,25 +48,25 @@ def register_all_handlers(dp: Dispatcher) -> None:
         logger.warning("Не найдено ни одного роутера для регистрации")
 
 
-async def on_startup(bot: Bot, config: Settings) -> None:
-    await init_db(config)
+async def on_startup(bot: Bot, settings: Settings) -> None:
+    await init_db(settings)
 
 
-async def on_shutdown(bot: Bot) -> None:
+async def on_shutdown(bot: Bot, settings: Settings) -> None:
     await close_db()
 
 
-async def run_bot(config: Settings) -> None:
+async def run_bot(settings: Settings) -> None:
     storage = MemoryStorage()
 
     bot = Bot(
-        token=config.bot_token,
+        token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(storage=storage)
-    dp["config"] = config
+    dp["settings"] = settings
 
-    register_all_middlewares(dp, config)
+    register_all_middlewares(dp, settings)
     register_all_handlers(dp)
 
     dp.startup.register(on_startup)
@@ -84,10 +84,10 @@ async def main() -> None:
         level=logging.INFO,
         format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
     )
-    config = get_settings()
-    logger.info("Запущен бот в проекте: %s", config.project_name)
+    settings = get_settings()
+    logger.info("Запущен бот в проекте: %s", settings.project_name)
 
-    await run_bot(config)
+    await run_bot(settings)
 
 
 if __name__ == "__main__":
