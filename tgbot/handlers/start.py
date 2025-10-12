@@ -5,7 +5,7 @@ from aiogram.types import Message
 
 from tgbot.config import Config
 from tgbot.models.commands import add_or_create_user
-from tgbot.services.admin_chat import send_admin_chat_message
+from tgbot.services import admin_chat
 
 router = Router()
 
@@ -30,14 +30,9 @@ async def user_start(
         else None
     )
     if created:
-        await send_admin_chat_message(
+        await admin_chat.send_message(
             f"Пользователь {message.from_user.mention_html(mention_text)} использовал команду /start в первый раз",
             bot,
             config,
-        )
-    else:
-        await send_admin_chat_message(
-            f"Пользователь {message.from_user.mention_html(mention_text)} использовал команду /start не в первый раз",
-            bot,
-            config,
+            tag="start",
         )
