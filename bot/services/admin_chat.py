@@ -67,7 +67,7 @@ class AdminChatService:
         send_kwargs = {
             "chat_id": chat.chat_id,
             "photo": photo,
-            "text": body,
+            "caption": body,
             "reply_markup": keyboard,
             "parse_mode": "HTML",
         }
