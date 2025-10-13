@@ -5,7 +5,8 @@ class RegisterForm(StatesGroup):
     name = State()
     description = State()
     photo = State()
-    departament = State()
+    course_number = State()
+    group_name = State()
     confirm = State()
 
 

@@ -8,11 +8,14 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Format, Const
 
+from bot.filters.ingame import NotInGameFilter
 from bot.misc.states import RegisterForm, MainLoop
 from bot.services.admin_chat import AdminChatService
 from db.models import User
 
 router = Router()
+
+COURSE_NUMBERS = ["бак1", "бак2", "бак3", "бак4", "маг1", "маг2", "другое"]
 
 
 async def on_name_input(
@@ -31,9 +34,28 @@ async def on_description_input(
     await manager.next()
 
 
-async def set_department(event, button, manager, value):
-    manager.dialog_data["departament"] = value
-    await manager.next()  # or any next step if you have one
+async def set_group_name(event, button, manager, value):
+    manager.dialog_data["group_name"] = value
+    await manager.next()
+
+
+async def set_course_number(event, button, manager: DialogManager, value: str):
+    if value not in COURSE_NUMBERS:
+        await event.answer(
+            "Пожалуйста, выбери один из предложенных вариантов."
+        )
+        return
+    manager.dialog_data["course_number"] = COURSE_NUMBERS.index(value) + 1
+    await manager.next()
+
+
+def make_course_button(value: str):
+    safe_id = f"reg_course_{COURSE_NUMBERS.index(value)}"  # e.g., reg_course_0
+    return Button(
+        Const(value),
+        id=safe_id,
+        on_click=lambda e, b, m, v=value: set_course_number(e, b, m, v),
+    )
 
 
 async def on_photo_input(
@@ -53,11 +75,15 @@ async def on_finish(callback: CallbackQuery, button, manager: DialogManager):
 
     name = manager.dialog_data.get("name")
     desc = manager.dialog_data.get("description")
-    dep = manager.dialog_data.get("departament")
+    dep = manager.dialog_data.get("group_name")
     photo = manager.dialog_data.get("photo")
+    course_number = manager.dialog_data.get("course_number")
 
     text = (
-        f"<b>Имя:</b> {name}\n<b>Поток:</b> {dep}\n<b>Описание:</b> {desc}\n\n"
+        f"<b>Имя:</b> {name}\n"
+        f"<b>Курс:</b> {COURSE_NUMBERS[course_number - 1]}\n"
+        f"<b>Поток:</b> {dep}\n"
+        f"<b>Описание:</b> {desc}\n\n"
     )
 
     admin_chat = AdminChatService(bot=bot)
@@ -65,7 +91,15 @@ async def on_finish(callback: CallbackQuery, button, manager: DialogManager):
     await admin_chat.send_profile_confirmation_request(
         key="logs",
         photo=photo,
-        user_id=callback.from_user.id,
+        update_data={
+            "tg_id": callback.message.from_user.id,
+            "tg_username": callback.message.from_user.username,
+            "name": name,
+            "about_user": desc,
+            "group_name": dep,
+            "photo": photo,
+            "course_number": course_number,
+        },
         text=text,
         tag="profile_confirm",
     )
@@ -87,27 +121,36 @@ register = [
         state=RegisterForm.name,
     ),
     Window(
+        Format("С какого ты курса?"),
+        Row(
+            *(make_course_button(i) for i in ["бак1", "бак2", "бак3", "бак4"])
+        ),
+        Row(*(make_course_button(i) for i in ["маг1", "маг2"])),
+        Row(make_course_button("другое")),
+        state=RegisterForm.course_number,
+    ),
+    Window(
         Format("С какого ты потока? (разработка / ИИ / бизнес-аналитика)"),
         Row(
             Button(
                 Const("разработка"),
                 id="reg_dep_dev",
-                on_click=lambda e, b, m: set_department(e, b, m, "Разработка"),
+                on_click=lambda e, b, m: set_group_name(e, b, m, "Разработка"),
             ),
             Button(
                 Const("ИИ"),
                 id="reg_dep_ai",
-                on_click=lambda e, b, m: set_department(e, b, m, "ИИ"),
+                on_click=lambda e, b, m: set_group_name(e, b, m, "ИИ"),
             ),
             Button(
                 Const("бизнес-аналитика"),
                 id="reg_dep_ba",
-                on_click=lambda e, b, m: set_department(
+                on_click=lambda e, b, m: set_group_name(
                     e, b, m, "Бизнес-аналитика"
                 ),
             ),
         ),
-        state=RegisterForm.departament,
+        state=RegisterForm.group_name,
     ),
     Window(
         Format("А теперь напиши пару строк о себе"),
@@ -142,7 +185,7 @@ register_dialog = Dialog(
 router.include_router(register_dialog)
 
 
-@router.message(CommandStart())
+@router.message(CommandStart(), NotInGameFilter())
 async def user_start(
     message: Message,
     dialog_manager: DialogManager,
@@ -185,7 +228,4 @@ async def user_start(
             tag="start",
         )
 
-    if not user.is_in_game:
-        await dialog_manager.start(RegisterForm.name)
-    else:
-        await dialog_manager.start(MainLoop.title)
+    await dialog_manager.start(RegisterForm.name)

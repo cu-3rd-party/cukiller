@@ -4,7 +4,7 @@ from aiogram.types import Message
 from db.models import User
 
 
-class AdminFilter(BaseFilter):
+class InGameFilter(BaseFilter):
     async def __call__(self, message: Message, **kwargs) -> bool:
         telegram_user = message.from_user
         if telegram_user is None:
@@ -12,10 +12,10 @@ class AdminFilter(BaseFilter):
 
         user: User | None = await User().get_or_none(tg_id=telegram_user.id)
 
-        return user is not None and user.is_admin
+        return user is not None and user.is_in_game
 
 
-class NotAdminFilter(BaseFilter):
+class NotInGameFilter(BaseFilter):
     async def __call__(self, message: Message, **kwargs) -> bool:
         telegram_user = message.from_user
         if telegram_user is None:
@@ -23,4 +23,4 @@ class NotAdminFilter(BaseFilter):
 
         user: User | None = await User().get_or_none(tg_id=telegram_user.id)
 
-        return user is None or not user.is_admin
+        return user is None or not user.is_in_game
