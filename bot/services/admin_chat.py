@@ -38,12 +38,12 @@ class AdminChatService:
         await self.bot.send_message(**send_kwargs)
 
     async def send_profile_confirmation_request(
-            self,
-            photo,
-            key: str,
-            user_id: int,
-            text: str,
-            tag: str | None = None,
+        self,
+        photo,
+        key: str,
+        user_id: int,
+        text: str,
+        tag: str | None = None,
     ):
         chat: Chat | None = await Chat.get_or_none(key=key)
         if chat is None:

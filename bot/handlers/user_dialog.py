@@ -74,9 +74,7 @@ async def on_finish(callback: CallbackQuery, button, manager: DialogManager):
         chat_id=chat_id, text="Все, отправил на проверку", parse_mode="HTML"
     )
 
-    await (
-        manager.done()
-    )
+    await manager.done()
 
 
 register = [
@@ -146,7 +144,10 @@ router.include_router(register_dialog)
 
 @router.message(CommandStart())
 async def user_start(
-    message: Message, dialog_manager: DialogManager, bot: Bot, state: FSMContext
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
+    state: FSMContext,
 ):
     await state.clear()
 

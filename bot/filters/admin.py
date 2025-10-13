@@ -10,9 +10,7 @@ class AdminFilter(BaseFilter):
         if telegram_user is None:
             return False
 
-        user: User | None = await User().get_or_none(
-            tg_id=telegram_user.id
-        )
+        user: User | None = await User().get_or_none(tg_id=telegram_user.id)
 
         return user is not None and user.is_admin
 

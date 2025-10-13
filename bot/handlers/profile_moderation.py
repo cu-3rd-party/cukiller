@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 
 from aiogram import Bot, Router, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
@@ -17,7 +17,7 @@ _DENY_PREFIX = "deny "
 
 
 def _disabled_keyboard(
-        label_left: str, label_right: str
+    label_left: str, label_right: str
 ) -> InlineKeyboardMarkup:
     """Return a non-interactive keyboard to indicate final state."""
     return InlineKeyboardMarkup(
@@ -31,9 +31,7 @@ def _disabled_keyboard(
 
 
 @router.callback_query(F.data.startswith("noop"))
-async def _disabled_keyboard_callback(
-        callback: CallbackQuery, bot: Bot
-):
+async def _disabled_keyboard_callback(callback: CallbackQuery, bot: Bot):
     await callback.answer(
         "Никаких действий не требуется, это выключенная кнопка, не видно?",
         show_alert=True,
@@ -66,9 +64,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
 
 
 @router.callback_query(F.data.startswith(_CONFIRM_PREFIX))
-async def on_confirm_profile(
-        callback: CallbackQuery, bot: Bot
-):
+async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     """
     Admin pressed 'confirm {user_id}'.
     - Notifies the user about approval.
