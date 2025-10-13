@@ -70,6 +70,16 @@ def _disabled_keyboard(
     )
 
 
+@router.callback_query(F.data.startswith("noop"))
+async def _disabled_keyboard_callback(
+    callback: CallbackQuery, bot: Bot, config: Config
+):
+    await callback.answer(
+        "Никаких действий не требуется, это выключенная кнопка, не видно?",
+        show_alert=True,
+    )
+
+
 def _extract_user_id(data: str, prefix: str) -> Optional[int]:
     if not data.startswith(prefix):
         return None
@@ -127,9 +137,10 @@ async def on_confirm_profile(
     try:
         await bot.send_message(
             chat_id=target_user_id,
-            text=("<b>Ваш профиль подтверждён модератором.</b>\n\n"),
+            text="<b>Ваш профиль подтверждён модератором.</b>\n\n",
             parse_mode="HTML",
         )
+        # TODO: start main menu dialog
     except TelegramForbiddenError:
         # The user might have blocked the bot or never started it
         if callback.message:
