@@ -79,6 +79,7 @@ def _extract_user_id(data: str, prefix: str) -> Optional[int]:
     except ValueError:
         return None
 
+
 async def _block_if_not_admin(callback: CallbackQuery, config: Config) -> bool:
     """
     Returns True if processing should stop (user is not admin).
@@ -87,8 +88,7 @@ async def _block_if_not_admin(callback: CallbackQuery, config: Config) -> bool:
     user_id = callback.from_user.id
     if user_id not in getattr(config.tg_bot, "admin_ids", []):
         await callback.answer(
-            "У вас нет прав для модерации профилей.",
-            show_alert=True
+            "У вас нет прав для модерации профилей.", show_alert=True
         )
         return True
     return False
