@@ -24,7 +24,6 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
     environment = EnvironmentMiddleware(config=settings, dp=dp)
     dp.update.middleware(environment)
-    setup_dialogs(dp)
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:
