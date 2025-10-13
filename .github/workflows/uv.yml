@@ -1,0 +1,46 @@
+﻿name: Check uv.lock
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "pyproject.toml"
+      - ".github/workflows/uv-lock-check.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  check-uv-lock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Verify uv.lock is up to date
+        run: |
+          cp uv.lock uv.lock.before
+
+          uv lock
+
+          if ! diff -q uv.lock.before uv.lock >/dev/null 2>&1; then
+            echo "uv.lock is outdated. Regenerating and committing..."
+            git config user.name "${{ secrets.RUFF_USERNAME }}"
+            git config user.email "${{ secrets.RUFF_EMAIL }}"
+            git add uv.lock
+            git commit -m "Regenerate uv.lock"
+            git push
+          else
+            echo "uv.lock is up to date."
+          fi
