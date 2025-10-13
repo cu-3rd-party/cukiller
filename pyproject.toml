@@ -10,6 +10,8 @@ dependencies = [
     "pydantic>=2.11.10",
     "pydantic-settings>=2.11.0",
     "tortoise-orm>=0.25.1",
+    "pillow>=11.3.0",
+    "aiogram-dialog==2.4.0",
 ]
 
 [tool.ruff]

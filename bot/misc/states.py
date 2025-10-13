@@ -1,13 +1,17 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class UsersStates(StatesGroup):
-    """
-    Класс реализует состояние пользователя внутри сценария.
-    Атрибуты заполняются во время опроса пользователя.
+class RegisterForm(StatesGroup):
+    name = State()
+    description = State()
+    photo = State()
+    departament = State()
+    confirm = State()
 
-    Attributes:
-        last_command (str): команда, которую ввёл пользователь.
-    """
 
-    last_command = State()
+class ConfirmProfileForm(StatesGroup):
+    user_id = State()
+
+
+class MainLoop(StatesGroup):
+    title = State()
