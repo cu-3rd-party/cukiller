@@ -70,6 +70,7 @@ async def run_bot(settings: Settings) -> None:
 
     register_all_middlewares(dp, settings)
     register_all_handlers(dp)
+    setup_dialogs(dp)
 
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
