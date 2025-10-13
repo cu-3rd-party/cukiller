@@ -134,6 +134,7 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- =====================================================================
 CREATE TABLE chats (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key        VARCHAR(1024) NOT NULL,
   chat_id    BIGINT NOT NULL,
   name       TEXT,
   slug       TEXT,

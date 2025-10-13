@@ -5,6 +5,7 @@ from .base import TimestampedModel
 
 class Chat(TimestampedModel):
     chat_id = fields.BigIntField()
+    key = fields.CharField(max_length=1024)
     name = fields.CharField(max_length=255, null=True)
     slug = fields.CharField(max_length=255, null=True)
     type = fields.CharField(max_length=32, null=True)

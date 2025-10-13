@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram_dialog import setup_dialogs
 
 from bot.middlewares.environment import EnvironmentMiddleware
 from db.main import close_db, init_db
@@ -68,6 +69,7 @@ async def run_bot(settings: Settings) -> None:
 
     register_all_middlewares(dp, settings)
     register_all_handlers(dp)
+    setup_dialogs(dp)
 
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
