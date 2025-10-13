@@ -166,9 +166,9 @@ async def user_start(
     telegram_user = message.from_user
     user, created = await User().get_or_create(
         tg_id=telegram_user.id,
-        username=telegram_user.username,
-        first_name=telegram_user.first_name,
-        last_name=telegram_user.last_name,
+        tg_username=telegram_user.username,
+        given_name=telegram_user.first_name,
+        family_name=telegram_user.last_name,
     )
     await user.save()
 
@@ -185,7 +185,7 @@ async def user_start(
             tag="start",
         )
 
-    if not user.profile:
+    if not user.is_in_game:
         await dialog_manager.start(RegisterForm.name)
     else:
         await dialog_manager.start(MainLoop.title)

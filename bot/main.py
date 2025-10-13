@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram_dialog import setup_dialogs
 
 from bot.middlewares.environment import EnvironmentMiddleware
 from db.main import close_db, init_db
@@ -23,6 +24,7 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
     environment = EnvironmentMiddleware(config=settings, dp=dp)
     dp.update.middleware(environment)
+    setup_dialogs(dp)
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:

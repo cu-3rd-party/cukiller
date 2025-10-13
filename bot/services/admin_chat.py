@@ -2,6 +2,7 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from db.models.chat import Chat
+from settings import Settings
 
 
 class ChatServiceError(Exception):
@@ -20,20 +21,16 @@ class AdminChatService:
     async def send_message(
         self, key: str, text: str, tag: str | None = None
     ) -> None:
-        chat: Chat | None = await Chat.get_or_none(key=key)
-        if chat is None:
-            raise ChatNotFoundError(key)
-
         body = text if not tag else f"#{tag}\n\n{text}"
 
         send_kwargs = {
-            "chat_id": chat.chat_id,
+            "chat_id": Settings.admin_chat_id,
             "text": body,
             "parse_mode": "HTML",
         }
 
-        if chat.thread is not None:
-            send_kwargs["message_thread_id"] = chat.thread
+        # if chat.thread is not None:
+        #     send_kwargs["message_thread_id"] = chat.thread
 
         await self.bot.send_message(**send_kwargs)
 
@@ -45,10 +42,6 @@ class AdminChatService:
         text: str,
         tag: str | None = None,
     ):
-        chat: Chat | None = await Chat.get_or_none(key=key)
-        if chat is None:
-            raise ChatNotFoundError(key)
-
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -65,14 +58,14 @@ class AdminChatService:
         body = text if not tag else f"#{tag}\n\n{text}"
 
         send_kwargs = {
-            "chat_id": chat.chat_id,
+            "chat_id": Settings.admin_chat_id,
             "photo": photo,
             "text": body,
             "reply_markup": keyboard,
             "parse_mode": "HTML",
         }
 
-        if chat.thread is not None:
-            send_kwargs["message_thread_id"] = chat.thread
+        # if chat.thread is not None:
+        #     send_kwargs["message_thread_id"] = chat.thread
 
         await self.bot.send_photo(**send_kwargs)
