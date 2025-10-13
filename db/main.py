@@ -45,7 +45,6 @@ async def _ensure_default_admin_chat(settings: Settings) -> None:
 async def _ensure_default_admins(settings: Settings) -> None:
     # Выдаем админки тем, кто указан
     admins = [int(i) for i in settings.admin_ids_raw.split(",")]
-    logger.info(f"Вот список админов: {admins}")
     for admin_id in admins:
         user, created = await User.get_or_create(
             tg_id=admin_id,
@@ -65,6 +64,4 @@ async def _ensure_default_admins(settings: Settings) -> None:
             f"Админ {user.tg_id} лишился права администратора!",
         )
         await user.save()
-    logger.info(
-        f"Вот список админов после выдачи/забирания прав: {await User.filter(is_admin=True).all()}"
-    )
+    assert len(admins) == await User.filter(is_admin=True).count()
