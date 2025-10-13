@@ -26,7 +26,7 @@ class ProfileInfo:
     name: str
     description: str = ""
     department: Optional[str] = None
-    profile_photo: Optional[Image] = None
+    profile_photo: Image.Image | None = None # добавил Image.Image
 
 
 class ProfileImageGenerator:
@@ -37,10 +37,11 @@ class ProfileImageGenerator:
     ПОСЛЕ того, как сделаем минимальный рабочий прототип
     """
 
-    # здесь можно задавать любые метаданные
-    image_width = 1000
-    image_height = 1600
-    background_color = (0, 0, 0)  # простой черный фон, в идеале его не видно
+    background = Image.open("bot/services/images/background.png") # Фон для превьюшки
+    background_width, background_height = background.size # Получаем размеры фона
+
+    image_width = 1191 # Размеры области для вставки фотографии
+    image_height = 1588
 
     @staticmethod
     def generate_wanted_single(user_info: ProfileInfo) -> bytes:
@@ -53,23 +54,23 @@ class ProfileImageGenerator:
             f"Запросили генерацию превьюшки для пользователя {user_info.user_id}"
         )
         try:
-            # Создаем основной холст
-            image = Image.new(
-                "RGB",
-                (
-                    ProfileImageGenerator.image_width,
-                    ProfileImageGenerator.image_height,
-                ),
-                ProfileImageGenerator.background_color,
-            )
+            user_image = user_info.profile_photo
+            preview = ProfileImageGenerator.background.copy()
 
-            # Здесь должна идти логика рисования превьюхи на холсте
-            ...
+            user_image = user_image.resize((ProfileImageGenerator.image_width, ProfileImageGenerator.image_height)) # Изменяем размер фотографии пользователя
+            preview.paste(user_image, (250, 488))
+            """
+            TODO: 
+               - сделать обработку горизонтального изображения (вырезать центр)
+               - добавить обработку фотографий соотношением сторон не 4:3
+               - написать readme.md файл по использованию
+            """
+            preview.show()
 
             img_buffer = io.BytesIO()
-            image.save(img_buffer, format="PNG")
+            preview.save(img_buffer, format="PNG")
             img_buffer.seek(0)
-
+            
             logger.debug(
                 f"Превьюшка для пользователя {user_info.user_id} успешно сгенерирована"
             )
@@ -101,3 +102,16 @@ class ProfileImageGenerator:
         :return:
         """
         raise NotImplementedError()
+
+
+# Тестовый код для запуска
+
+myImage_path = "bot/services/images/myImage.jpg" 
+with Image.open(myImage_path) as myImage:
+    myImage.load()
+user = ProfileInfo(
+    user_id=1435771278, 
+    name="Artem", 
+    description='Хочу выучить питон', 
+    profile_photo=myImage)
+test = ProfileImageGenerator.generate_wanted_single(user)
