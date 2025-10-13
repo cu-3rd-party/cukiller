@@ -26,7 +26,7 @@ class ProfileInfo:
     name: str
     description: str = ""
     department: Optional[str] = None
-    profile_photo: Image.Image | None = None # добавил Image.Image
+    profile_photo: Image.Image | None = None  # добавил Image.Image
 
 
 class ProfileImageGenerator:
@@ -37,10 +37,14 @@ class ProfileImageGenerator:
     ПОСЛЕ того, как сделаем минимальный рабочий прототип
     """
 
-    background = Image.open("bot/services/images/background.png") # Фон для превьюшки
-    background_width, background_height = background.size # Получаем размеры фона
+    background = Image.open(
+        "bot/services/images/background.png"
+    )  # Фон для превьюшки
+    background_width, background_height = (
+        background.size
+    )  # Получаем размеры фона
 
-    image_width = 1191 # Размеры области для вставки фотографии
+    image_width = 1191  # Размеры области для вставки фотографии
     image_height = 1588
 
     @staticmethod
@@ -57,7 +61,12 @@ class ProfileImageGenerator:
             user_image = user_info.profile_photo
             preview = ProfileImageGenerator.background.copy()
 
-            user_image = user_image.resize((ProfileImageGenerator.image_width, ProfileImageGenerator.image_height)) # Изменяем размер фотографии пользователя
+            user_image = user_image.resize(
+                (
+                    ProfileImageGenerator.image_width,
+                    ProfileImageGenerator.image_height,
+                )
+            )  # Изменяем размер фотографии пользователя
             preview.paste(user_image, (250, 488))
             """
             TODO: 
@@ -70,7 +79,7 @@ class ProfileImageGenerator:
             img_buffer = io.BytesIO()
             preview.save(img_buffer, format="PNG")
             img_buffer.seek(0)
-            
+
             logger.debug(
                 f"Превьюшка для пользователя {user_info.user_id} успешно сгенерирована"
             )
@@ -106,12 +115,13 @@ class ProfileImageGenerator:
 
 # Тестовый код для запуска
 
-myImage_path = "bot/services/images/myImage.jpg" 
+myImage_path = "bot/services/images/myImage.jpg"
 with Image.open(myImage_path) as myImage:
     myImage.load()
 user = ProfileInfo(
-    user_id=1435771278, 
-    name="Artem", 
-    description='Хочу выучить питон', 
-    profile_photo=myImage)
+    user_id=1435771278,
+    name="Artem",
+    description="Хочу выучить питон",
+    profile_photo=myImage,
+)
 test = ProfileImageGenerator.generate_wanted_single(user)
