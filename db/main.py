@@ -65,4 +65,6 @@ async def _ensure_default_admins(settings: Settings) -> None:
             f"Админ {user.tg_id} лишился права администратора!",
         )
         await user.save()
-    logger.info(f"Вот список админов после выдачи/забирания прав: {await User.filter(is_admin=True).all()}")
+    logger.info(
+        f"Вот список админов после выдачи/забирания прав: {await User.filter(is_admin=True).all()}"
+    )
