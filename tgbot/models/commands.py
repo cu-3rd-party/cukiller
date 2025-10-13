@@ -1,7 +1,10 @@
 # Не оптимизировать импорты и не менять их порядок
 
 import os, django
-from typing import Tuple
+from typing import Tuple, Optional
+
+from PIL import Image as PILImage
+from PIL.Image import Image
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dj_ac.settings")
 os.environ.update({"DJANGO_ALLOW_ASYNC_UNSAFE": "true"})

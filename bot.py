@@ -4,11 +4,13 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram_dialog import setup_dialogs
 
 from tgbot.config import load_config
 import os
 import importlib
 from tgbot.middlewares.environment import EnvironmentMiddleware
+from tgbot.services import admin_chat
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,8 @@ def register_all_handlers(dp):
             module = importlib.import_module(full_module_name)
             routers.append(module.router)
 
-    dp.include_routers(*routers)
+    dp.include_routers(*routers, admin_chat.router)
+    setup_dialogs(dp)
 
 
 def setup_django():
