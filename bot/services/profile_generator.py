@@ -95,7 +95,7 @@ class ProfileImageGenerator:
             img_buffer = io.BytesIO()
             preview.save(img_buffer, format="PNG")
             img_buffer.seek(0)
-            
+
             logger.debug(
                 f"Превьюшка для пользователя {user_info.user_id} успешно сгенерирована"
             )
