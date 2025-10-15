@@ -1,4 +1,4 @@
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import StatesGroup, State
 
 
 class RegisterForm(StatesGroup):
@@ -11,11 +11,3 @@ class RegisterForm(StatesGroup):
     about = State()
     photo = State()
     confirm = State()
-
-
-class ConfirmProfileForm(StatesGroup):
-    user_id = State()
-
-
-class MainLoop(StatesGroup):
-    title = State()

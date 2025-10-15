@@ -9,6 +9,7 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Row, Group, Column
 from aiogram_dialog.widgets.text import Format, Const
 
+from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.private_messages import PrivateMessagesFilter
 from bot.misc.states import RegisterForm
@@ -318,7 +319,9 @@ register_dialog = Dialog(
 router.include_router(register_dialog)
 
 
-@router.message(CommandStart(), ~ConfirmedFilter(), PrivateMessagesFilter())
+@router.message(
+    CommandStart(), ~ConfirmedFilter(), PrivateMessagesFilter(), ~AdminFilter()
+)
 async def user_start(
     message: Message,
     dialog_manager: DialogManager,

@@ -62,7 +62,7 @@ CREATE TABLE games (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                     TEXT NOT NULL,
   description              TEXT,
-  start_date               TIMESTAMPTZ NOT NULL,
+  start_date               TIMESTAMPTZ,
   end_date                 TIMESTAMPTZ,
   end_message              TEXT,
   max_players              INTEGER CHECK (max_players > 0),

@@ -7,9 +7,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
-from aiogram_dialog import DialogManager
 
-from bot.misc.states import RegisterForm, MainLoop
 from db.models import User
 
 router = Router(name="profile_moderation")
