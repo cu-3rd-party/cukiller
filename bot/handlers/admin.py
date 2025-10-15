@@ -98,7 +98,7 @@ async def on_final_confirmation(
 ):
     manager.dialog_data["confirm"] = True
 
-    creation_date =datetime.now()
+    creation_date = datetime.now()
     await Game().create(
         name=manager.dialog_data["name"],
         description=manager.dialog_data["description"],
@@ -109,7 +109,9 @@ async def on_final_confirmation(
     # TODO: notify everyone about the new game
 
     await manager.done()
-    await callback.message.reply(f"Новая игра создана. Дата создания: {creation_date}")
+    await callback.message.reply(
+        f"Новая игра создана. Дата создания: {creation_date}"
+    )
 
 
 create_game_dialog = Dialog(
@@ -139,7 +141,9 @@ router.include_router(create_game_dialog)
 
 
 @router.message(AdminFilter(), Command(commands=["creategame"]))
-async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
+async def creategame(
+    message: Message, bot: Bot, dialog_manager: DialogManager
+):
     if await Game().filter(end_date=None).exists():
         await message.reply(
             text=(
@@ -157,6 +161,7 @@ async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
 async def getservertime(message: Message):
     await message.reply(f"Сейчас на сервере: {datetime.now()}")
 
+
 def parse_game_stage(game: Game) -> str:
     if game.end_date:
         return "Завершена"
@@ -169,12 +174,18 @@ def parse_game_stage(game: Game) -> str:
     else:
         return "Регистрация не начата"
 
+
 async def get_games_data(**kwargs):
     games = await Game().all()
-    return {"games": [{
-        "id": game.id,
-        "name": f"{game.name} - {parse_game_stage(game)}",
-    } for game in games]}
+    return {
+        "games": [
+            {
+                "id": game.id,
+                "name": f"{game.name} - {parse_game_stage(game)}",
+            }
+            for game in games
+        ]
+    }
 
 
 async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
@@ -185,19 +196,25 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
     return {
         "game": game,
         "show_start_registration": game.registration_start_date is None,
-        "show_end_registration": game.registration_start_date is not None and game.registration_end_date is None,
-        "show_start_game": game.registration_end_date is not None and game.start_date is None,
+        "show_end_registration": game.registration_start_date is not None
+        and game.registration_end_date is None,
+        "show_start_game": game.registration_end_date is not None
+        and game.start_date is None,
         "show_end_game": game.start_date is not None and game.end_date is None,
     }
 
 
-async def on_game_selected(callback: CallbackQuery, widget, manager: DialogManager, item_id: str):
+async def on_game_selected(
+    callback: CallbackQuery, widget, manager: DialogManager, item_id: str
+):
     await callback.answer(f"Вы выбрали игру {item_id}")
     manager.dialog_data["game_id"] = item_id
     await manager.next()
 
 
-async def on_action_clicked(callback: CallbackQuery, widget, manager: DialogManager):
+async def on_action_clicked(
+    callback: CallbackQuery, widget, manager: DialogManager
+):
     action = widget.widget_id
     game = await Game.get(id=manager.dialog_data["game_id"])
     logger.info(action)
@@ -215,12 +232,14 @@ async def on_action_clicked(callback: CallbackQuery, widget, manager: DialogMana
     await manager.switch_to(EditGame.edit)
 
 
-async def on_get_game_info(callback: CallbackQuery, widget, manager: DialogManager):
+async def on_get_game_info(
+    callback: CallbackQuery, widget, manager: DialogManager
+):
     game_id = manager.dialog_data["game_id"]
     game = await Game().get(id=game_id)
     participants_count = await Player().filter(game=game_id).count()
     await callback.message.answer(
-        f"Информация об игре \"{game.name}\" с айди {game_id}\n\n"
+        f'Информация об игре "{game.name}" с айди {game_id}\n\n'
         f"Описание: {game.description}\n\n"
         f"Начало регистрации: {game.registration_start_date}\n"
         f"Конец регистрации: {game.registration_end_date}\n"
@@ -247,16 +266,44 @@ game_edit_dialog = Dialog(
     Window(
         Format("Ну и что с ней делать будем?\n\nИгра: {game.name}"),
         Row(
-            Button(Const("Начать регистрацию"), id="start_registration", on_click=on_action_clicked, when="show_start_registration"),
-            Button(Const("Закончить регистрацию"), id="end_registration", on_click=on_action_clicked, when="show_end_registration"),
-            Button(Const("Начать игру"), id="start_game", on_click=on_action_clicked, when="show_start_game"),
-            Button(Const("Закончить игру"), id="end_game", on_click=on_action_clicked, when="show_end_game"),
+            Button(
+                Const("Начать регистрацию"),
+                id="start_registration",
+                on_click=on_action_clicked,
+                when="show_start_registration",
+            ),
+            Button(
+                Const("Закончить регистрацию"),
+                id="end_registration",
+                on_click=on_action_clicked,
+                when="show_end_registration",
+            ),
+            Button(
+                Const("Начать игру"),
+                id="start_game",
+                on_click=on_action_clicked,
+                when="show_start_game",
+            ),
+            Button(
+                Const("Закончить игру"),
+                id="end_game",
+                on_click=on_action_clicked,
+                when="show_end_game",
+            ),
         ),
         Row(
-            Button(Const("Посмотреть информацию"), id="info", on_click=on_get_game_info)
+            Button(
+                Const("Посмотреть информацию"),
+                id="info",
+                on_click=on_get_game_info,
+            )
         ),
         Row(
-            Button(Const("Назад"), id="back", on_click=lambda c, w, m: m.switch_to(EditGame.game_id))
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, w, m: m.switch_to(EditGame.game_id),
+            )
         ),
         state=EditGame.edit,
         getter=get_selected_game_data,
@@ -264,7 +311,7 @@ game_edit_dialog = Dialog(
 )
 router.include_router(game_edit_dialog)
 
+
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(EditGame.game_id)
-
