@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+from typing import Any
+
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from db.models import User
 from db.models.chat import Chat
 
 
@@ -41,7 +45,7 @@ class AdminChatService:
         self,
         photo,
         key: str,
-        user_id: int,
+        tg_id: int,
         text: str,
         tag: str | None = None,
     ):
@@ -49,14 +53,18 @@ class AdminChatService:
         if chat is None:
             raise ChatNotFoundError(key)
 
+        user_obj, _ = await User.get_or_create(tg_id=tg_id)
+
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="confirm", callback_data=f"confirm {user_id}"
+                        text="confirm",
+                        callback_data=f"confirm {tg_id}",
                     ),
                     InlineKeyboardButton(
-                        text="deny", callback_data=f"deny {user_id}"
+                        text="deny",
+                        callback_data=f"deny {tg_id}",
                     ),
                 ]
             ]

@@ -3,9 +3,13 @@ from aiogram.fsm.state import State, StatesGroup
 
 class RegisterForm(StatesGroup):
     name = State()
-    description = State()
+    course_type = State()
+    course_number_bachelor = State()
+    course_number_master = State()
+    course_other = State()
+    group_name = State()
+    about = State()
     photo = State()
-    departament = State()
     confirm = State()
 
 

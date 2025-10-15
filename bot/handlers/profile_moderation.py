@@ -7,7 +7,9 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
+from aiogram_dialog import DialogManager
 
+from bot.misc.states import RegisterForm, MainLoop
 from db.models import User
 
 router = Router(name="profile_moderation")
@@ -94,15 +96,24 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     try:
         await bot.send_message(
             chat_id=target_user_id,
-            text="<b>Ваш профиль подтверждён модератором.</b>\n\n",
+            text=(
+                "<b>Ваш профиль подтверждён модератором.</b>\n\n"
+                "Для перехода в главное меню пропишите /start"
+            ),
             parse_mode="HTML",
         )
-        # TODO: start main menu dialog
-    except TelegramForbiddenError:
+        user, created = await User.get_or_create(tg_id=target_user_id)
+        if created:
+            await callback.message.reply(
+                f"Пользователь {target_user_id} еще даже в базе данных не появился"
+            )
+        user.status = "confirmed"
+        await user.save()
+    except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it
         if callback.message:
             await callback.message.reply(
-                f"Не удалось отправить уведомление пользователю {target_user_id}: Forbidden"
+                f"Не удалось отправить уведомление пользователю {target_user_id}: {e}"
             )
 
 
@@ -138,12 +149,19 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot):
             text=(
                 "<b>Ваш профиль не прошёл модерацию.</b>\n\n"
                 "Пожалуйста, обновите информацию и отправьте повторно."
-                "Если нужна помощь — ответьте этому сообщению."
+                "Для этого пропишите /start"
             ),
             parse_mode="HTML",
         )
-    except TelegramForbiddenError:
+        user, created = await User.get_or_create(tg_id=target_user_id)
+        if created:
+            await callback.message.reply(
+                f"Пользователь {target_user_id} еще даже в базе данных не появился"
+            )
+        user.status = "rejected"
+        await user.save()
+    except TelegramForbiddenError as e:
         if callback.message:
             await callback.message.reply(
-                f"Не удалось отправить уведомление пользователю {target_user_id}: Forbidden"
+                f"Не удалось отправить уведомление пользователю {target_user_id}: {e}"
             )
