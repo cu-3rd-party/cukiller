@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
@@ -25,9 +25,8 @@ router = Router()
 async def get_discussion_link(**kwargs):
     manager = kwargs["dialog_manager"]
     settings: Settings = manager.middleware_data["settings"]
-    return {
-        "discussion_link": settings.game_chat_invite_link
-    }
+    return {"discussion_link": settings.game_chat_invite_link}
+
 
 main_menu_dialog = Dialog(
     Window(
@@ -46,10 +45,13 @@ main_menu_dialog = Dialog(
 
 router.include_router(main_menu_dialog)
 
-@router.message(CommandStart(), ConfirmedFilter(), PrivateMessagesFilter(), UserFilter())
+
+@router.message(
+    CommandStart(), ConfirmedFilter(), PrivateMessagesFilter(), UserFilter()
+)
 async def user_start(
-        message: Message,
-        dialog_manager: DialogManager,
-        bot: Bot,
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
 ):
     await dialog_manager.start(MainLoop.title)
