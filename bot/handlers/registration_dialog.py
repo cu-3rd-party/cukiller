@@ -9,7 +9,8 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Row, Group, Column
 from aiogram_dialog.widgets.text import Format, Const
 
-from bot.filters.ingame import NotInGameFilter
+from bot.filters.confirmed import ConfirmedFilter
+from bot.filters.private_messages import PrivateMessagesFilter
 from bot.misc.states import RegisterForm
 from bot.services.admin_chat import AdminChatService
 from db.models import User
@@ -305,7 +306,7 @@ register_dialog = Dialog(
 router.include_router(register_dialog)
 
 
-@router.message(CommandStart(), NotInGameFilter())
+@router.message(CommandStart(), ~ConfirmedFilter(), PrivateMessagesFilter())
 async def user_start(
         message: Message,
         dialog_manager: DialogManager,
@@ -315,12 +316,6 @@ async def user_start(
 
     if telegram_user is None:
         await message.answer("Не удалось определить пользователя.")
-        return
-
-    if message.from_user.id != message.chat.id:
-        await message.answer(
-            "Этот бот работает только в личных сообщениях."
-        )
         return
 
     # Check if user already exists
