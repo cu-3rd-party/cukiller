@@ -42,6 +42,7 @@ async def _ensure_default_admin_chat(settings: Settings) -> None:
             f"Создан системный чат 'logs' c айди {settings.admin_chat_id}",
         )
 
+
 async def _ensure_default_discussion_group(settings: Settings) -> None:
     defaults = {
         "chat_id": settings.discussion_chat_id,
