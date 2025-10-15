@@ -35,6 +35,14 @@ async def admin_start(message: Message, bot: Bot):
                 command="/startgame",
                 description="Начать новую игру",
             ),
+            BotCommand(
+                command="/endgame",
+                description="Закончить активную игру",
+            ),
+            BotCommand(
+                command="/getservertime",
+                description="Получить текущее время на сервере",
+            ),
         ],
         scope=BotCommandScopeChat(chat_id=message.chat.id),
     )
@@ -84,18 +92,23 @@ async def on_description_input(
 async def on_final_confirmation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
+    await callback.message.delete()
     manager.dialog_data["confirm"] = True
 
+    creation_date =datetime.now()
     await Game().create(
         name=manager.dialog_data["name"],
         description=manager.dialog_data["description"],
-        start_date=datetime.now(),
+        registration_start_date=creation_date, # TODO: separate registration and launching the game
+        registration_end_date=creation_date,
+        start_date=creation_date,
         visibility="public",  # ну сорян, пока что свои лобби не в планах делать
     )
 
     # TODO: notify everyone about the new game
 
     await manager.done()
+    await callback.message.reply(f"Новая игра создана. Дата создания: {creation_date}")
 
 
 create_game_dialog = Dialog(
@@ -132,7 +145,37 @@ async def startgame(message: Message, bot: Bot, dialog_manager: DialogManager):
                 "Ты уверен, что хочешь начать новую игру, не закончив старую?\n\n"
                 "Даже если уверен, то ты меня не научил так делать, так "
                 "что начала закончи текущую активную игру\n"
+                "Для этого можешь воспользоваться /endgame\n"
             )
         )
         return
     await dialog_manager.start(StartGame.name)
+
+
+@router.message(AdminFilter(), Command(commands=["endgame"]))
+async def endgame(message: Message, bot: Bot, dialog_manager: DialogManager):
+    game_obj = await Game().filter(end_date=None).first()
+    if not game_obj:
+        await message.reply(
+            text=(
+                "Мне нечего завершать, сорян)\n"
+                "Создай новую игру через /startgame\n"
+            )
+        )
+        return
+    game_obj.end_date = datetime.now()
+    await game_obj.save()
+
+    # TODO: send endgame screen statistics
+
+    await message.reply(
+        text=(
+            "Хорошая получилась история, а главное поучительная.\n\n"
+            f"Игра продлилась {(game_obj.end_date - game_obj.start_date).days} дней\n"
+        )
+    )
+
+
+@router.message(AdminFilter(), Command(commands=["getservertime"]))
+async def getservertime(message: Message):
+    await message.reply(f"Сейчас на сервере: {datetime.now()}")
