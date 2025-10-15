@@ -7,7 +7,8 @@ from aiogram.types import (
     Message,
     BotCommand,
     BotCommandScope,
-    BotCommandScopeChat, CallbackQuery,
+    BotCommandScopeChat,
+    CallbackQuery,
 )
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.input import MessageInput
@@ -50,7 +51,11 @@ async def stats(message: Message, bot: Bot):
     user_count = await User().all().count()
     user_confirmed_count = await User().filter(status="confirmed").count()
     current_game = await Game().filter(end_date=None).first()
-    game_status = f"Сейчас игра <b>идет</b>, она началась {current_game.start_date}" if current_game else "Сейчас игра <b>не идет</b>"
+    game_status = (
+        f"Сейчас игра <b>идет</b>, она началась {current_game.start_date}"
+        if current_game
+        else "Сейчас игра <b>не идет</b>"
+    )
     await message.reply(
         text=(
             "Держи краткую статистику по боту\n\n"
@@ -63,20 +68,21 @@ async def stats(message: Message, bot: Bot):
 
 
 async def on_name_input(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     manager.dialog_data["name"] = message.text.strip()
     await manager.next()
 
 
 async def on_description_input(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     manager.dialog_data["description"] = message.text.strip()
     await manager.next()
 
+
 async def on_final_confirmation(
-        callback: CallbackQuery, button: Button, manager: DialogManager
+    callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     manager.dialog_data["confirm"] = True
 
@@ -84,12 +90,13 @@ async def on_final_confirmation(
         name=manager.dialog_data["name"],
         description=manager.dialog_data["description"],
         start_date=datetime.now(),
-        visibility="public", # ну сорян, пока что свои лобби не в планах делать
+        visibility="public",  # ну сорян, пока что свои лобби не в планах делать
     )
 
     # TODO: notify everyone about the new game
 
     await manager.done()
+
 
 create_game_dialog = Dialog(
     Window(
@@ -105,12 +112,17 @@ create_game_dialog = Dialog(
     Window(
         Const("Ну в принципе я получил все что мне надо было, стартуем?"),
         Column(
-            Button(Const("Да, погнали"), on_click=on_final_confirmation, id="startgame_confirm")
+            Button(
+                Const("Да, погнали"),
+                on_click=on_final_confirmation,
+                id="startgame_confirm",
+            )
         ),
         state=StartGame.confirm,
     ),
 )
 router.include_router(create_game_dialog)
+
 
 @router.message(AdminFilter(), Command(commands=["startgame"]))
 async def startgame(message: Message, bot: Bot, dialog_manager: DialogManager):
