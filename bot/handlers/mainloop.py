@@ -29,7 +29,8 @@ async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
-        "game_not_running": game is None, # TODO: idk how to reverse condition in when block, so like this
+        "game_not_running": game
+        is None,  # TODO: idk how to reverse condition in when block, so like this
     }
 
 
@@ -47,7 +48,7 @@ main_menu_dialog = Dialog(
                 id="next_game_link",
                 url=Format("{next_game_link}"),
                 when="game_not_running",
-            )
+            ),
         ),
         getter=get_mainmenu_info,
         state=MainLoop.title,
