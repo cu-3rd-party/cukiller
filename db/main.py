@@ -17,6 +17,7 @@ async def init_db(settings: Settings) -> None:
         await Tortoise.generate_schemas()
         logger.info("Генерация схем Tortoise ORM выполнена")
     await _ensure_default_admin_chat(settings)
+    await _ensure_default_discussion_group(settings)
     await _ensure_default_admins(settings)
 
 
@@ -39,6 +40,20 @@ async def _ensure_default_admin_chat(settings: Settings) -> None:
     if created:
         logger.info(
             f"Создан системный чат 'logs' c айди {settings.admin_chat_id}",
+        )
+
+async def _ensure_default_discussion_group(settings: Settings) -> None:
+    defaults = {
+        "chat_id": settings.discussion_chat_id,
+        "name": "Discussion Group",
+        "type": "group",
+        "purpose": "Чат игры",
+    }
+
+    _, created = await Chat.get_or_create(key="discussion", defaults=defaults)
+    if created:
+        logger.info(
+            f"Создан системный чат 'discussion' c айди {settings.discussion_chat_id}",
         )
 
 

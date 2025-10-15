@@ -1,5 +1,6 @@
 from typing import Any
 
+from aiogram.types import ChatInviteLink
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,8 +17,8 @@ class Settings(BaseSettings):
     bot_name: str = Field(default="cu_killer_bot", alias="BOT_NAME")
     bot_token: str = Field(default="ERROR_TOKEN", alias="BOT_TOKEN")
     admin_chat_id: int = Field(alias="ADMIN_CHAT_ID")
-    game_chat_id: int = Field(alias="GAME_CHAT_ID")
-    game_chat_invite_link: str = Field(alias="GAME_CHAT_INVITE_LINK")
+    discussion_chat_id: int = Field(alias="DISCUSSION_ID")
+    discussion_chat_invite_link: ChatInviteLink | None = Field(default=None)
     admin_ids_raw: str | None = Field(default=None, alias="ADMIN_IDS")
     report_link: str = Field(alias="REPORT_LINK")
     game_info_link: str = Field(alias="NEXT_GAME_LINK")

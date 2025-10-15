@@ -25,7 +25,7 @@ router = Router()
 async def get_discussion_link(**kwargs):
     manager = kwargs["dialog_manager"]
     settings: Settings = manager.middleware_data["settings"]
-    return {"discussion_link": settings.game_chat_invite_link}
+    return {"discussion_link": settings.discussion_chat_invite_link.invite_link}
 
 
 main_menu_dialog = Dialog(

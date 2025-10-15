@@ -12,6 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_dialog import setup_dialogs
 
 from bot.middlewares.environment import EnvironmentMiddleware
+from bot.services.discussion_invite import generate_discussion_invite_link
 from db.main import close_db, init_db
 from settings import Settings, get_settings
 
@@ -51,6 +52,7 @@ def register_all_handlers(dp: Dispatcher) -> None:
 
 async def on_startup(bot: Bot, settings: Settings) -> None:
     await init_db(settings)
+    await generate_discussion_invite_link(bot, settings)
 
 
 async def on_shutdown(bot: Bot, settings: Settings) -> None:
