@@ -1,6 +1,6 @@
 # CU killer bot
 
-Бот для игры в Killer в Telegram для Центрального Университета
+Telegram бот для игры в Killer для Центрального Университета
 
 ## Запуск
 
@@ -10,7 +10,7 @@
 git clone <>
 ```
 
--   Скопируйте и изменить настройки .env
+-   Скопируйте и измените настройки .env
 
 ```bash
 cp .env.example .env
@@ -37,3 +37,5 @@ docker compose down
 -   Username: admin
 -   Password: admin
 -   Database: db
+
+Если вы меняли свой .env файл, то берите из него значения
