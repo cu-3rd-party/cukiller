@@ -45,7 +45,7 @@ class AdminChatService:
         self,
         photo,
         key: str,
-        update_data: dict[str, Any],
+        tg_id: int,
         text: str,
         tag: str | None = None,
     ):
@@ -53,38 +53,18 @@ class AdminChatService:
         if chat is None:
             raise ChatNotFoundError(key)
 
-        user_obj, _ = await User.get_or_create(tg_id=update_data["tg_id"])
-
-        # Split the name safely
-        name_parts = update_data["name"].split(maxsplit=1)
-        update_data["given_name"] = name_parts[0]
-        update_data["family_name"] = (
-            name_parts[1] if len(name_parts) > 1 else ""
-        )
-
-        # update_data = {
-        #     "tg_username": update_data.tg_username,
-        #     "given_name": given_name,
-        #     "family_name": family_name,
-        #     "course_number": update_data.course_number,
-        #     "group_name": update_data.group_name,
-        #     "about_user": update_data.about_user,
-        #     "photo": update_data.photo,
-        #     "status": "pending",
-        # }
-
-        await user_obj.update_from_dict(update_data)
+        user_obj, _ = await User.get_or_create(tg_id=tg_id)
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
                         text="confirm",
-                        callback_data=f"confirm {update_data['tg_id']}",
+                        callback_data=f"confirm {tg_id}",
                     ),
                     InlineKeyboardButton(
                         text="deny",
-                        callback_data=f"deny {update_data['tg_id']}",
+                        callback_data=f"deny {tg_id}",
                     ),
                 ]
             ]
