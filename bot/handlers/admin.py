@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from aiogram import Router, Bot
@@ -12,12 +13,15 @@ from aiogram.types import (
 )
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Column, Button
+from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
+from bot.misc.states.editgame import EditGame
 from bot.misc.states.startgame import StartGame
-from db.models import User, Game
+from db.models import User, Game, Player
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -32,12 +36,12 @@ async def admin_start(message: Message, bot: Bot):
                 description="Получить краткую статистику по боту",
             ),
             BotCommand(
-                command="/startgame",
-                description="Начать новую игру",
+                command="/creategame",
+                description="Создать новую игру",
             ),
             BotCommand(
-                command="/endgame",
-                description="Закончить активную игру",
+                command="/editgame",
+                description="Посмотреть список всех игр",
             ),
             BotCommand(
                 command="/getservertime",
@@ -92,16 +96,13 @@ async def on_description_input(
 async def on_final_confirmation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    await callback.message.delete()
     manager.dialog_data["confirm"] = True
 
     creation_date =datetime.now()
     await Game().create(
         name=manager.dialog_data["name"],
         description=manager.dialog_data["description"],
-        registration_start_date=creation_date, # TODO: separate registration and launching the game
-        registration_end_date=creation_date,
-        start_date=creation_date,
+        # registration_start_date=creation_date,
         visibility="public",  # ну сорян, пока что свои лобби не в планах делать
     )
 
@@ -137,8 +138,8 @@ create_game_dialog = Dialog(
 router.include_router(create_game_dialog)
 
 
-@router.message(AdminFilter(), Command(commands=["startgame"]))
-async def startgame(message: Message, bot: Bot, dialog_manager: DialogManager):
+@router.message(AdminFilter(), Command(commands=["creategame"]))
+async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
     if await Game().filter(end_date=None).exists():
         await message.reply(
             text=(
@@ -152,30 +153,118 @@ async def startgame(message: Message, bot: Bot, dialog_manager: DialogManager):
     await dialog_manager.start(StartGame.name)
 
 
-@router.message(AdminFilter(), Command(commands=["endgame"]))
-async def endgame(message: Message, bot: Bot, dialog_manager: DialogManager):
-    game_obj = await Game().filter(end_date=None).first()
-    if not game_obj:
-        await message.reply(
-            text=(
-                "Мне нечего завершать, сорян)\n"
-                "Создай новую игру через /startgame\n"
-            )
-        )
-        return
-    game_obj.end_date = datetime.now()
-    await game_obj.save()
-
-    # TODO: send endgame screen statistics
-
-    await message.reply(
-        text=(
-            "Хорошая получилась история, а главное поучительная.\n\n"
-            f"Игра продлилась {(game_obj.end_date - game_obj.start_date).days} дней\n"
-        )
-    )
-
-
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
 async def getservertime(message: Message):
     await message.reply(f"Сейчас на сервере: {datetime.now()}")
+
+def parse_game_stage(game: Game) -> str:
+    if game.end_date:
+        return "Завершена"
+    elif game.start_date:
+        return "Начата"
+    elif game.registration_end_date:
+        return "Регистрация завершена"
+    elif game.registration_start_date:
+        return "Регистрация начата"
+    else:
+        return "Регистрация не начата"
+
+async def get_games_data(**kwargs):
+    games = await Game().all()
+    return {"games": [{
+        "id": game.id,
+        "name": f"{game.name} - {parse_game_stage(game)}",
+    } for game in games]}
+
+
+async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
+    game_id = dialog_manager.dialog_data.get("game_id")
+    if not game_id:
+        return {}
+    game = await Game.get(id=game_id)
+    return {
+        "game": game,
+        "show_start_registration": game.registration_start_date is None,
+        "show_end_registration": game.registration_start_date is not None and game.registration_end_date is None,
+        "show_start_game": game.registration_end_date is not None and game.start_date is None,
+        "show_end_game": game.start_date is not None and game.end_date is None,
+    }
+
+
+async def on_game_selected(callback: CallbackQuery, widget, manager: DialogManager, item_id: str):
+    await callback.answer(f"Вы выбрали игру {item_id}")
+    manager.dialog_data["game_id"] = item_id
+    await manager.next()
+
+
+async def on_action_clicked(callback: CallbackQuery, widget, manager: DialogManager):
+    action = widget.widget_id
+    game = await Game.get(id=manager.dialog_data["game_id"])
+    logger.info(action)
+    if action == "start_registration":
+        game.registration_start_date = datetime.now()
+    elif action == "end_registration":
+        game.registration_end_date = datetime.now()
+    elif action == "start_game":
+        game.start_date = datetime.now()
+    elif action == "end_game":
+        game.end_date = datetime.now()
+    await game.save()
+    logger.info(game.registration_start_date)
+    await callback.message.delete()
+    await manager.switch_to(EditGame.edit)
+
+
+async def on_get_game_info(callback: CallbackQuery, widget, manager: DialogManager):
+    game_id = manager.dialog_data["game_id"]
+    game = await Game().get(id=game_id)
+    participants_count = await Player().filter(game=game_id).count()
+    await callback.message.answer(
+        f"Информация об игре \"{game.name}\" с айди {game_id}\n\n"
+        f"Описание: {game.description}\n\n"
+        f"Начало регистрации: {game.registration_start_date}\n"
+        f"Конец регистрации: {game.registration_end_date}\n"
+        f"Начало игры: {game.start_date}\n"
+        f"Конец игры: {game.end_date}\n"
+        f"\nКоличество участников: <b>{participants_count}</b>\n"
+    )
+    await manager.switch_to(EditGame.edit)
+
+
+game_edit_dialog = Dialog(
+    Window(
+        Const("Выбери, какую игру хочешь изменить:"),
+        Select(
+            Format("{item[name]}"),
+            id="select_game",
+            items="games",
+            item_id_getter=lambda x: x["id"],
+            on_click=on_game_selected,
+        ),
+        state=EditGame.game_id,
+        getter=get_games_data,
+    ),
+    Window(
+        Format("Ну и что с ней делать будем?\n\nИгра: {game.name}"),
+        Row(
+            Button(Const("Начать регистрацию"), id="start_registration", on_click=on_action_clicked, when="show_start_registration"),
+            Button(Const("Закончить регистрацию"), id="end_registration", on_click=on_action_clicked, when="show_end_registration"),
+            Button(Const("Начать игру"), id="start_game", on_click=on_action_clicked, when="show_start_game"),
+            Button(Const("Закончить игру"), id="end_game", on_click=on_action_clicked, when="show_end_game"),
+        ),
+        Row(
+            Button(Const("Посмотреть информацию"), id="info", on_click=on_get_game_info)
+        ),
+        Row(
+            Button(Const("Назад"), id="back", on_click=lambda c, w, m: m.switch_to(EditGame.game_id))
+        ),
+        state=EditGame.edit,
+        getter=get_selected_game_data,
+    ),
+)
+router.include_router(game_edit_dialog)
+
+@router.message(AdminFilter(), Command(commands=["editgame"]))
+async def editgame(message: Message, dialog_manager: DialogManager):
+    await dialog_manager.start(EditGame.game_id)
+

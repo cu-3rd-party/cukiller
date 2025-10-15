@@ -14,7 +14,7 @@ class Game(TimestampedModel):
     name = fields.CharField(max_length=255)
     description = fields.TextField(null=True)
 
-    start_date = fields.DatetimeField()
+    start_date = fields.DatetimeField(null=True)
     end_date = fields.DatetimeField(null=True)
 
     end_message = fields.TextField(null=True)
