@@ -20,22 +20,18 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 # Constants for course types and numbers
-COURSE_TYPES = {
-    "bachelor": "Бакалавр",
-    "master": "Магистр",
-    "other": "Другое"
-}
+COURSE_TYPES = {"bachelor": "Бакалавр", "master": "Магистр", "other": "Другое"}
 
 COURSE_NUMBERS_RU = {
     "bachelor": ["1", "2", "3", "4"],
     "master": ["1", "2"],
-    "other": ["сотрудник ЦУ", "аспирант"]
+    "other": ["сотрудник ЦУ", "аспирант"],
 }
 
 COURSE_NUMBERS_EN = {
     "bachelor": ["1", "2", "3", "4"],
     "master": ["1", "2"],
-    "other": ["worker", "aspirant"]
+    "other": ["worker", "aspirant"],
 }
 
 GROUP_NAMES_RU = ["Разработка", "ИИ", "Бизнес-аналитика"]
@@ -43,7 +39,7 @@ GROUP_NAMES_EN = ["dev", "ai", "ba"]
 
 
 async def on_name_input(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     name = message.text.strip()
     # TODO: add validation
@@ -53,7 +49,10 @@ async def on_name_input(
 
 
 async def on_course_type_selected(
-        callback: CallbackQuery, button: Button, manager: DialogManager, course_type: str
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    course_type: str,
 ):
     manager.dialog_data["course_type"] = course_type
     if course_type == "bachelor":
@@ -65,7 +64,10 @@ async def on_course_type_selected(
 
 
 async def on_course_number_selected(
-        callback: CallbackQuery, button: Button, manager: DialogManager, course_number: str
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    course_number: str,
 ):
     manager.dialog_data["course_number"] = course_number
 
@@ -85,14 +87,17 @@ async def on_course_number_selected(
 
 
 async def on_group_selected(
-        callback: CallbackQuery, button: Button, manager: DialogManager, group_name: str
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    group_name: str,
 ):
     manager.dialog_data["group_name"] = group_name
     await manager.next()
 
 
 async def on_about_input(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     about_text = message.text.strip()
 
@@ -103,7 +108,7 @@ async def on_about_input(
 
 
 async def on_photo_input(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     if not message.photo:
         await message.answer("Пожалуйста, отправь фотографию.")
@@ -116,7 +121,7 @@ async def on_photo_input(
 
 
 async def on_final_confirmation(
-        callback: CallbackQuery, button: Button, manager: DialogManager
+    callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     bot: Bot = manager.middleware_data["bot"]
     user_data = manager.dialog_data
@@ -161,7 +166,7 @@ async def on_final_confirmation(
         photo=user_data.get("photo"),
         tg_id=telegram_user.id,
         text=text,
-        tag="profile_confirm"
+        tag="profile_confirm",
     )
 
     await callback.message.answer(
@@ -173,7 +178,7 @@ async def on_final_confirmation(
 
 
 async def on_restart_registration(
-        callback: CallbackQuery, button: Button, manager: DialogManager
+    callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     await manager.switch_to(RegisterForm.name)
 
@@ -185,7 +190,10 @@ def create_course_type_buttons():
             Button(
                 Const(display_name),
                 id=f"type_{course_type}",
-                on_click=lambda e, b, m, ct=course_type: on_course_type_selected(e, b, m, ct)
+                on_click=lambda e,
+                b,
+                m,
+                ct=course_type: on_course_type_selected(e, b, m, ct),
             )
             for course_type, display_name in COURSE_TYPES.items()
         ]
@@ -198,11 +206,17 @@ def create_course_number_buttons(course_type: str):
             Button(
                 Const(number_ru),
                 id=f"course_{course_type}_{number_en.replace(' ', '_').replace('-', '_')}",
-                on_click=lambda e, b, m, cn=number_ru: on_course_number_selected(e, b, m, cn)
+                on_click=lambda e,
+                b,
+                m,
+                cn=number_ru: on_course_number_selected(e, b, m, cn),
             )
-            for number_ru, number_en in zip(COURSE_NUMBERS_RU.get(course_type, []), COURSE_NUMBERS_EN.get(course_type, []))
+            for number_ru, number_en in zip(
+                COURSE_NUMBERS_RU.get(course_type, []),
+                COURSE_NUMBERS_EN.get(course_type, []),
+            )
         ],
-        width=2
+        width=2,
     )
 
 
@@ -212,9 +226,13 @@ def create_group_buttons():
             Button(
                 Const(group_name_ru),
                 id=f"group_{group_name_en.replace(' ', '_').replace('-', '_')}",
-                on_click=lambda e, b, m, gn=group_name_ru: on_group_selected(e, b, m, gn)
+                on_click=lambda e, b, m, gn=group_name_ru: on_group_selected(
+                    e, b, m, gn
+                ),
             )
-            for group_name_ru, group_name_en in zip(GROUP_NAMES_RU, GROUP_NAMES_EN)
+            for group_name_ru, group_name_en in zip(
+                GROUP_NAMES_RU, GROUP_NAMES_EN
+            )
         ]
     )
 
@@ -230,58 +248,53 @@ register_dialog = Dialog(
         MessageInput(on_name_input, content_types=ContentType.TEXT),
         state=RegisterForm.name,
     ),
-
     # Course type selection
     Window(
         Const("Выбери свою форму обучения:"),
         create_course_type_buttons(),
         state=RegisterForm.course_type,
     ),
-
     # Bachelor course number selection
     Window(
         Const("Выбери свой курс (бакалавриат):"),
         create_course_number_buttons("bachelor"),
         state=RegisterForm.course_number_bachelor,
     ),
-
     # Master course number selection
     Window(
         Const("Выбери свой курс (магистратура):"),
         create_course_number_buttons("master"),
         state=RegisterForm.course_number_master,
     ),
-
     # Other status selection
     Window(
         Const("Уточни свой статус:"),
         create_course_number_buttons("other"),
         state=RegisterForm.course_other,
     ),
-
     # Group selection
     Window(
         Const("Выбери свой поток:"),
         create_group_buttons(),
         state=RegisterForm.group_name,
     ),
-
     # About yourself
     Window(
-        Const("Теперь расскажи немного о себе:\n"
-              "(Интересы, хобби, чем занимаешься - это поможет другим участникам познакомиться с тобой)"),
+        Const(
+            "Теперь расскажи немного о себе:\n"
+            "(Интересы, хобби, чем занимаешься - это поможет другим участникам познакомиться с тобой)"
+        ),
         MessageInput(on_about_input, content_types=ContentType.TEXT),
         state=RegisterForm.about,
     ),
-
     # Photo upload
     Window(
-        Const("Отправь свою фотографию:\n"
-              "Её будут видеть другие участники игры"),
+        Const(
+            "Отправь свою фотографию:\nЕё будут видеть другие участники игры"
+        ),
         MessageInput(on_photo_input, content_types=ContentType.PHOTO),
         state=RegisterForm.photo,
     ),
-
     # Final confirmation
     Window(
         Const("Всё готово! Проверь свои данные и отправляй на проверку:"),
@@ -289,18 +302,17 @@ register_dialog = Dialog(
             Button(
                 Const("Отправить на проверку"),
                 id="confirm_submit",
-                on_click=on_final_confirmation
+                on_click=on_final_confirmation,
             ),
             Button(
                 Const("Начать заново"),
                 id="restart",
-                on_click=on_restart_registration
+                on_click=on_restart_registration,
             ),
         ),
         state=RegisterForm.confirm,
     ),
-
-    name="user_registration_dialog"
+    name="user_registration_dialog",
 )
 
 router.include_router(register_dialog)
@@ -308,9 +320,9 @@ router.include_router(register_dialog)
 
 @router.message(CommandStart(), ~ConfirmedFilter(), PrivateMessagesFilter())
 async def user_start(
-        message: Message,
-        dialog_manager: DialogManager,
-        bot: Bot,
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
 ):
     telegram_user = message.from_user
 

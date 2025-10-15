@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
@@ -20,10 +20,13 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
-@router.message(CommandStart(), ConfirmedFilter(), PrivateMessagesFilter(), UserFilter())
+
+@router.message(
+    CommandStart(), ConfirmedFilter(), PrivateMessagesFilter(), UserFilter()
+)
 async def user_start(
-        message: Message,
-        dialog_manager: DialogManager,
-        bot: Bot,
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
 ):
     await message.answer("Тут должно быть главное меню")

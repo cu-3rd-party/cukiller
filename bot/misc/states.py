@@ -12,6 +12,7 @@ class RegisterForm(StatesGroup):
     photo = State()
     confirm = State()
 
+
 class ConfirmProfileForm(StatesGroup):
     user_id = State()
 
