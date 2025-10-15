@@ -253,13 +253,13 @@ async def on_get_game_info(
 game_edit_dialog = Dialog(
     Window(
         Const("Выбери, какую игру хочешь изменить:"),
-        Select(
+        Column(Select(
             Format("{item[name]}"),
             id="select_game",
             items="games",
             item_id_getter=lambda x: x["id"],
             on_click=on_game_selected,
-        ),
+        )),
         state=EditGame.game_id,
         getter=get_games_data,
     ),
