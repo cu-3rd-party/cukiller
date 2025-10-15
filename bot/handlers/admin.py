@@ -18,7 +18,10 @@ async def admin_start(message: Message, bot: Bot):
     await bot.set_my_commands(
         commands=[
             BotCommand(command="/start", description="Начать работу с ботом"),
-            BotCommand(command="/stats", description="Получить краткую статистику по боту"),
+            BotCommand(
+                command="/stats",
+                description="Получить краткую статистику по боту",
+            ),
         ],
         scope=BotCommandScopeChat(chat_id=message.chat.id),
     )
@@ -34,9 +37,11 @@ async def admin_start(message: Message, bot: Bot):
 async def stats(message: Message, bot: Bot):
     user_count = await User().all().count()
     user_confirmed_count = await User().filter(status="confirmed").count()
-    await message.reply(text=(
-        "Держи краткую статистику по боту\n\n"
-        f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
-        f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count/user_count * 100}%\n"
-        "Другие статистики будут добавляться по ходу дела, хозяин"
-    ))
+    await message.reply(
+        text=(
+            "Держи краткую статистику по боту\n\n"
+            f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
+            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count / user_count * 100}%\n"
+            "Другие статистики будут добавляться по ходу дела, хозяин"
+        )
+    )
