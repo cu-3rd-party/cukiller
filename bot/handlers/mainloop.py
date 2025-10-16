@@ -26,16 +26,20 @@ async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = await Game().filter(end_date=None).first()
     tg_id = dialog_manager.event.from_user.id
-    player = await Player.get(
-        user__tg_id=tg_id
-    )  # TODO: эта линия вызывает ошибки
-    return {
+    user = await User().get(tg_id=tg_id)
+    ret = {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
         "game_not_running": game is None,
-        "player_rating": player.player_rating,
     }
+    if game is not None and user is not None:
+        player = await Player().filter(
+            user_id=user.id,
+            game_id=game.id,
+        ).first()
+        ret["player_rating"] = player.player_rating # TODO: добавить проверку что игрок играет
+    return ret
 
 
 main_menu_dialog = Dialog(

@@ -25,12 +25,14 @@ class Player(TimestampedModel):
         related_name="targeted_by",
         null=True,
         on_delete=fields.RESTRICT,
+        source_field="player_victim"
     )
     player_killer = fields.ForeignKeyField(
         "models.Player",
         related_name="hunting",
         null=True,
         on_delete=fields.RESTRICT,
+        source_field="player_killer"
     )
 
     class Meta:
