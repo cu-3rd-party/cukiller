@@ -4,14 +4,13 @@
 
 import io
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List
 from PIL import Image
 import logging
 
 logger = logging.getLogger(__name__)
 
-global PATH_TO_IMAGES
-PATH_TO_IMAGES = "bot/services/images"  # Вынесено в отдельную переменную
+PATH_TO_IMAGES = "assets/"
 
 
 @dataclass
@@ -29,7 +28,7 @@ class ProfileInfo:
     name: str
     description: str = ""
     department: str | None = None
-    profile_photo: Image.Image | None = None  # добавил Image.Image
+    profile_photo: Image.Image | None = None
 
 
 class ProfileImageGenerator:
@@ -45,7 +44,7 @@ class ProfileImageGenerator:
     """
 
     background = Image.open(
-        f"{PATH_TO_IMAGES}/background.png"
+        f"{PATH_TO_IMAGES}/preview-background.png"
     )  # Фон для превьюшки
     background_width, background_height = (
         background.size
@@ -152,15 +151,17 @@ class ProfileImageGenerator:
                 for user in users
             ]
             widht = 0
-            for image in user_images:
-                image_for_paste = io.BytesIO(image)
+            for user_image in user_images:
+                image_for_paste = io.BytesIO(user_image)
                 image_for_paste = Image.open(
                     image_for_paste
                 )  # Преобразуем из байтов в Image
                 preview.paste(image_for_paste, (widht, 0))
                 widht += ProfileImageGenerator.background_width
         else:
-            ProfileImageGenerator._generate_error_image
+            ProfileImageGenerator._generate_error_image(
+                "Wrong amount of params"
+            )
         img_buffer = io.BytesIO()
         preview.save(img_buffer, format="PNG")
         img_buffer.seek(0)
