@@ -10,7 +10,7 @@ services:
       - ./infra/sql:/docker-entrypoint-initdb.d:ro
     ports:
       - "5433:5432"
-    restart: always
+    restart: unless-stopped
 
   bot:
     build:
@@ -20,7 +20,7 @@ services:
     depends_on:
       - db
       - redis
-    restart: always
+    restart: unless-stopped
 
   adminer:
     image: adminer
@@ -28,7 +28,7 @@ services:
       - db
     ports:
       - "8080:8080"
-    restart: always
+    restart: unless-stopped
 
   redis:
     image: redis:8.2.2-alpine
