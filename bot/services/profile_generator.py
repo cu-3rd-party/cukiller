@@ -159,7 +159,9 @@ class ProfileImageGenerator:
                 preview.paste(image_for_paste, (widht, 0))
                 widht += ProfileImageGenerator.background_width
         else:
-            ProfileImageGenerator._generate_error_image("Wrong amount of params")
+            ProfileImageGenerator._generate_error_image(
+                "Wrong amount of params"
+            )
         img_buffer = io.BytesIO()
         preview.save(img_buffer, format="PNG")
         img_buffer.seek(0)
