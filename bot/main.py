@@ -12,6 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_dialog import setup_dialogs
 
 from bot.middlewares.environment import EnvironmentMiddleware
+from bot.middlewares.register import RegisterUserMiddleware
 from bot.services.discussion_invite import generate_discussion_invite_link
 from db.main import close_db, init_db
 from settings import Settings, get_settings
@@ -25,6 +26,8 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
     environment = EnvironmentMiddleware(config=settings, dp=dp)
     dp.update.middleware(environment)
+    register = RegisterUserMiddleware()
+    dp.message.middleware(register)
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:

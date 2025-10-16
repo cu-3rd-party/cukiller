@@ -327,36 +327,4 @@ async def user_start(
     dialog_manager: DialogManager,
     bot: Bot,
 ):
-    telegram_user = message.from_user
-
-    if telegram_user is None:
-        await message.answer("Не удалось определить пользователя.")
-        return
-
-    # Check if user already exists
-    user = await User.get_or_none(tg_id=telegram_user.id)
-
-    if not user:
-        # Create basic user record
-        user = User(
-            tg_id=telegram_user.id,
-            tg_username=telegram_user.username,
-            given_name=telegram_user.first_name,
-            family_name=telegram_user.last_name,
-        )
-        await user.save()
-
-        # Notify admin about new user
-        mention_text = (
-            f"@{message.from_user.username}"
-            if message.from_user.username
-            else f"{message.from_user.first_name} {message.from_user.last_name or ''}"
-        )
-        admin_chat = AdminChatService(bot=bot)
-        await admin_chat.send_message(
-            key="logs",
-            text=f"Новый пользователь {mention_text} начал регистрацию",
-            tag="registration_start",
-        )
-
     await dialog_manager.start(RegisterForm.name)
