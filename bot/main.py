@@ -11,6 +11,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_dialog import setup_dialogs
 
+from bot.handlers.metrics import metrics_updater
 from bot.middlewares.environment import EnvironmentMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
 from bot.services.discussion_invite import generate_discussion_invite_link
@@ -56,10 +57,12 @@ def register_all_handlers(dp: Dispatcher) -> None:
 async def on_startup(bot: Bot, settings: Settings) -> None:
     await init_db(settings)
     await generate_discussion_invite_link(bot, settings)
+    await metrics_updater.start()
 
 
 async def on_shutdown(bot: Bot, settings: Settings) -> None:
     await close_db()
+    await metrics_updater.stop()
 
 
 async def run_bot(settings: Settings) -> None:
