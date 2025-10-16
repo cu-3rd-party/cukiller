@@ -16,10 +16,10 @@ class RegisterUserMiddleware(BaseMiddleware):
         super().__init__()
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-            event: Update,
-            data: dict[str, Any],
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: Update,
+        data: dict[str, Any],
     ):
         user = event.message.from_user
         user, created = await User().update_or_create(
@@ -28,7 +28,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "tg_username": user.username,
                 "given_name": user.first_name,
                 "family_name": user.last_name,
-            }
+            },
         )
         data["user"] = user
         if created:
