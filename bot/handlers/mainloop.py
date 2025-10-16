@@ -26,7 +26,9 @@ async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = await Game().filter(end_date=None).first()
     tg_id = dialog_manager.event.from_user.id
-    player = await Player.get(user__tg_id=tg_id) # TODO: эта линия вызывает ошибки
+    player = await Player.get(
+        user__tg_id=tg_id
+    )  # TODO: эта линия вызывает ошибки
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
@@ -38,7 +40,7 @@ async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
 
 main_menu_dialog = Dialog(
     Window(
-        Format( "<b>Главное меню</b>\n\n" ),
+        Format("<b>Главное меню</b>\n\n"),
         Format(
             "Мой рейтинг: {player_rating}",
             when="game_running",
