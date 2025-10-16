@@ -14,7 +14,7 @@ from bot.filters.private_messages import PrivateMessagesFilter
 from bot.filters.user import UserFilter
 from bot.misc.states import RegisterForm, MainLoop
 from bot.services.admin_chat import AdminChatService
-from db.models import User, Game
+from db.models import User, Game, Player
 from settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -25,18 +25,28 @@ router = Router()
 async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = await Game().filter(end_date=None).first()
+    tg_id = dialog_manager.event.from_user.id
+    player = await Player.get(user__tg_id=tg_id) # TODO: эта линия вызывает ошибки
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
-        "game_not_running": game
-        is None,  # TODO: idk how to reverse condition in when block, so like this
+        "game_not_running": game is None,
+        "player_rating": player.player_rating,
     }
 
 
 main_menu_dialog = Dialog(
     Window(
-        Const("главное меню"),
+        Format( "<b>Главное меню</b>\n\n" ),
+        Format(
+            "Мой рейтинг: {player_rating}",
+            when="game_running",
+        ),
+        Format(
+            "Сейчас игра <b>не идет</b>\n",
+            when="game_not_running",
+        ),
         Column(
             Url(
                 Const("Перейти в чат обсуждения"),
