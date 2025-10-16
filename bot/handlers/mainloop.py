@@ -34,11 +34,17 @@ async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
         "game_not_running": game is None,
     }
     if game is not None and user is not None:
-        player = await Player().filter(
-            user_id=user.id,
-            game_id=game.id,
-        ).first()
-        ret["player_rating"] = player.player_rating # TODO: добавить проверку что игрок играет
+        player = (
+            await Player()
+            .filter(
+                user_id=user.id,
+                game_id=game.id,
+            )
+            .first()
+        )
+        ret["player_rating"] = (
+            player.player_rating
+        )  # TODO: добавить проверку что игрок играет
     return ret
 
 
