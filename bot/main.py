@@ -27,7 +27,7 @@ def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
     environment = EnvironmentMiddleware(config=settings, dp=dp)
     dp.update.middleware(environment)
     register = RegisterUserMiddleware()
-    dp.update.middleware(register)
+    dp.message.middleware(register)
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:
