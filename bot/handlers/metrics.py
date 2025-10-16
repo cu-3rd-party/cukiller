@@ -1,6 +1,7 @@
 """
 Metrics endpoint handler for Prometheus scraping.
 """
+
 import logging
 import asyncio
 from datetime import datetime
@@ -22,19 +23,19 @@ async def metrics_endpoint(request: Request) -> Response:
     try:
         # Update metrics from database before serving
         await metrics.update_all_metrics()
-        
+
         # Generate and return metrics
         metrics_data = metrics.get_metrics()
         return Response(
             text=metrics_data,
-            content_type="text/plain; version=0.0.4; charset=utf-8"
+            content_type="text/plain; version=0.0.4; charset=utf-8",
         )
     except Exception as e:
         logger.error(f"Error generating metrics: {e}")
         return Response(
             text=f"Error generating metrics: {e}",
             status=500,
-            content_type="text/plain"
+            content_type="text/plain",
         )
 
 
@@ -46,13 +47,13 @@ async def health_check(request: Request) -> Response:
     try:
         # Update basic metrics to check database connectivity
         await metrics.update_user_metrics()
-        
+
         health_data = {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "service": "cukiller-bot"
+            "service": "cukiller-bot",
         }
-        
+
         return web.json_response(health_data)
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -61,9 +62,9 @@ async def health_check(request: Request) -> Response:
                 "status": "unhealthy",
                 "timestamp": datetime.now().isoformat(),
                 "error": str(e),
-                "service": "cukiller-bot"
+                "service": "cukiller-bot",
             },
-            status=503
+            status=503,
         )
 
 
@@ -80,26 +81,28 @@ class MetricsUpdater:
     """
     Background task to periodically update metrics.
     """
-    
+
     def __init__(self, update_interval: int = 60):
         self.update_interval = update_interval
         self._task: asyncio.Task | None = None
         self._running = False
-    
+
     async def start(self):
         """Start the metrics updater task."""
         if self._running:
             return
-        
+
         self._running = True
         self._task = asyncio.create_task(self._update_loop())
-        logger.info(f"Metrics updater started with {self.update_interval}s interval")
-    
+        logger.info(
+            f"Metrics updater started with {self.update_interval}s interval"
+        )
+
     async def stop(self):
         """Stop the metrics updater task."""
         if not self._running or not self._task:
             return
-        
+
         self._running = False
         self._task.cancel()
         try:
@@ -107,7 +110,7 @@ class MetricsUpdater:
         except asyncio.CancelledError:
             pass
         logger.info("Metrics updater stopped")
-    
+
     async def _update_loop(self):
         """Main update loop."""
         while self._running:
