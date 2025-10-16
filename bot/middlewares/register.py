@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, Update
+from aiogram.types import TelegramObject, Update
 
 from db.models import User
 
@@ -18,10 +18,10 @@ class RegisterUserMiddleware(BaseMiddleware):
     async def __call__(
             self,
             handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-            event: Message,
+            event: Update,
             data: dict[str, Any],
     ):
-        user = event.from_user
+        user = event.message.from_user
         user, created = await User().update_or_create(
             tg_id=user.id,
             defaults={
