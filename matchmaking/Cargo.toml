@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+reqwest = { version = "0.12.22", features = ["default", "json"] }
+redis = { version = "0.32.7", features = ["default", "uuid", "json"]}
