@@ -10,7 +10,9 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_dialog import setup_dialogs
+from aiohttp import web
 
+from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
 from bot.services.discussion_invite import generate_discussion_invite_link
@@ -53,12 +55,47 @@ def register_all_handlers(dp: Dispatcher) -> None:
         logger.warning("Не найдено ни одного роутера для регистрации")
 
 
+# Global web server instance
+_web_server: web.AppRunner | None = None
+
+
+async def start_web_server() -> None:
+    """Start the HTTP web server for metrics endpoint."""
+    global _web_server
+
+    app = web.Application()
+    setup_metrics_routes(app)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    await site.start()
+
+    _web_server = runner
+    logger.info("HTTP web server started on port 8000 for metrics endpoint")
+
+
+async def stop_web_server() -> None:
+    """Stop the HTTP web server."""
+    global _web_server
+
+    if _web_server:
+        await _web_server.cleanup()
+        _web_server = None
+        logger.info("HTTP web server stopped")
+
+
 async def on_startup(bot: Bot, settings: Settings) -> None:
     await init_db(settings)
     await generate_discussion_invite_link(bot, settings)
+    await metrics_updater.start()
+    await start_web_server()
 
 
 async def on_shutdown(bot: Bot, settings: Settings) -> None:
+    await stop_web_server()
+    await metrics_updater.stop()
     await close_db()
 
 
