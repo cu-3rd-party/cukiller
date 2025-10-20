@@ -13,7 +13,7 @@ from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.private_messages import PrivateMessagesFilter
 from bot.filters.user import UserFilter
 from bot.misc.states import RegisterForm, MainLoop
-from bot.services.admin_chat import AdminChatService
+from services.admin_chat import AdminChatService
 from db.models import User, Game
 from settings import Settings
 

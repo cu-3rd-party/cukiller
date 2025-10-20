@@ -15,7 +15,7 @@ services:
   bot:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.bot
     env_file: .env
     depends_on:
       - db
@@ -43,7 +43,8 @@ services:
 
   matchmaking:
     build:
-      context: matchmaking
+      context: .
+      dockerfile: Dockerfile.matchmaking
     env_file: .env
     restart: unless-stopped
 

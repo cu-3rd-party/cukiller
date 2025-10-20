@@ -13,7 +13,7 @@ from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.private_messages import PrivateMessagesFilter
 from bot.misc.states import RegisterForm
-from bot.services.admin_chat import AdminChatService
+from services.admin_chat import AdminChatService
 from db.models import User
 
 logger = logging.getLogger(__name__)
