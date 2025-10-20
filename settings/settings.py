@@ -46,7 +46,9 @@ class Settings(BaseSettings):
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     # ^ Matchmaking
-    matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL") # seconds
+    matchmaking_interval: int = Field(
+        default=5, alias="MATCHMAKING_INTERVAL"
+    )  # seconds
     ...
 
     @computed_field

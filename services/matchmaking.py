@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
@@ -16,23 +16,26 @@ class MatchmakingService:
         self.processing_key = "matchmaking:processing"
         self.matches_key = "matchmaking:matches"
 
-    async def add_player_to_queue(self, player_id: int, player_data: Dict[str, Any]) -> bool:
+    async def add_player_to_queue(
+        self, player_id: int, player_data: Dict[str, Any]
+    ) -> bool:
         """Add player to matchmaking queue"""
         try:
             queue_data = {
-                'player_id': player_id,
-                'player_data': player_data,
-                'joined_at': datetime.now().isoformat(),
-                'rating': player_data.get('player_rating', 0)
+                "player_id": player_id,
+                "player_data": player_data,
+                "joined_at": datetime.now().isoformat(),
+                "rating": player_data.get("player_rating", 0),
             }
 
             # Add to sorted set with rating as score for easy matching by skill
             result = self.redis.zadd(
-                self.queue_key,
-                {json.dumps(queue_data): queue_data['rating']}
+                self.queue_key, {json.dumps(queue_data): queue_data["rating"]}
             )
 
-            self.logger.info(f"Player {player_id} added to matchmaking queue with rating {queue_data['rating']}")
+            self.logger.info(
+                f"Player {player_id} added to matchmaking queue with rating {queue_data['rating']}"
+            )
             return bool(result)
         except Exception as e:
             self.logger.error(f"Error adding player {player_id} to queue: {e}")
@@ -45,31 +48,38 @@ class MatchmakingService:
             queue_members = self.redis.zrange(self.queue_key, 0, -1)
             for member in queue_members:
                 data = json.loads(member)
-                if data['player_id'] == player_id:
+                if data["player_id"] == player_id:
                     self.redis.zrem(self.queue_key, member)
-                    self.logger.info(f"Player {player_id} removed from matchmaking queue")
+                    self.logger.info(
+                        f"Player {player_id} removed from matchmaking queue"
+                    )
                     return True
             return False
         except Exception as e:
-            self.logger.error(f"Error removing player {player_id} from queue: {e}")
+            self.logger.error(
+                f"Error removing player {player_id} from queue: {e}"
+            )
             return False
 
     async def get_players_in_queue(self) -> List[Dict[str, Any]]:
         """Get all players currently in matchmaking queue"""
         try:
-            queue_members = self.redis.zrange(self.queue_key, 0, -1, withscores=True)
+            queue_members = self.redis.zrange(
+                self.queue_key, 0, -1, withscores=True
+            )
             players = []
             for member, score in queue_members:
                 player_data = json.loads(member)
-                player_data['score'] = score
+                player_data["score"] = score
                 players.append(player_data)
             return players
         except Exception as e:
             self.logger.error(f"Error getting players from queue: {e}")
             return []
 
-    async def find_best_match(self, player1: Dict[str, Any], players_queue: List[Dict[str, Any]]) -> Optional[
-        Dict[str, Any]]:
+    async def find_best_match(
+        self, player1: Dict[str, Any], players_queue: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         """
         Find the best match for a player from the queue.
         This is where you'll implement your matching formula.
@@ -78,10 +88,14 @@ class MatchmakingService:
             # TODO: Implement matching algorithm here
             raise NotImplementedError()
         except Exception as e:
-            self.logger.error(f"Error finding match for player {player1['player_id']}: {e}")
+            self.logger.error(
+                f"Error finding match for player {player1['player_id']}: {e}"
+            )
             return None
 
-    async def process_matchmaking(self) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+    async def process_matchmaking(
+        self,
+    ) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
         """Process the matchmaking queue and find suitable pairs"""
         try:
             players_queue = await self.get_players_in_queue()
@@ -89,54 +103,66 @@ class MatchmakingService:
                 self.logger.info("Not enough players in queue for matchmaking")
                 return []
 
-            self.logger.info(f"Processing matchmaking for {len(players_queue)} players")
+            self.logger.info(
+                f"Processing matchmaking for {len(players_queue)} players"
+            )
 
             matched_pairs = []
             processed_players = set()
 
             # Sort players by join time or rating for consistent matching
-            players_queue.sort(key=lambda x: x.get('joined_at', ''))
+            players_queue.sort(key=lambda x: x.get("joined_at", ""))
 
             for player_data in players_queue:
-                if player_data['player_id'] in processed_players:
+                if player_data["player_id"] in processed_players:
                     continue
 
                 # Find a match for this player
                 match = await self.find_best_match(player_data, players_queue)
 
-                if match and match['player_id'] not in processed_players:
+                if match and match["player_id"] not in processed_players:
                     # Found a match!
                     matched_pairs.append((player_data, match))
-                    processed_players.add(player_data['player_id'])
-                    processed_players.add(match['player_id'])
+                    processed_players.add(player_data["player_id"])
+                    processed_players.add(match["player_id"])
 
                     # Remove matched players from queue
-                    await self.remove_player_from_queue(player_data['player_id'])
-                    await self.remove_player_from_queue(match['player_id'])
+                    await self.remove_player_from_queue(
+                        player_data["player_id"]
+                    )
+                    await self.remove_player_from_queue(match["player_id"])
 
-                    self.logger.info(f"Matched players {player_data['player_id']} and {match['player_id']}")
+                    self.logger.info(
+                        f"Matched players {player_data['player_id']} and {match['player_id']}"
+                    )
 
             return matched_pairs
         except Exception as e:
             self.logger.error(f"Error processing matchmaking: {e}")
             return []
 
-    async def notify_main_process(self, matched_pairs: List[Tuple[Dict[str, Any], Dict[str, Any]]]) -> None:
+    async def notify_main_process(
+        self, matched_pairs: List[Tuple[Dict[str, Any], Dict[str, Any]]]
+    ) -> None:
         """Notify main process about matched pairs"""
         try:
             for player1, player2 in matched_pairs:
                 match_data = {
-                    'player1_id': player1['player_id'],
-                    'player2_id': player2['player_id'],
-                    'player1_data': player1['player_data'],
-                    'player2_data': player2['player_data'],
-                    'matched_at': datetime.now().isoformat(),
-                    'match_quality': abs(player1.get('rating', 0) - player2.get('rating', 0))  # Your metric
+                    "player1_id": player1["player_id"],
+                    "player2_id": player2["player_id"],
+                    "player1_data": player1["player_data"],
+                    "player2_data": player2["player_data"],
+                    "matched_at": datetime.now().isoformat(),
+                    "match_quality": abs(
+                        player1.get("rating", 0) - player2.get("rating", 0)
+                    ),  # Your metric
                 }
 
                 # TODO: Implement main process notification mechanism
                 # This could be HTTP request, message queue, database update, etc.
-                self.logger.info(f"Match found: {player1['player_id']} vs {player2['player_id']}")
+                self.logger.info(
+                    f"Match found: {player1['player_id']} vs {player2['player_id']}"
+                )
 
         except Exception as e:
             self.logger.error(f"Error notifying main process: {e}")
@@ -148,7 +174,9 @@ class MatchmakingService:
             # You might want to store queue state persistently or let players rejoin
             queue_size = self.redis.zcard(self.queue_key)
             if queue_size > 0:
-                self.logger.info(f"Restored {queue_size} players in matchmaking queue after restart")
+                self.logger.info(
+                    f"Restored {queue_size} players in matchmaking queue after restart"
+                )
             else:
                 self.logger.info("No players in queue on service startup")
         except Exception as e:
@@ -168,9 +196,13 @@ class MatchmakingService:
             # Notify main process about matches
             if matched_pairs:
                 await self.notify_main_process(matched_pairs)
-                self.logger.info(f"Matchmaking cycle completed: {len(matched_pairs)} pairs matched")
+                self.logger.info(
+                    f"Matchmaking cycle completed: {len(matched_pairs)} pairs matched"
+                )
             else:
-                self.logger.debug("Matchmaking cycle completed: no matches found")
+                self.logger.debug(
+                    "Matchmaking cycle completed: no matches found"
+                )
 
         except Exception as e:
             self.logger.error(f"Error in matchmaking cycle: {e}")

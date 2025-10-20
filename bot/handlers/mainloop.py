@@ -29,8 +29,7 @@ async def get_main_menu_info(dialog_manager: DialogManager, **kwargs):
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
-        "game_not_running": game
-        is None,
+        "game_not_running": game is None,
     }
 
 

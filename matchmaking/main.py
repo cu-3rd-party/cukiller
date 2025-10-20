@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import logging
 
 from services.matchmaking import MatchmakingService
