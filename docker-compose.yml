@@ -39,6 +39,13 @@ services:
     volumes:
       - redis_data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+
+  matchmaking:
+    build:
+      context: matchmaking
+    env_file: .env
+    restart: unless-stopped
 
 volumes:
   postgres_data:
