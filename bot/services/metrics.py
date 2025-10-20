@@ -174,7 +174,7 @@ class BotMetrics:
             f"Recorded response time for {operation_type}: {duration}s"
         )
 
-    def get_metrics(self) -> str:
+    def get_metrics(self) -> bytes:
         """Get the current metrics in Prometheus format."""
         return generate_latest()
 

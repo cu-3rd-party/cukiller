@@ -25,10 +25,10 @@ async def metrics_endpoint(request: Request) -> Response:
         await metrics.update_all_metrics()
 
         # Generate and return metrics
-        metrics_data = metrics.get_metrics()
+        metrics_data: bytes = metrics.get_metrics()
         return Response(
-            text=metrics_data,
-            content_type="text/plain; version=0.0.4; charset=utf-8",
+            body=metrics_data,
+            content_type="text/plain; version=0.0.4",
         )
     except Exception as e:
         logger.error(f"Error generating metrics: {e}")
