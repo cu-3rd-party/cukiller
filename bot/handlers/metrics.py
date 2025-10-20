@@ -10,7 +10,7 @@ from typing import Dict, Any
 from aiohttp import web
 from aiohttp.web import Request, Response
 
-from bot.services.metrics import metrics
+from services.metrics import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class MetricsUpdater:
     Background task to periodically update metrics.
     """
 
-    def __init__(self, update_interval: int = 60):
+    def __init__(self, update_interval: int = 30):
         self.update_interval = update_interval
         self._task: asyncio.Task | None = None
         self._running = False

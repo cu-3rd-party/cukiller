@@ -13,7 +13,7 @@ from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.private_messages import PrivateMessagesFilter
 from bot.filters.user import UserFilter
 from bot.misc.states import RegisterForm, MainLoop
-from bot.services.admin_chat import AdminChatService
+from services.admin_chat import AdminChatService
 from db.models import User, Game
 from settings import Settings
 
@@ -22,15 +22,14 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def get_mainmenu_info(dialog_manager: DialogManager, **kwargs):
+async def get_main_menu_info(dialog_manager: DialogManager, **kwargs):
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = await Game().filter(end_date=None).first()
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
-        "game_not_running": game
-        is None,  # TODO: idk how to reverse condition in when block, so like this
+        "game_not_running": game is None,
     }
 
 
@@ -50,7 +49,7 @@ main_menu_dialog = Dialog(
                 when="game_not_running",
             ),
         ),
-        getter=get_mainmenu_info,
+        getter=get_main_menu_info,
         state=MainLoop.title,
     ),
 )

@@ -15,7 +15,7 @@ from aiohttp import web
 from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
-from bot.services.discussion_invite import generate_discussion_invite_link
+from services.discussion_invite import generate_discussion_invite_link
 from db.main import close_db, init_db
 from settings import Settings, get_settings
 
