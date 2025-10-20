@@ -39,6 +39,12 @@ class Settings(BaseSettings):
         default=False, alias="TORTOISE_GENERATE_SCHEMAS"
     )
 
+    # ^ Redis
+    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_password: str = Field(alias="REDIS_PASSWORD")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+
     @computed_field
     @property
     def postgres_dsn(self) -> str:
