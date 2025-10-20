@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     redis_password: str = Field(alias="REDIS_PASSWORD")
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
+    # ^ Matchmaking
+    matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL") # seconds
+    ...
+
     @computed_field
     @property
     def postgres_dsn(self) -> str:
