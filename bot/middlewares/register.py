@@ -36,8 +36,12 @@ class RegisterUserMiddleware(BaseMiddleware):
 
         user_data = {
             "tg_username": user.username,
-            "given_name": user.first_name,
-            "family_name": user.last_name,
+            "name": " ".join(
+                (
+                    user.first_name if user.first_name else "",
+                    user.last_name if user.last_name else "",
+                )
+            ),
         }
 
         db_user, created = await User().update_or_create(

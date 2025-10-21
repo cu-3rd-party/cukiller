@@ -19,7 +19,7 @@ class Game(TimestampedModel):
     class Meta:
         table = "games"
         table_description = "Игры"
-        indexes = ("start_date", )
+        indexes = ("start_date",)
 
     def __str__(self) -> str:
         return f"<Game {self.name}>"

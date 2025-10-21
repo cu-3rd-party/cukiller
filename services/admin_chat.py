@@ -36,9 +36,6 @@ class AdminChatService:
             "parse_mode": "HTML",
         }
 
-        if chat.thread is not None:
-            send_kwargs["message_thread_id"] = chat.thread
-
         await self.bot.send_message(**send_kwargs)
 
     async def send_profile_confirmation_request(
@@ -79,8 +76,5 @@ class AdminChatService:
             "reply_markup": keyboard,
             "parse_mode": "HTML",
         }
-
-        if chat.thread is not None:
-            send_kwargs["message_thread_id"] = chat.thread
 
         await self.bot.send_photo(**send_kwargs)
