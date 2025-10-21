@@ -51,11 +51,11 @@ async def get_target_info(dialog_manager: DialogManager, **kwargs):
     # Get current user from event context
     current_user = None
     user_tg_id = None
-    
+
     # Try to get user from different possible sources
     if "user" in kwargs:
         current_user = kwargs["user"]
-    elif "event" in kwargs and hasattr(kwargs["event"], 'from_user'):
+    elif "event" in kwargs and hasattr(kwargs["event"], "from_user"):
         user_tg_id = kwargs["event"].from_user.id
     elif "start_data" in kwargs and "user_tg_id" in kwargs["start_data"]:
         user_tg_id = kwargs["start_data"]["user_tg_id"]
@@ -75,34 +75,49 @@ async def get_target_info(dialog_manager: DialogManager, **kwargs):
 
 
 # Button handlers
-async def on_get_target(callback: CallbackQuery, button: Button, manager: DialogManager):
+async def on_get_target(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
     """Handle 'Get Target' button click"""
     # TODO: Implement get target functionality
     await callback.answer("Получение цели...")
 
-async def on_i_was_killed(callback: CallbackQuery, button: Button, manager: DialogManager):
+
+async def on_i_was_killed(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
     """Handle 'I was killed' button click"""
-    # TODO: Implement kill confirmation functionality  
+    # TODO: Implement kill confirmation functionality
     await callback.answer("Подтверждение убийства...")
 
-async def on_target_info(callback: CallbackQuery, button: Button, manager: DialogManager):
+
+async def on_target_info(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
     """Handle 'Your Target' button click - go to target info window"""
     # Ensure user information is preserved in dialog_data
     if callback.from_user and "user_tg_id" not in manager.dialog_data:
         manager.dialog_data["user_tg_id"] = callback.from_user.id
     await manager.switch_to(MainLoop.target_info)
 
+
 # async def on_write_report(callback: CallbackQuery, button: Button, manager: DialogManager):
 #     """Handle 'Write Report' button click"""
 #     # TODO: Implement report functionality
 #     await callback.answer("Написание репорта...")
 
-async def on_i_killed(callback: CallbackQuery, button: Button, manager: DialogManager):
+
+async def on_i_killed(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
     """Handle 'I killed' button click"""
     # TODO: Implement kill report functionality
     await callback.answer("Репорт об убийстве...")
 
-async def on_back_to_menu(callback: CallbackQuery, button: Button, manager: DialogManager):
+
+async def on_back_to_menu(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
     """Handle 'Back to menu' button click"""
     # Ensure user information is preserved when going back
     if callback.from_user and "user_tg_id" not in manager.dialog_data:
@@ -134,7 +149,7 @@ main_menu_dialog = Dialog(
             ),
             Button(
                 Const("Меня убили"),
-                id="i_was_killed", 
+                id="i_was_killed",
                 on_click=on_i_was_killed,
                 when="is_hunted",
             ),
@@ -154,7 +169,7 @@ main_menu_dialog = Dialog(
             Url(
                 Const("Написать репорт"),
                 id="write_report",
-                url=Format("{report_link}")
+                url=Format("{report_link}"),
             ),
             Button(
                 Const("Я убил"),
