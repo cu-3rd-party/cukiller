@@ -16,10 +16,6 @@ class Player(TimestampedModel):
         on_delete=fields.CASCADE,
     )
 
-    player_rating = fields.IntField(
-        default=0, validators=[MinValueValidator(0)]
-    )
-
     class Meta:
         table = "players"
         table_description = "Игроки в игре"

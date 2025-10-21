@@ -50,9 +50,9 @@ async def parse_target_info(game: Game | None, user: User):
 async def get_main_menu_info(
     dialog_manager: DialogManager,
     settings: Settings,
-    dispatcher: Dispatcher,
     **kwargs,
 ):
+    dispatcher = kwargs.get("dispatcher", None) or kwargs.get("dp", None)
     game = await Game().filter(end_date=None).first()
     user: User | None = kwargs.get("user", None) or kwargs.get(
         "event_from_user", None
