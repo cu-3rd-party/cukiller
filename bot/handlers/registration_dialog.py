@@ -135,8 +135,7 @@ async def on_final_confirmation(
         user = User(tg_id=telegram_user.id)
 
     user.tg_username = telegram_user.username
-    user.given_name = user_data.get("given_name")
-    user.family_name = telegram_user.last_name
+    user.name = user_data.get("name")
     user.course_number = user_data.get("db_course_number")
     user.group_name = user_data.get("group_name")
     user.about_user = user_data.get("about_user")
@@ -151,7 +150,7 @@ async def on_final_confirmation(
 
     text = (
         f"<b>Новый профиль для проверки:</b>\n\n"
-        f"<b>Имя:</b> {user_data.get('given_name', 'Не указано')}\n"
+        f"<b>Имя:</b> {user_data.get('name', 'Не указано')}\n"
         f"<b>Тип обучения:</b> {course_type_display}\n"
         f"<b>Курс/Статус:</b> {course_number_display}\n"
         f"<b>Поток:</b> {user_data.get('group_name', 'Не указано')}\n"
