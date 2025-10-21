@@ -194,24 +194,4 @@ BEFORE UPDATE ON kill_events
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
--- =====================================================================
-CREATE TABLE message_templates (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key        TEXT NOT NULL UNIQUE,
-  text       TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-COMMENT ON TABLE message_templates IS 'Шаблоны сообщений';
-COMMENT ON COLUMN message_templates.id         IS 'ID';
-COMMENT ON COLUMN message_templates.key        IS 'Ключ';
-COMMENT ON COLUMN message_templates.text       IS 'Текст';
-COMMENT ON COLUMN message_templates.created_at IS 'Создано';
-COMMENT ON COLUMN message_templates.updated_at IS 'Обновлено';
-
-CREATE TRIGGER trg_message_templates_set_updated_at
-BEFORE UPDATE ON message_templates
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
 COMMIT;
