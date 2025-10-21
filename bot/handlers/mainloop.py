@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router, Bot
+from aiogram import Router, Bot, Dispatcher
 from aiogram.enums import ContentType
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
@@ -46,6 +46,8 @@ async def get_main_menu_info(dialog_manager: DialogManager, **kwargs):
 
 async def get_target_info(dialog_manager: DialogManager, **kwargs):
     """Getter for target info window"""
+    settings: Settings = dialog_manager.middleware_data["settings"]
+
     # Get current user from event context
     current_user = None
     user_tg_id = None
@@ -68,6 +70,7 @@ async def get_target_info(dialog_manager: DialogManager, **kwargs):
 
     return {
         "target_name": target_name or "Цель не найдена",
+        "report_link": settings.report_link,
     }
 
 
@@ -89,10 +92,10 @@ async def on_target_info(callback: CallbackQuery, button: Button, manager: Dialo
         manager.dialog_data["user_tg_id"] = callback.from_user.id
     await manager.switch_to(MainLoop.target_info)
 
-async def on_write_report(callback: CallbackQuery, button: Button, manager: DialogManager):
-    """Handle 'Write Report' button click"""
-    # TODO: Implement report functionality
-    await callback.answer("Написание репорта...")
+# async def on_write_report(callback: CallbackQuery, button: Button, manager: DialogManager):
+#     """Handle 'Write Report' button click"""
+#     # TODO: Implement report functionality
+#     await callback.answer("Написание репорта...")
 
 async def on_i_killed(callback: CallbackQuery, button: Button, manager: DialogManager):
     """Handle 'I killed' button click"""
@@ -148,10 +151,10 @@ main_menu_dialog = Dialog(
     Window(
         Const("Информация о цели"),
         Column(
-            Button(
+            Url(
                 Const("Написать репорт"),
                 id="write_report",
-                on_click=on_write_report,
+                url=Format("{report_link}")
             ),
             Button(
                 Const("Я убил"),
