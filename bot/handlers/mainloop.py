@@ -25,16 +25,18 @@ router = Router()
 async def parse_target_info(game: Game | None, user: User):
     player = await Player.filter(user=user, game=game).first()
     if not player:
-        return {
-            "no_target": True
-        }
+        return {"no_target": True}
 
-    victim_event = await KillEvent.filter(killer=player, status="pending").first()
-    killer_event = await KillEvent.filter(victim=player, status="pending").first()
+    victim_event = await KillEvent.filter(
+        killer=player, status="pending"
+    ).first()
+    killer_event = await KillEvent.filter(
+        victim=player, status="pending"
+    ).first()
 
     target_name = "Неизвестно"
     if victim_event:
-        await victim_event.fetch_related('victim__user')
+        await victim_event.fetch_related("victim__user")
         target_name = victim_event.victim.user.name
 
     return {
@@ -45,9 +47,16 @@ async def parse_target_info(game: Game | None, user: User):
     }
 
 
-async def get_main_menu_info(dialog_manager: DialogManager, settings: Settings, dispatcher: Dispatcher, **kwargs):
+async def get_main_menu_info(
+    dialog_manager: DialogManager,
+    settings: Settings,
+    dispatcher: Dispatcher,
+    **kwargs,
+):
     game = await Game().filter(end_date=None).first()
-    user: User | None = kwargs.get("user", None) or kwargs.get("event_from_user", None)
+    user: User | None = kwargs.get("user", None) or kwargs.get(
+        "event_from_user", None
+    )
 
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
@@ -62,7 +71,9 @@ async def get_target_info(dialog_manager: DialogManager, **kwargs):
     """Getter for target info window"""
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = await Game().filter(end_date=None).first()
-    user: User | None = kwargs.get("user", None) or kwargs.get("event_from_user", None)
+    user: User | None = kwargs.get("user", None) or kwargs.get(
+        "event_from_user", None
+    )
 
     return {
         "report_link": settings.report_link,

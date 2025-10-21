@@ -18,18 +18,20 @@ class RegisterUserMiddleware(BaseMiddleware):
         self.cache_ttl = cache_ttl
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-            event: Message,
-            data: dict[str, Any],
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: Message,
+        data: dict[str, Any],
     ):
         user = event.from_user
 
         cache_key = user.id
         cached_data = self._user_cache.get(cache_key)
 
-        if cached_data and cached_data['timestamp'] > datetime.now() - timedelta(seconds=self.cache_ttl):
-            data["user"] = cached_data['user']
+        if cached_data and cached_data[
+            "timestamp"
+        ] > datetime.now() - timedelta(seconds=self.cache_ttl):
+            data["user"] = cached_data["user"]
             return await handler(event, data)
 
         user_data = {
@@ -44,8 +46,8 @@ class RegisterUserMiddleware(BaseMiddleware):
         )
 
         self._user_cache[cache_key] = {
-            'user': db_user,
-            'timestamp': datetime.now()
+            "user": db_user,
+            "timestamp": datetime.now(),
         }
 
         self._clean_cache()
@@ -60,8 +62,9 @@ class RegisterUserMiddleware(BaseMiddleware):
         """Remove expired cache entries"""
         now = datetime.now()
         expired_keys = [
-            key for key, value in self._user_cache.items()
-            if value['timestamp'] <= now - timedelta(seconds=self.cache_ttl)
+            key
+            for key, value in self._user_cache.items()
+            if value["timestamp"] <= now - timedelta(seconds=self.cache_ttl)
         ]
         for key in expired_keys:
             del self._user_cache[key]
