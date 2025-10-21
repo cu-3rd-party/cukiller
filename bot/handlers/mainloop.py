@@ -22,55 +22,51 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def get_main_menu_info(dialog_manager: DialogManager, **kwargs):
-    settings: Settings = dialog_manager.middleware_data["settings"]
-    game = await Game().filter(end_date=None).first()
+async def parse_target_info(game: Game | None, user: User):
+    player = await Player.filter(user=user, game=game).first()
+    if not player:
+        return {
+            "no_target": True
+        }
 
-    # TODO: database queries
-    has_target = True
-    is_hunted = True
-    is_in_game = True
-    target_name = "test"
+    victim_event = await KillEvent.filter(killer=player, status="pending").first()
+    killer_event = await KillEvent.filter(victim=player, status="pending").first()
+
+    target_name = "Неизвестно"
+    if victim_event:
+        await victim_event.fetch_related('victim__user')
+        target_name = victim_event.victim.user.name
+
+    return {
+        "has_target": victim_event is not None,
+        "no_target": victim_event is None,
+        "is_hunted": killer_event is not None,
+        "target_name": target_name,
+    }
+
+
+async def get_main_menu_info(dialog_manager: DialogManager, settings: Settings, dispatcher: Dispatcher, **kwargs):
+    game = await Game().filter(end_date=None).first()
+    user: User | None = kwargs.get("user", None) or kwargs.get("event_from_user", None)
 
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
         "game_not_running": game is None,
-        "has_target": has_target,
-        "is_hunted": is_hunted,
-        "no_target": game is not None and is_in_game and not has_target,
-        "target_name": target_name or "Неизвестно",
+        **await parse_target_info(game, user),
     }
 
 
 async def get_target_info(dialog_manager: DialogManager, **kwargs):
     """Getter for target info window"""
     settings: Settings = dialog_manager.middleware_data["settings"]
-
-    # Get current user from event context
-    current_user = None
-    user_tg_id = None
-
-    # Try to get user from different possible sources
-    if "user" in kwargs:
-        current_user = kwargs["user"]
-    elif "event" in kwargs and hasattr(kwargs["event"], "from_user"):
-        user_tg_id = kwargs["event"].from_user.id
-    elif "start_data" in kwargs and "user_tg_id" in kwargs["start_data"]:
-        user_tg_id = kwargs["start_data"]["user_tg_id"]
-    else:
-        # Fallback: try dialog_data if available
-        try:
-            user_tg_id = dialog_manager.dialog_data.get("user_tg_id")
-        except:
-            pass
-
-    target_name = "test"
+    game = await Game().filter(end_date=None).first()
+    user: User | None = kwargs.get("user", None) or kwargs.get("event_from_user", None)
 
     return {
-        "target_name": target_name or "Цель не найдена",
         "report_link": settings.report_link,
+        **await parse_target_info(game, user),
     }
 
 

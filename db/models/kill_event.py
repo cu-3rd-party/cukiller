@@ -24,8 +24,6 @@ class KillEvent(TimestampedModel):
         source_field="victim_user_id",
     )
 
-    occurred_at = fields.DatetimeField()
-
     killer_confirmed = fields.BooleanField(default=False)
     killer_confirmed_at = fields.DatetimeField(null=True)
 

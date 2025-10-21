@@ -20,19 +20,6 @@ class Player(TimestampedModel):
         default=0, validators=[MinValueValidator(0)]
     )
 
-    player_victim = fields.ForeignKeyField(
-        "models.Player",
-        related_name="targeted_by",
-        null=True,
-        on_delete=fields.RESTRICT,
-    )
-    player_killer = fields.ForeignKeyField(
-        "models.Player",
-        related_name="hunting",
-        null=True,
-        on_delete=fields.RESTRICT,
-    )
-
     class Meta:
         table = "players"
         table_description = "Игроки в игре"

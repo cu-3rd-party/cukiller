@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import logging
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
@@ -125,7 +126,7 @@ async def run_bot(settings: Settings) -> None:
 
 async def main() -> None:
     logging.basicConfig(
-        level=logging.INFO,
+        level=os.environ.get("LOGLEVEL", "INFO").upper(),
         format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
     )
     settings = get_settings()

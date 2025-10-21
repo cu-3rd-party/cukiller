@@ -105,15 +105,9 @@ CREATE TABLE players (
   user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   game_id        UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   player_rating  INTEGER NOT NULL DEFAULT 0 CHECK (player_rating >= 0),
-  player_victim  UUID REFERENCES players(id) DEFERRABLE INITIALLY DEFERRED,
-  player_killer  UUID REFERENCES players(id) DEFERRABLE INITIALLY DEFERRED,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_players_user_game UNIQUE (user_id, game_id),
-  CONSTRAINT players_self_links_ok CHECK (
-    (player_victim IS NULL OR player_victim <> id)
-    AND (player_killer IS NULL OR player_killer <> id)
-  )
+  CONSTRAINT uq_players_user_game UNIQUE (user_id, game_id)
 );
 
 COMMENT ON TABLE players IS 'Игроки в игре';
@@ -121,8 +115,6 @@ COMMENT ON COLUMN players.id             IS 'ID';
 COMMENT ON COLUMN players.user_id        IS 'Пользователь';
 COMMENT ON COLUMN players.game_id        IS 'Игра';
 COMMENT ON COLUMN players.player_rating  IS 'Рейтинг в игре';
-COMMENT ON COLUMN players.player_victim  IS 'Текущая жертва';
-COMMENT ON COLUMN players.player_killer  IS 'Текущий охотник';
 COMMENT ON COLUMN players.created_at     IS 'Создано';
 COMMENT ON COLUMN players.updated_at     IS 'Обновлено';
 
@@ -167,7 +159,6 @@ CREATE TABLE kill_events (
   game_id              UUID NOT NULL REFERENCES games(id)  ON DELETE CASCADE,
   killer_user_id       UUID NOT NULL REFERENCES users(id)  ON DELETE RESTRICT,
   victim_user_id       UUID NOT NULL REFERENCES users(id)  ON DELETE RESTRICT,
-  occurred_at          TIMESTAMPTZ NOT NULL,
   killer_confirmed     BOOLEAN NOT NULL DEFAULT FALSE,
   killer_confirmed_at  TIMESTAMPTZ,
   victim_confirmed     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -187,7 +178,6 @@ COMMENT ON COLUMN kill_events.id                   IS 'ID';
 COMMENT ON COLUMN kill_events.game_id              IS 'Игра';
 COMMENT ON COLUMN kill_events.killer_user_id       IS 'Киллер';
 COMMENT ON COLUMN kill_events.victim_user_id       IS 'Жертва';
-COMMENT ON COLUMN kill_events.occurred_at          IS 'Время события';
 COMMENT ON COLUMN kill_events.killer_confirmed     IS 'Подтвердил киллер';
 COMMENT ON COLUMN kill_events.killer_confirmed_at  IS 'Когда подтвердил киллер';
 COMMENT ON COLUMN kill_events.victim_confirmed     IS 'Подтвердила жертва';
