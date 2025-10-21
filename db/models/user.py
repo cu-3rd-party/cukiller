@@ -23,9 +23,7 @@ class User(TimestampedModel):
 
     is_in_game = fields.BooleanField(default=False)
     is_admin = fields.BooleanField(default=False)
-    rating = fields.IntField(
-        default=0, validators=[MinValueValidator(0)]
-    )
+    rating = fields.IntField(default=0, validators=[MinValueValidator(0)])
 
     photo = fields.TextField(null=True)
     about_user = fields.TextField(null=True)
@@ -34,7 +32,7 @@ class User(TimestampedModel):
         max_length=32,
         default="active",
         choices=tuple((s, s) for s in PLAYER_STATUS),
-        index=True
+        index=True,
     )
 
     class Meta:
