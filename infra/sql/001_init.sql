@@ -1,197 +1,145 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS citext;
 
-BEGIN;
+-- Initial schema for cukiller based on db/models
+-- Dialect: PostgreSQL
 
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Helper function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
+	NEW.updated_at = NOW();
+	RETURN NEW;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
+-- Table: users
+CREATE TABLE IF NOT EXISTS users (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
 
--- =====================================================================
-CREATE TABLE users (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tg_id           BIGINT UNIQUE NOT NULL,
-  tg_username     CITEXT UNIQUE,
-  given_name      TEXT,
-  family_name     TEXT,
-  course_number   SMALLINT CHECK (course_number BETWEEN 1 AND 8),
-  group_name      TEXT,
-  is_in_game      BOOLEAN NOT NULL DEFAULT FALSE,
-  is_admin        BOOLEAN NOT NULL DEFAULT FALSE,
-  global_rating   INTEGER NOT NULL DEFAULT 0 CHECK (global_rating >= 0),
-  photo           TEXT,
-  about_user      TEXT,
-  status          TEXT NOT NULL DEFAULT 'active',
-  type            TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	tg_id bigint NOT NULL UNIQUE,
+	tg_username varchar(32),
+	name varchar(511),
+	type varchar(32),
+	course_number smallint CHECK (course_number IS NULL OR (course_number >= 1 AND course_number <= 8)),
+	group_name varchar(255),
+
+	is_in_game boolean NOT NULL DEFAULT false,
+	is_admin boolean NOT NULL DEFAULT false,
+	rating integer NOT NULL DEFAULT 0 CHECK (rating >= 0),
+
+	photo text,
+	about_user text,
+
+	status varchar(32) NOT NULL DEFAULT 'active'
 );
 
-COMMENT ON TABLE users IS 'Пользователи';
-COMMENT ON COLUMN users.id              IS 'ID';
-COMMENT ON COLUMN users.tg_id           IS 'ID в Telegram';
-COMMENT ON COLUMN users.tg_username     IS 'Логин Telegram';
-COMMENT ON COLUMN users.given_name      IS 'Имя';
-COMMENT ON COLUMN users.family_name     IS 'Фамилия';
-COMMENT ON COLUMN users.course_number   IS 'Курс';
-COMMENT ON COLUMN users.group_name      IS 'Группа/поток';
-COMMENT ON COLUMN users.is_in_game      IS 'Сейчас в игре';
-COMMENT ON COLUMN users.is_admin        IS 'Администратор';
-COMMENT ON COLUMN users.global_rating   IS 'Общий рейтинг';
-COMMENT ON COLUMN users.photo           IS 'Фото';
-COMMENT ON COLUMN users.about_user      IS 'О себе';
-COMMENT ON COLUMN users.status          IS 'Статус';
-COMMENT ON COLUMN users.type            IS 'Тип (студент/сотрудник/абитуриент)';
-COMMENT ON COLUMN users.created_at      IS 'Создано';
-COMMENT ON COLUMN users.updated_at      IS 'Обновлено';
+CREATE UNIQUE INDEX IF NOT EXISTS users_tg_username_idx ON users(tg_username);
+CREATE INDEX IF NOT EXISTS users_status_idx ON users(status);
+CREATE INDEX IF NOT EXISTS users_tg_id_idx ON users(tg_id);
 
-CREATE TRIGGER trg_users_set_updated_at
-BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Table: games
+CREATE TABLE IF NOT EXISTS games (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
 
-
--- =====================================================================
-CREATE TABLE games (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name                     TEXT NOT NULL,
-  description              TEXT,
-  start_date               TIMESTAMPTZ,
-  end_date                 TIMESTAMPTZ,
-  end_message              TEXT,
-  max_players              INTEGER CHECK (max_players > 0),
-  registration_start_date  TIMESTAMPTZ,
-  registration_end_date    TIMESTAMPTZ,
-  n_candidates             INTEGER NOT NULL DEFAULT 0 CHECK (n_candidates >= 0),
-  visibility               TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('public','private','unlisted')),
-  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT games_dates_ok CHECK (
-    (end_date IS NULL OR end_date > start_date)
-    AND (registration_start_date IS NULL OR registration_end_date IS NULL OR registration_end_date > registration_start_date)
-    AND (registration_end_date IS NULL OR start_date >= registration_end_date)
-  )
+	name varchar(255) NOT NULL,
+	start_date timestamptz,
+	end_date timestamptz
 );
 
-COMMENT ON TABLE games IS 'Игры';
-COMMENT ON COLUMN games.id                        IS 'ID';
-COMMENT ON COLUMN games.name                      IS 'Название';
-COMMENT ON COLUMN games.description               IS 'Описание';
-COMMENT ON COLUMN games.start_date                IS 'Старт';
-COMMENT ON COLUMN games.end_date                  IS 'Окончание';
-COMMENT ON COLUMN games.end_message               IS 'Финальное сообщение';
-COMMENT ON COLUMN games.max_players               IS 'Лимит игроков';
-COMMENT ON COLUMN games.registration_start_date   IS 'Старт регистрации';
-COMMENT ON COLUMN games.registration_end_date     IS 'Конец регистрации';
-COMMENT ON COLUMN games.n_candidates              IS 'Число кандидатов';
-COMMENT ON COLUMN games.visibility                IS 'Видимость: public/private/unlisted';
-COMMENT ON COLUMN games.created_at                IS 'Создано';
-COMMENT ON COLUMN games.updated_at                IS 'Обновлено';
+CREATE INDEX IF NOT EXISTS games_start_date_idx ON games(start_date);
 
-CREATE TRIGGER trg_games_set_updated_at
-BEFORE UPDATE ON games
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Table: players
+CREATE TABLE IF NOT EXISTS players (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
 
+	user_id uuid NOT NULL,
+	game_id uuid NOT NULL,
 
--- =====================================================================
-CREATE TABLE players (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  game_id        UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-  player_rating  INTEGER NOT NULL DEFAULT 0 CHECK (player_rating >= 0),
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_players_user_game UNIQUE (user_id, game_id)
+	player_rating integer NOT NULL DEFAULT 0 CHECK (player_rating >= 0),
+
+	CONSTRAINT players_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	CONSTRAINT players_game_fk FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+	CONSTRAINT players_user_game_unique UNIQUE (user_id, game_id)
 );
 
-COMMENT ON TABLE players IS 'Игроки в игре';
-COMMENT ON COLUMN players.id             IS 'ID';
-COMMENT ON COLUMN players.user_id        IS 'Пользователь';
-COMMENT ON COLUMN players.game_id        IS 'Игра';
-COMMENT ON COLUMN players.player_rating  IS 'Рейтинг в игре';
-COMMENT ON COLUMN players.created_at     IS 'Создано';
-COMMENT ON COLUMN players.updated_at     IS 'Обновлено';
+CREATE INDEX IF NOT EXISTS players_user_idx ON players(user_id);
+CREATE INDEX IF NOT EXISTS players_game_idx ON players(game_id);
 
-CREATE TRIGGER trg_players_set_updated_at
-BEFORE UPDATE ON players
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Table: chats
+-- Note: original model references a `thread` field in unique_together; adding thread bigint NULLABLE
+CREATE TABLE IF NOT EXISTS chats (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
 
-
--- =====================================================================
-CREATE TABLE chats (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key        VARCHAR(1024) NOT NULL,
-  chat_id    BIGINT NOT NULL,
-  name       TEXT,
-  slug       TEXT,
-  type       TEXT,
-  thread     INTEGER,
-  purpose    TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT uq_chats_chatid_thread UNIQUE (chat_id, thread)
+	chat_id bigint NOT NULL,
+	thread bigint,
+	key varchar(1024) NOT NULL
 );
 
-COMMENT ON TABLE chats IS 'Админ-чаты Telegram';
-COMMENT ON COLUMN chats.id         IS 'ID';
-COMMENT ON COLUMN chats.chat_id    IS 'ID чата Telegram';
-COMMENT ON COLUMN chats.name       IS 'Название';
-COMMENT ON COLUMN chats.slug       IS 'Slug';
-COMMENT ON COLUMN chats.type       IS 'Тип (supergroup/channel)';
-COMMENT ON COLUMN chats.thread     IS 'ID темы';
-COMMENT ON COLUMN chats.purpose    IS 'Назначение';
-COMMENT ON COLUMN chats.created_at IS 'Создано';
-COMMENT ON COLUMN chats.updated_at IS 'Обновлено';
+CREATE UNIQUE INDEX IF NOT EXISTS chats_chat_thread_unique ON chats(chat_id, thread);
+CREATE INDEX IF NOT EXISTS chats_chat_id_idx ON chats(chat_id);
 
-CREATE TRIGGER trg_chats_set_updated_at
-BEFORE UPDATE ON chats
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Table: kill_events
+-- Added occurred_at timestamptz because __str__ references it
+CREATE TABLE IF NOT EXISTS kill_events (
+	id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+	created_at timestamptz NOT NULL DEFAULT now(),
+	updated_at timestamptz NOT NULL DEFAULT now(),
 
--- =====================================================================
-CREATE TABLE kill_events (
-  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id              UUID NOT NULL REFERENCES games(id)  ON DELETE CASCADE,
-  killer_user_id       UUID NOT NULL REFERENCES users(id)  ON DELETE RESTRICT,
-  victim_user_id       UUID NOT NULL REFERENCES users(id)  ON DELETE RESTRICT,
-  killer_confirmed     BOOLEAN NOT NULL DEFAULT FALSE,
-  killer_confirmed_at  TIMESTAMPTZ,
-  victim_confirmed     BOOLEAN NOT NULL DEFAULT FALSE,
-  victim_confirmed_at  TIMESTAMPTZ,
-  status               TEXT NOT NULL DEFAULT 'pending'
-                         CHECK (status IN ('pending','confirmed','rejected','canceled')),
-  moderator_id         UUID REFERENCES users(id) ON DELETE SET NULL,
-  moderated_at         TIMESTAMPTZ,
-  is_approved          BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT killer_ne_victim CHECK (killer_user_id <> victim_user_id)
+	game_id uuid NOT NULL,
+
+	killer_user_id uuid NOT NULL,
+	victim_user_id uuid NOT NULL,
+
+	killer_confirmed boolean NOT NULL DEFAULT false,
+	killer_confirmed_at timestamptz,
+
+	victim_confirmed boolean NOT NULL DEFAULT false,
+	victim_confirmed_at timestamptz,
+
+	status varchar(16) NOT NULL DEFAULT 'pending',
+
+	moderator_id uuid,
+	moderated_at timestamptz,
+
+	is_approved boolean NOT NULL DEFAULT false,
+
+	occurred_at timestamptz NOT NULL DEFAULT now(),
+
+	CONSTRAINT kill_events_game_fk FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+	CONSTRAINT kill_events_killer_fk FOREIGN KEY (killer_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+	CONSTRAINT kill_events_victim_fk FOREIGN KEY (victim_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+	CONSTRAINT kill_events_moderator_fk FOREIGN KEY (moderator_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-COMMENT ON TABLE kill_events IS 'События «киллов»';
-COMMENT ON COLUMN kill_events.id                   IS 'ID';
-COMMENT ON COLUMN kill_events.game_id              IS 'Игра';
-COMMENT ON COLUMN kill_events.killer_user_id       IS 'Киллер';
-COMMENT ON COLUMN kill_events.victim_user_id       IS 'Жертва';
-COMMENT ON COLUMN kill_events.killer_confirmed     IS 'Подтвердил киллер';
-COMMENT ON COLUMN kill_events.killer_confirmed_at  IS 'Когда подтвердил киллер';
-COMMENT ON COLUMN kill_events.victim_confirmed     IS 'Подтвердила жертва';
-COMMENT ON COLUMN kill_events.victim_confirmed_at  IS 'Когда подтвердила жертва';
-COMMENT ON COLUMN kill_events.status               IS 'Статус';
-COMMENT ON COLUMN kill_events.moderator_id         IS 'Модератор';
-COMMENT ON COLUMN kill_events.moderated_at         IS 'Когда промодерировано';
-COMMENT ON COLUMN kill_events.is_approved          IS 'Одобрено модератором';
-COMMENT ON COLUMN kill_events.created_at           IS 'Создано';
-COMMENT ON COLUMN kill_events.updated_at           IS 'Обновлено';
+CREATE INDEX IF NOT EXISTS kill_events_game_occurred_idx ON kill_events(game_id, occurred_at);
+CREATE INDEX IF NOT EXISTS kill_events_killer_idx ON kill_events(killer_user_id);
+CREATE INDEX IF NOT EXISTS kill_events_victim_idx ON kill_events(victim_user_id);
+CREATE INDEX IF NOT EXISTS kill_events_status_idx ON kill_events(status);
 
-CREATE TRIGGER trg_kill_events_set_updated_at
-BEFORE UPDATE ON kill_events
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Triggers to keep updated_at current
+CREATE TRIGGER users_set_timestamp BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 
+CREATE TRIGGER games_set_timestamp BEFORE UPDATE ON games
+FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 
-COMMIT;
+CREATE TRIGGER players_set_timestamp BEFORE UPDATE ON players
+FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+
+CREATE TRIGGER chats_set_timestamp BEFORE UPDATE ON chats
+FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+
+CREATE TRIGGER kill_events_set_timestamp BEFORE UPDATE ON kill_events
+FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+
+-- End of migration
