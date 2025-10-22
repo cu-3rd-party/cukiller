@@ -22,6 +22,8 @@ async def confirm_participation(
 ):
     game: Game = manager.start_data["game"]
     user: User = manager.start_data["user"]
+    user.is_in_game = True
+    await user.save()
     player: Player = await Player().create(
         user=user,
         game=game,
