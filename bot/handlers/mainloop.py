@@ -92,9 +92,16 @@ async def on_get_target(
     )
     user: User = manager.start_data.get("user")
     await matchmaking.add_player_to_queue(
-        user.tg_id, {"player_id": user.tg_id, "rating": user.rating}
+        user.tg_id,
+        {
+            "player_id": user.tg_id,
+            "rating": user.rating,
+            "type": user.type,
+            "course_number": user.course_number,
+            "group_name": user.group_name,
+        },
     )
-    await callback.answer("Получение цели...")
+    await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 
 async def on_i_was_killed(

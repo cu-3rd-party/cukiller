@@ -46,10 +46,14 @@ class Settings(BaseSettings):
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     # ^ Matchmaking
-    matchmaking_interval: int = Field(
-        default=5, alias="MATCHMAKING_INTERVAL"
-    )  # seconds
-    ...
+    matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL")
+    quality_threshold: float = Field(default=0.6, alias="QUALITY_THRESHOLD")
+
+    max_rating_diff: float = Field(default=1000, alias="MAX_RATING_DIFF")
+    course_coefficient: float = Field(default=0.3, alias="COURSE_COEFFICIENT")
+    group_coefficient: float = Field(default=-0.2, alias="GROUP_COEFFICIENT")
+    type_coefficient: float = Field(default=-0.6, alias="TYPE_COEFFICIENT")
+    time_coefficient: float = Field(default=0.001, alias="TIME_COEFFICIENT")
 
     @computed_field
     @property
