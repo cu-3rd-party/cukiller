@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 import asyncio
 import json
+import requests
 
 
 class PlayerData(BaseModel):
@@ -141,10 +142,12 @@ class MatchmakingService:
 
         rating_diff = abs(player1.rating - player2.rating)
         if rating_diff > self.settings.max_rating_diff:
-            return 0.
+            return 0.0
 
         # Чем ближе рейтинги тем лучше
-        rating_similarity = 1.0 - min(rating_diff / self.settings.max_rating_diff, 1.0)
+        rating_similarity = 1.0 - min(
+            rating_diff / self.settings.max_rating_diff, 1.0
+        )
 
         # Это хорошо, если курс совпадает
         course_bonus = self.settings.course_coefficient * (
@@ -174,7 +177,7 @@ class MatchmakingService:
         return max(0.0, min(1.0, match_quality))
 
     async def find_best_match(
-            self, player1: QueuePlayer, players_queue: List[QueuePlayer]
+        self, player1: QueuePlayer, players_queue: List[QueuePlayer]
     ) -> Optional[QueuePlayer]:
         """
         Find the best match for a player from the queue
@@ -201,7 +204,9 @@ class MatchmakingService:
             if satisfactory_matches:
                 return best_match
             else:
-                self.logger.debug(f"No satisfactory matches found for player {player1.player_id}")
+                self.logger.debug(
+                    f"No satisfactory matches found for player {player1.player_id}"
+                )
                 return None
 
         except Exception as e:
@@ -280,6 +285,14 @@ class MatchmakingService:
                 self.logger.info(
                     f"Match found: {player1.player_id} vs {player2.player_id} "
                     f"(quality: {match_dict['match_quality']:.2f})"
+                )
+                requests.post(
+                    "http://bot:8000/match",
+                    json={
+                        "player1": player1.player_id,
+                        "player2": player2.player_id,
+                        "quality": match_dict["match_quality"],
+                    },
                 )
 
                 # Store match result if needed

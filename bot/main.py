@@ -13,6 +13,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram_dialog import setup_dialogs
 from aiohttp import web
 
+from bot.handlers.matchmaking import setup_matchmaking_routers
 from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
 from bot.middlewares.private_messages import PrivateMessagesMiddleware
@@ -64,12 +65,13 @@ def register_all_handlers(dp: Dispatcher) -> None:
 _web_server: web.AppRunner | None = None
 
 
-async def start_web_server() -> None:
+async def start_web_server(bot: Bot) -> None:
     """Start the HTTP web server for metrics endpoint."""
     global _web_server
 
     app = web.Application()
     setup_metrics_routes(app)
+    setup_matchmaking_routers(app, bot)
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -95,7 +97,7 @@ async def on_startup(bot: Bot, settings: Settings) -> None:
     await init_db(settings)
     await generate_discussion_invite_link(bot, settings)
     await metrics_updater.start()
-    await start_web_server()
+    await start_web_server(bot)
 
 
 async def on_shutdown(bot: Bot, settings: Settings) -> None:
