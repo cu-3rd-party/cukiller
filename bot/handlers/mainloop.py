@@ -142,6 +142,7 @@ async def confirm_participation(
         ParticipationForm.confirm, data={"game": game, "user": user}
     )
 
+
 main_menu_dialog = Dialog(
     Window(
         Const("главное меню"),
@@ -225,4 +226,6 @@ async def user_start(
     await dialog_manager.reset_stack()
     game = await Game().filter(end_date=None).first()
     user = await User().get(tg_id=user.tg_id)
-    await dialog_manager.start(MainLoop.title, data={"user": user, "game": game})
+    await dialog_manager.start(
+        MainLoop.title, data={"user": user, "game": game}
+    )
