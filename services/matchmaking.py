@@ -289,6 +289,7 @@ class MatchmakingService:
                 requests.post(
                     "http://bot:8000/match",
                     json={
+                        "secret_key": self.settings.secret_key,
                         "player1": player1.player_id,
                         "player2": player2.player_id,
                         "quality": match_dict["match_quality"],

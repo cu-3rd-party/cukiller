@@ -3,20 +3,26 @@ import logging
 from aiogram import Router, Bot
 from aiohttp import web
 
+from db.models import KillEvent
 from services.admin_chat import AdminChatService
+from settings import Settings
 
 router = Router()
 logger = logging.getLogger(__name__)
 
 
-def setup_matchmaking_routers(app: web.Application, bot: Bot) -> None:
+def setup_matchmaking_routers(app: web.Application, bot: Bot, settings: Settings) -> None:
     app["bot"] = bot
     app["admin_chat"] = AdminChatService(bot)
+    app["settings"] = settings
     app.router.add_post("/match", handler=handle_match)
 
 
 async def handle_match(request: web.Request) -> web.StreamResponse:
     data = await request.json()
+
+    if data["secret_key"] != request.app["settings"].secret_key:
+        return web.StreamResponse(status=403)
 
     player1 = data["player1"]
     player2 = data["player2"]
