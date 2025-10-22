@@ -36,6 +36,7 @@ async def confirm_participation(
     )
     await callback.message.delete()
     await manager.done()
+    await manager.reset_stack()
     user_dialog_manager = BgManagerFactoryImpl(router=mainloop.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,

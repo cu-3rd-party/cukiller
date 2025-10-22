@@ -5,6 +5,7 @@ from aiogram.enums import ContentType
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Group, Column, Url
 from aiogram_dialog.widgets.text import Format, Const
@@ -12,7 +13,9 @@ from aiogram_dialog.widgets.text import Format, Const
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.private_messages import PrivateMessagesFilter
 from bot.filters.user import UserFilter
+from bot.handlers import participation
 from bot.misc.states import RegisterForm, MainLoop
+from bot.misc.states.participation import ParticipationForm
 from services.admin_chat import AdminChatService
 from db.models import User, Game, Player, KillEvent
 from settings import Settings
@@ -52,15 +55,18 @@ async def get_main_menu_info(
     settings: Settings,
     **kwargs,
 ):
-    dispatcher = kwargs.get("dispatcher", None) or kwargs.get("dp")
-    game = await Game().filter(end_date=None).first()
-    user = await User().get(tg_id=kwargs.get("event_from_user").id)
+    game = dialog_manager.start_data["game"]
+    user = dialog_manager.start_data["user"]
 
     return {
+        "game": game,
+        "user": user,
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
         "game_not_running": game is None,
+        "user_not_participating": not user.is_in_game and game is not None,
+        "user_participating": user.is_in_game and game is not None,
         **await parse_target_info(game, user),
     }
 
@@ -68,14 +74,11 @@ async def get_main_menu_info(
 async def get_target_info(dialog_manager: DialogManager, **kwargs):
     """Getter for target info window"""
     settings: Settings = dialog_manager.middleware_data["settings"]
-    game = await Game().filter(end_date=None).first()
-    user: User | None = await User().get(
-        tg_id=dialog_manager.middleware_data["user_tg_id"]
-    )
+    game = dialog_manager.start_data.get("game")
 
     return {
         "report_link": settings.report_link,
-        **await parse_target_info(game, user),
+        **await parse_target_info(game, dialog_manager.start_data["user"]),
     }
 
 
@@ -100,9 +103,6 @@ async def on_target_info(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Your Target' button click - go to target info window"""
-    # Ensure user information is preserved in dialog_data
-    if callback.from_user and "user_tg_id" not in manager.dialog_data:
-        manager.dialog_data["user_tg_id"] = callback.from_user.id
     await manager.switch_to(MainLoop.target_info)
 
 
@@ -124,11 +124,23 @@ async def on_back_to_menu(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Back to menu' button click"""
-    # Ensure user information is preserved when going back
-    if callback.from_user and "user_tg_id" not in manager.dialog_data:
-        manager.dialog_data["user_tg_id"] = callback.from_user.id
     await manager.switch_to(MainLoop.title)
 
+
+async def confirm_participation(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    # info about user and about game is stored in getter, how to access it?
+    game = manager.start_data.get("game")
+    user = manager.start_data.get("user")
+    user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
+        bot=manager.event.bot,
+        user_id=user.tg_id,
+        chat_id=user.tg_id,
+    )
+    await user_dialog_manager.start(
+        ParticipationForm.confirm, data={"game": game, "user": user}
+    )
 
 main_menu_dialog = Dialog(
     Window(
@@ -144,6 +156,12 @@ main_menu_dialog = Dialog(
                 id="next_game_link",
                 url=Format("{next_game_link}"),
                 when="game_not_running",
+            ),
+            Button(
+                Const("Присоединиться к игре"),
+                id="join_game",
+                on_click=confirm_participation,
+                when="user_not_participating",
             ),
             # Game-related buttons
             Button(
@@ -204,5 +222,7 @@ async def user_start(
     bot: Bot,
     user: User,
 ):
-    # Start dialog first, then set user data to avoid NoContextError
-    await dialog_manager.start(MainLoop.title, data={"user_tg_id": user.tg_id})
+    await dialog_manager.reset_stack()
+    game = await Game().filter(end_date=None).first()
+    user = await User().get(tg_id=user.tg_id)
+    await dialog_manager.start(MainLoop.title, data={"user": user, "game": game})
