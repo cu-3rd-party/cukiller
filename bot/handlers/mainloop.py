@@ -52,11 +52,9 @@ async def get_main_menu_info(
     settings: Settings,
     **kwargs,
 ):
-    dispatcher = kwargs.get("dispatcher", None) or kwargs.get("dp", None)
+    dispatcher = kwargs.get("dispatcher", None) or kwargs.get("dp")
     game = await Game().filter(end_date=None).first()
-    user: User | None = kwargs.get("user", None) or kwargs.get(
-        "event_from_user", None
-    )
+    user = await User().get(tg_id=kwargs.get("event_from_user").id)
 
     return {
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
