@@ -12,6 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class RegisterUserMiddleware(BaseMiddleware):
+    """
+    Используется, чтоб дополнять информацию о пользователе, когда он с нами взаимодействует.
+
+    Важно: оно не должно при каждом взаимодействии делать множество запросов в базу данных, также как
+    и не должно обновлять информацию после подтверждения профиля пользователя. В кеше должно храниться
+    ключ: telegram_id юзера
+    значение: telegram_username и имя фамилия в случае если status пользователя не является confirmed, если профиль
+            пользователя подтвержден, то мы не должны никак его менять
+    """
+
     def __init__(self, cache_ttl: int = 300) -> None:
         super().__init__()
         self._user_cache = {}
@@ -34,32 +44,62 @@ class RegisterUserMiddleware(BaseMiddleware):
             data["user"] = cached_data["user"]
             return await handler(event, data)
 
-        user_data = {
-            "tg_username": user.username,
-            "name": " ".join(
-                (
-                    user.first_name if user.first_name else "",
-                    user.last_name if user.last_name else "",
-                )
-            ),
-        }
+        db_user = await User().get_or_none(tg_id=user.id)
 
-        db_user, created = await User().update_or_create(
-            tg_id=user.id,
-            defaults=user_data,
-        )
+        if db_user:
+            if db_user.status == "confirmed":
+                self._user_cache[cache_key] = {
+                    "user": db_user,
+                    "timestamp": datetime.now(),
+                }
+                data["user"] = db_user
+                return await handler(event, data)
 
-        self._user_cache[cache_key] = {
-            "user": db_user,
-            "timestamp": datetime.now(),
-        }
+            user_data = {
+                "tg_username": user.username,
+                "name": " ".join(
+                    (
+                        user.first_name if user.first_name else "",
+                        user.last_name if user.last_name else "",
+                    )
+                ).strip(),
+            }
 
-        self._clean_cache()
+            if (
+                db_user.tg_username != user.username
+                or db_user.name != user_data["name"]
+            ):
+                for field, value in user_data.items():
+                    setattr(db_user, field, value)
+                await db_user.save()
 
-        data["user"] = db_user
-        if created:
+            self._user_cache[cache_key] = {
+                "user": db_user,
+                "timestamp": datetime.now(),
+            }
+            data["user"] = db_user
+
+        else:
+            user_data = {
+                "tg_username": user.username,
+                "name": " ".join(
+                    (
+                        user.first_name if user.first_name else "",
+                        user.last_name if user.last_name else "",
+                    )
+                ).strip(),
+            }
+
+            db_user = await User().create(tg_id=user.id, **user_data)
+
+            self._user_cache[cache_key] = {
+                "user": db_user,
+                "timestamp": datetime.now(),
+            }
+            data["user"] = db_user
             logger.info(f"New user with telegram id: {user.id}")
 
+        self._clean_cache()
         return await handler(event, data)
 
     def _clean_cache(self):
