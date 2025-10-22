@@ -277,11 +277,8 @@ class MatchmakingService:
                     ),
                 )
 
-                # Convert to dict for easy serialization
                 match_dict = match_result.model_dump()
 
-                # TODO: Implement main process notification mechanism
-                # This could be HTTP request, message queue, database update, etc.
                 self.logger.info(
                     f"Match found: {player1.player_id} vs {player2.player_id} "
                     f"(quality: {match_dict['match_quality']:.2f})"
@@ -296,7 +293,6 @@ class MatchmakingService:
                     },
                 )
 
-                # Store match result if needed
                 match_json = match_result.model_dump_json()
                 self.redis.lpush(self.matches_key, match_json)
 
@@ -306,19 +302,16 @@ class MatchmakingService:
     async def restore_queue_state(self) -> None:
         """Restore matchmaking queue state on service startup"""
         try:
-            # Check if there are any players that were in queue before restart
             queue_size = self.redis.zcard(self.queue_key)
             if queue_size > 0:
                 self.logger.info(
                     f"Restored {queue_size} players in matchmaking queue after restart"
                 )
 
-                # Validate all players in queue
                 players = await self.get_players_in_queue()
                 valid_players = 0
                 for player in players:
                     try:
-                        # Re-validate the player data
                         QueuePlayer(**player.model_dump())
                         valid_players += 1
                     except Exception as e:
@@ -341,10 +334,8 @@ class MatchmakingService:
 
             self.logger.debug("Starting matchmaking cycle")
 
-            # Process matchmaking
             matched_pairs = await self.process_matchmaking()
 
-            # Notify main process about matches
             if matched_pairs:
                 await self.notify_main_process(matched_pairs)
                 self.logger.info(
@@ -381,7 +372,6 @@ class MatchmakingService:
         self.is_running = False
         self.logger.info("Matchmaking service stopping...")
 
-    # Additional utility methods
     async def get_player_by_id(self, player_id: int) -> Optional[QueuePlayer]:
         """Get a specific player from the queue by ID"""
         players = await self.get_players_in_queue()
@@ -399,15 +389,12 @@ class MatchmakingService:
             if not player:
                 return False
 
-            # Remove old entry
             await self.remove_player_from_queue(player_id)
 
-            # Create updated player
             updated_data = player.data.model_dump()
             updated_data["rating"] = new_rating
             updated_player = QueuePlayer.create(player_id, updated_data)
 
-            # Add back to queue with new rating
             player_json = updated_player.model_dump_json()
             result = self.redis.zadd(self.queue_key, {player_json: new_rating})
 
