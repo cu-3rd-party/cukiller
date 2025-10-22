@@ -15,13 +15,15 @@ from aiohttp import web
 
 from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
+from bot.middlewares.private_messages import PrivateMessagesMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
 from db.main import close_db, init_db
-from settings import Settings, get_settings
+from services.matchmaking import MatchmakingService
+from settings import Settings, get_settings, get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +32,9 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 
 def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
-    environment = EnvironmentMiddleware(config=settings, dp=dp)
-    dp.update.middleware(environment)
-    register = RegisterUserMiddleware()
-    dp.message.middleware(register)
+    dp.update.middleware(EnvironmentMiddleware(config=settings, dp=dp))
+    dp.message.middleware(RegisterUserMiddleware())
+    dp.message.middleware(PrivateMessagesMiddleware())
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:
@@ -113,6 +114,8 @@ async def run_bot(settings: Settings) -> None:
     )
     dp = Dispatcher(storage=storage)
     dp["settings"] = settings
+    matchmaking = MatchmakingService(get_redis_client(), settings, logging.getLogger("bot.matchmaking"))
+    dp["matchmaking"] = matchmaking
 
     register_all_middlewares(dp, settings)
     register_all_handlers(dp)

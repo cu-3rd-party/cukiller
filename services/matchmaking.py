@@ -25,7 +25,7 @@ class MatchmakingService:
                 "player_id": player_id,
                 "player_data": player_data,
                 "joined_at": datetime.now().isoformat(),
-                "rating": player_data.get("player_rating", 0),
+                "rating": player_data.get("rating", 0),
             }
 
             # Add to sorted set with rating as score for easy matching by skill

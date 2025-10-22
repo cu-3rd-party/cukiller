@@ -11,13 +11,13 @@ from aiogram_dialog.widgets.kbd import Button, Group, Column, Url
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.confirmed import ConfirmedFilter
-from bot.filters.private_messages import PrivateMessagesFilter
 from bot.filters.user import UserFilter
 from bot.handlers import participation
 from bot.misc.states import RegisterForm, MainLoop
 from bot.misc.states.participation import ParticipationForm
 from services.admin_chat import AdminChatService
 from db.models import User, Game, Player, KillEvent
+from services.matchmaking import MatchmakingService
 from settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,13 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
-    # TODO: Implement get target functionality
+    matchmaking: MatchmakingService = manager.middleware_data.get(
+        "matchmaking"
+    )
+    user: User = manager.start_data.get("user")
+    await matchmaking.add_player_to_queue(
+        user.tg_id, {"player_id": user.tg_id, "rating": user.rating}
+    )
     await callback.answer("Получение цели...")
 
 
@@ -215,7 +221,7 @@ router.include_router(main_menu_dialog)
 
 
 @router.message(
-    CommandStart(), ConfirmedFilter(), PrivateMessagesFilter(), UserFilter()
+    CommandStart(), ConfirmedFilter(), UserFilter()
 )
 async def user_start(
     message: Message,

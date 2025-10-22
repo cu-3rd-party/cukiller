@@ -11,7 +11,6 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import ConfirmedFilter
-from bot.filters.private_messages import PrivateMessagesFilter
 from bot.misc.states import RegisterForm
 from services.admin_chat import AdminChatService
 from db.models import User
@@ -319,7 +318,7 @@ router.include_router(register_dialog)
 
 
 @router.message(
-    CommandStart(), ~ConfirmedFilter(), PrivateMessagesFilter(), ~AdminFilter()
+    CommandStart(), ~ConfirmedFilter(), ~AdminFilter()
 )
 async def user_start(
     message: Message,
