@@ -9,8 +9,14 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.user import UserFilter
-from bot.handlers.mainloop.button_handlers import on_i_was_killed, on_target_info, on_i_killed, on_back_to_menu, \
-    on_get_target, confirm_participation
+from bot.handlers.mainloop.button_handlers import (
+    on_i_was_killed,
+    on_target_info,
+    on_i_killed,
+    on_back_to_menu,
+    on_get_target,
+    confirm_participation,
+)
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from bot.misc.states import MainLoop
 from db.models import User, Game

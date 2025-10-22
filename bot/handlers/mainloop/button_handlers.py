@@ -1,4 +1,4 @@
-﻿from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button
@@ -38,6 +38,7 @@ async def on_back_to_menu(
 ):
     """Handle 'Back to menu' button click"""
     await manager.switch_to(MainLoop.title)
+
 
 # async def on_write_report(callback: CallbackQuery, button: Button, manager: DialogManager):
 #     """Handle 'Write Report' button click"""

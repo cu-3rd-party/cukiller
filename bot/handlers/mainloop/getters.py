@@ -1,4 +1,4 @@
-﻿from aiogram import Dispatcher
+from aiogram import Dispatcher
 from aiogram_dialog import DialogManager
 
 from db.models import Game, User, Player, KillEvent
@@ -6,7 +6,9 @@ from services.matchmaking import MatchmakingService
 from settings import Settings
 
 
-async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
+async def parse_target_info(
+    game: Game | None, user: User, matchmaking: MatchmakingService
+):
     player = await Player.filter(user=user, game=game).first()
     if not player:
         return {"no_target": False, "has_target": False, "is_hunted": False}
@@ -58,7 +60,9 @@ async def get_main_menu_info(
     }
 
 
-async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
+async def get_target_info(
+    dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
+):
     """Getter for target info window"""
     settings: Settings = dialog_manager.middleware_data["settings"]
     game = dialog_manager.start_data.get("game")
@@ -66,5 +70,7 @@ async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher,
 
     return {
         "report_link": settings.report_link,
-        **await parse_target_info(game, dialog_manager.start_data["user"], matchmaking),
+        **await parse_target_info(
+            game, dialog_manager.start_data["user"], matchmaking
+        ),
     }
