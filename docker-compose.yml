@@ -81,6 +81,8 @@ services:
       dockerfile: Dockerfile.matchmaking
     env_file: .env
     restart: unless-stopped
+    depends_on:
+      - bot
 
 volumes:
   postgres_data:
