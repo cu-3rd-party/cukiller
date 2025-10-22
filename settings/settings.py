@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     course_coefficient: float = Field(default=0.3, alias="COURSE_COEFFICIENT")
     group_coefficient: float = Field(default=-0.2, alias="GROUP_COEFFICIENT")
     type_coefficient: float = Field(default=-0.6, alias="TYPE_COEFFICIENT")
-    time_coefficient: float = Field(default=0.01, alias="TIME_COEFFICIENT")
+    time_coefficient: float = Field(default=0.001, alias="TIME_COEFFICIENT")
 
     @computed_field
     @property
