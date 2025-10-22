@@ -1,9 +1,14 @@
+import logging
+
 from aiogram import Dispatcher
 from aiogram_dialog import DialogManager
 
 from db.models import Game, User, Player, KillEvent
 from services.matchmaking import MatchmakingService
 from settings import Settings
+
+
+logger = logging.getLogger(__name__)
 
 
 async def parse_target_info(
@@ -25,12 +30,16 @@ async def parse_target_info(
         await victim_event.fetch_related("victim__user")
         target_name = victim_event.victim.user.name
 
+    player_queue = await matchmaking.get_players_in_queue()
     queued_player = await matchmaking.get_player_by_id(user.tg_id)
 
     return {
         "has_target": victim_event is not None,
         "no_target": victim_event is None,
         "should_get_target": victim_event is None and queued_player is None,
+        "enqueued": queued_player is not None,
+        "not_enqueued": queued_player is None,
+        "queue_length": len(player_queue),
         "is_hunted": killer_event is not None,
         "target_name": target_name,
     }
@@ -46,7 +55,7 @@ async def get_main_menu_info(
     user: User = dialog_manager.start_data.get("user")
     matchmaking: MatchmakingService = dispatcher.get("matchmaking")
 
-    return {
+    ret = {
         "game": game,
         "user": user,
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
@@ -55,9 +64,10 @@ async def get_main_menu_info(
         "game_not_running": game is None,
         "user_not_participating": not user.is_in_game and game is not None,
         "user_participating": user.is_in_game and game is not None,
-        "not_enqueued": await matchmaking.get_player_by_id(user.id) is None,
         **await parse_target_info(game, user, matchmaking),
     }
+    logger.debug(ret)
+    return ret
 
 
 async def get_target_info(

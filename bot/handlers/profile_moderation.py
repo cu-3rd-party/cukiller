@@ -9,7 +9,7 @@ from aiogram.types import (
 )
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
-from bot.handlers import mainloop
+from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from db.models import User, Game
 
@@ -107,7 +107,9 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
             )
         user.status = "confirmed"
         await user.save()
-        user_dialog_manager = BgManagerFactoryImpl(router=mainloop.router).bg(
+        user_dialog_manager = BgManagerFactoryImpl(
+            router=mainloop_dialog.router
+        ).bg(
             bot=bot,
             user_id=user.tg_id,
             chat_id=user.tg_id,

@@ -29,6 +29,10 @@ router = Router()
 main_menu_dialog = Dialog(
     Window(
         Const("главное меню"),
+        Format(
+            "\nВы находитесь в очереди, текущая длина очереди: <b>{queue_length} человек</b>",
+            when="enqueued",
+        ),
         Column(
             Url(
                 Const("Перейти в чат обсуждения"),

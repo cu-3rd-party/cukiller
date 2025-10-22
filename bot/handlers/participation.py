@@ -7,7 +7,7 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Column, Button
 from aiogram_dialog.widgets.text import Const
 
-from bot.handlers import mainloop
+from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
 from db.models import Player, Game, User
@@ -37,7 +37,9 @@ async def confirm_participation(
     await callback.message.delete()
     await manager.done()
     await manager.reset_stack()
-    user_dialog_manager = BgManagerFactoryImpl(router=mainloop.router).bg(
+    user_dialog_manager = BgManagerFactoryImpl(
+        router=mainloop_dialog.router
+    ).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
         chat_id=user.tg_id,
