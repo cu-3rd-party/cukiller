@@ -21,6 +21,15 @@ class MatchmakingService:
     ) -> bool:
         """Add player to matchmaking queue"""
         try:
+            existing_players = self.redis.zrange(self.queue_key, 0, -1)
+            for player_json in existing_players:
+                existing_data = json.loads(player_json)
+                if existing_data["player_id"] == player_id:
+                    self.logger.debug(
+                        f"Player {player_id} is already in the matchmaking queue"
+                    )
+                    return False
+
             queue_data = {
                 "player_id": player_id,
                 "player_data": player_data,
@@ -28,12 +37,11 @@ class MatchmakingService:
                 "rating": player_data.get("rating", 0),
             }
 
-            # Add to sorted set with rating as score for easy matching by skill
             result = self.redis.zadd(
                 self.queue_key, {json.dumps(queue_data): queue_data["rating"]}
             )
 
-            self.logger.info(
+            self.logger.debug(
                 f"Player {player_id} added to matchmaking queue with rating {queue_data['rating']}"
             )
             return bool(result)
@@ -86,7 +94,7 @@ class MatchmakingService:
         """
         try:
             # TODO: Implement matching algorithm here
-            raise NotImplementedError()
+            raise NotImplementedError("find_best_match isn't implemented")
         except Exception as e:
             self.logger.error(
                 f"Error finding match for player {player1['player_id']}: {e}"
