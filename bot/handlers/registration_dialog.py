@@ -1,9 +1,9 @@
 import logging
 
-from aiogram import Router, Bot
+from aiogram import Router, Bot, types
 from aiogram.enums import ContentType
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Row, Group, Column
@@ -11,6 +11,7 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import ConfirmedFilter
+from bot.filters.debug import DebugFilter
 from bot.misc.states import RegisterForm
 from services.admin_chat import AdminChatService
 from db.models import User
@@ -324,3 +325,32 @@ async def user_start(
     bot: Bot,
 ):
     await dialog_manager.start(RegisterForm.name)
+
+
+@router.message(
+    Command(commands=["fastreg"]),
+    ~ConfirmedFilter(),
+    ~AdminFilter(),
+    DebugFilter(),
+)
+async def user_fast_reg(
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
+    user: types.User,
+):
+    await User().update_or_create(
+        tg_id=user.tg_id,
+        tg_username=user.tg_username,
+        defaults={
+            "name": user.name,
+            "course_number": 1,
+            "group_name": "Разработка",
+            "about_user": "test user",
+            "photo": "fastreg",
+            "type": "fastreg",
+            "status": "confirmed",
+            "rating": 600,
+        },
+    )
+    await message.answer("fastreg success")
