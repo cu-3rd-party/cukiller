@@ -112,6 +112,11 @@ async def on_final_confirmation(
     users = await User().filter(is_in_game=False, status="confirmed").all()
     logger.debug(f"Notifying {len(users)} about new game {game.id}")
     for user in users:
+        await bot.send_message(
+            user.tg_id,
+            text=f"Внимание, {types.User(id=user.tg_id, is_bot=False, first_name=user.name).mention_html()}!!",
+            parse_mode="HTML",
+        )
         user_dialog_manager = BgManagerFactoryImpl(router=router).bg(
             bot=bot,
             user_id=user.tg_id,

@@ -42,7 +42,9 @@ async def confirm_participation(
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
-    await user_dialog_manager.start(MainLoop.title)
+    await user_dialog_manager.start(
+        MainLoop.title, data={"user": user, "game": game}
+    )
 
 
 router.include_router(
