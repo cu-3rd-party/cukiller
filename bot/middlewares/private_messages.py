@@ -1,4 +1,4 @@
-﻿from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
@@ -13,9 +13,7 @@ class PrivateMessagesMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         if event.from_user.id != event.chat.id:
-            await event.answer(
-                "Этот бот работает только в личных сообщениях."
-            )
+            await event.answer("Этот бот работает только в личных сообщениях.")
             return None
 
         return await handler(event, data)

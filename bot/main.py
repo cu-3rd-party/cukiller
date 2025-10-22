@@ -114,7 +114,9 @@ async def run_bot(settings: Settings) -> None:
     )
     dp = Dispatcher(storage=storage)
     dp["settings"] = settings
-    matchmaking = MatchmakingService(get_redis_client(), settings, logging.getLogger("bot.matchmaking"))
+    matchmaking = MatchmakingService(
+        get_redis_client(), settings, logging.getLogger("bot.matchmaking")
+    )
     dp["matchmaking"] = matchmaking
 
     register_all_middlewares(dp, settings)

@@ -317,9 +317,7 @@ register_dialog = Dialog(
 router.include_router(register_dialog)
 
 
-@router.message(
-    CommandStart(), ~ConfirmedFilter(), ~AdminFilter()
-)
+@router.message(CommandStart(), ~ConfirmedFilter(), ~AdminFilter())
 async def user_start(
     message: Message,
     dialog_manager: DialogManager,

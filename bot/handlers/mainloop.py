@@ -220,9 +220,7 @@ main_menu_dialog = Dialog(
 router.include_router(main_menu_dialog)
 
 
-@router.message(
-    CommandStart(), ConfirmedFilter(), UserFilter()
-)
+@router.message(CommandStart(), ConfirmedFilter(), UserFilter())
 async def user_start(
     message: Message,
     dialog_manager: DialogManager,
