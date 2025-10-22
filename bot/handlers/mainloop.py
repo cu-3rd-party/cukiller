@@ -55,8 +55,8 @@ async def get_main_menu_info(
     settings: Settings,
     **kwargs,
 ):
-    game = dialog_manager.start_data["game"]
-    user = dialog_manager.start_data["user"]
+    game = dialog_manager.start_data.get("game")
+    user = dialog_manager.start_data.get("user")
 
     return {
         "game": game,

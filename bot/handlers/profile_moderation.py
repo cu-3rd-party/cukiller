@@ -11,7 +11,7 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
 from bot.handlers import mainloop
 from bot.misc.states import MainLoop
-from db.models import User
+from db.models import User, Game
 
 router = Router(name="profile_moderation")
 
@@ -112,7 +112,8 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
             user_id=user.tg_id,
             chat_id=user.tg_id,
         )
-        await user_dialog_manager.start(MainLoop.title)
+        game = await Game().filter(end_date=None).first()
+        await user_dialog_manager.start(MainLoop.title, data={"user": user, "game": game})
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it
         if callback.message:
