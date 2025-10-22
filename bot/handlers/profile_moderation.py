@@ -7,7 +7,10 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
+from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
+from bot.handlers import mainloop
+from bot.misc.states import MainLoop
 from db.models import User
 
 router = Router(name="profile_moderation")
@@ -94,10 +97,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     try:
         await bot.send_message(
             chat_id=target_user_id,
-            text=(
-                "<b>Ваш профиль подтверждён модератором.</b>\n\n"
-                "Для перехода в главное меню пропишите /start"
-            ),
+            text=("<b>Ваш профиль подтверждён модератором.</b>\n\n"),
             parse_mode="HTML",
         )
         user, created = await User.get_or_create(tg_id=target_user_id)
@@ -107,6 +107,12 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
             )
         user.status = "confirmed"
         await user.save()
+        user_dialog_manager = BgManagerFactoryImpl(router=mainloop.router).bg(
+            bot=bot,
+            user_id=user.tg_id,
+            chat_id=user.tg_id,
+        )
+        await user_dialog_manager.start(MainLoop.title)
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it
         if callback.message:

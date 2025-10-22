@@ -63,8 +63,6 @@ CREATE TABLE IF NOT EXISTS players (
 	user_id uuid NOT NULL,
 	game_id uuid NOT NULL,
 
-	player_rating integer NOT NULL DEFAULT 0 CHECK (player_rating >= 0),
-
 	CONSTRAINT players_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 	CONSTRAINT players_game_fk FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
 	CONSTRAINT players_user_game_unique UNIQUE (user_id, game_id)

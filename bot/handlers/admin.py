@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from aiogram import Router, Bot
+from aiogram import Router, Bot, types
 from aiogram.enums import ContentType
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
@@ -11,13 +11,16 @@ from aiogram.types import (
     BotCommandScopeChat,
     CallbackQuery,
 )
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, Window, DialogManager, BgManagerFactory
+from aiogram_dialog.manager.bg_manager import BgManager, BgManagerFactoryImpl
+from aiogram_dialog.setup import DialogRegistry
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from bot.misc.states.editgame import EditGame
+from bot.misc.states.participation import ParticipationForm
 from bot.misc.states.startgame import StartGame
 from db.models import User, Game, Player
 
@@ -94,24 +97,42 @@ async def on_description_input(
 
 
 async def on_final_confirmation(
-    callback: CallbackQuery, button: Button, manager: DialogManager
+    callback: CallbackQuery, button: Button, manager: DialogManager, **kwargs
 ):
+    bot = manager.event.bot
     manager.dialog_data["confirm"] = True
 
     creation_date = datetime.now()
-    await Game().create(
+    game = await Game().create(
         name=manager.dialog_data["name"],
-        description=manager.dialog_data["description"],
-        # registration_start_date=creation_date,
-        visibility="public",  # ну сорян, пока что свои лобби не в планах делать
+        start_date=creation_date,
     )
 
     # TODO: notify everyone about the new game
+    users = await User().filter(is_in_game=False, status="confirmed").all()
+    logger.debug(f"Notifying {len(users)} about new game {game.id}")
+    for user in users:
+        user_dialog_manager = BgManagerFactoryImpl(router=router).bg(
+            bot=bot,
+            user_id=user.tg_id,
+            chat_id=user.tg_id,
+        )
+        await user_dialog_manager.start(
+            ParticipationForm.confirm, data={"game": game, "user": user}
+        )
 
     await manager.done()
     await callback.message.reply(
         f"Новая игра создана. Дата создания: {creation_date}"
     )
+
+
+async def on_reset_game_creation(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    manager.dialog_data["confirm"] = False
+
+    await manager.switch_to(StartGame.name)
 
 
 create_game_dialog = Dialog(
@@ -121,18 +142,18 @@ create_game_dialog = Dialog(
         state=StartGame.name,
     ),
     Window(
-        Const("Супер, какое описание сделаем ей?"),
-        MessageInput(on_description_input, content_types=ContentType.TEXT),
-        state=StartGame.description,
-    ),
-    Window(
         Const("Ну в принципе я получил все что мне надо было, стартуем?"),
         Column(
             Button(
                 Const("Да, погнали"),
                 on_click=on_final_confirmation,
                 id="startgame_confirm",
-            )
+            ),
+            Button(
+                Const("Нет, назад"),
+                on_click=on_reset_game_creation,
+                id="startgame_reject",
+            ),
         ),
         state=StartGame.confirm,
     ),
@@ -167,12 +188,9 @@ def parse_game_stage(game: Game) -> str:
         return "Завершена"
     elif game.start_date:
         return "Начата"
-    elif game.registration_end_date:
-        return "Регистрация завершена"
-    elif game.registration_start_date:
-        return "Регистрация начата"
     else:
-        return "Регистрация не начата"
+        logger.warning("start: %s; end: %s", game.start_date, game.end_date)
+        return "err"
 
 
 async def get_games_data(**kwargs):
@@ -195,11 +213,6 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
     game = await Game.get(id=game_id)
     return {
         "game": game,
-        "show_start_registration": game.registration_start_date is None,
-        "show_end_registration": game.registration_start_date is not None
-        and game.registration_end_date is None,
-        "show_start_game": game.registration_end_date is not None
-        and game.start_date is None,
         "show_end_game": game.start_date is not None and game.end_date is None,
     }
 
@@ -218,16 +231,12 @@ async def on_action_clicked(
     action = widget.widget_id
     game = await Game.get(id=manager.dialog_data["game_id"])
     logger.info(action)
-    if action == "start_registration":
-        game.registration_start_date = datetime.now()
-    elif action == "end_registration":
-        game.registration_end_date = datetime.now()
-    elif action == "start_game":
+    if action == "start_game":
         game.start_date = datetime.now()
     elif action == "end_game":
         game.end_date = datetime.now()
     await game.save()
-    logger.info(game.registration_start_date)
+    logger.info(game.start_date)
     await callback.message.delete()
     await manager.switch_to(EditGame.edit)
 
@@ -240,9 +249,6 @@ async def on_get_game_info(
     participants_count = await Player().filter(game=game_id).count()
     await callback.message.answer(
         f'Информация об игре "{game.name}" с айди {game_id}\n\n'
-        f"Описание: {game.description}\n\n"
-        f"Начало регистрации: {game.registration_start_date}\n"
-        f"Конец регистрации: {game.registration_end_date}\n"
         f"Начало игры: {game.start_date}\n"
         f"Конец игры: {game.end_date}\n"
         f"\nКоличество участников: <b>{participants_count}</b>\n"
@@ -268,24 +274,6 @@ game_edit_dialog = Dialog(
     Window(
         Format("Ну и что с ней делать будем?\n\nИгра: {game.name}"),
         Row(
-            Button(
-                Const("Начать регистрацию"),
-                id="start_registration",
-                on_click=on_action_clicked,
-                when="show_start_registration",
-            ),
-            Button(
-                Const("Закончить регистрацию"),
-                id="end_registration",
-                on_click=on_action_clicked,
-                when="show_end_registration",
-            ),
-            Button(
-                Const("Начать игру"),
-                id="start_game",
-                on_click=on_action_clicked,
-                when="show_start_game",
-            ),
             Button(
                 Const("Закончить игру"),
                 id="end_game",
