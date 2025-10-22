@@ -108,7 +108,6 @@ async def on_final_confirmation(
         start_date=creation_date,
     )
 
-    # TODO: notify everyone about the new game
     users = await User().filter(is_in_game=False, status="confirmed").all()
     logger.debug(f"Notifying {len(users)} about new game {game.id}")
     for user in users:
@@ -240,6 +239,7 @@ async def on_action_clicked(
         game.start_date = datetime.now()
     elif action == "end_game":
         game.end_date = datetime.now()
+        await User().all().update(is_in_game=False)
     await game.save()
     logger.info(game.start_date)
     await callback.message.delete()
