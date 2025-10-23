@@ -97,7 +97,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     try:
         await bot.send_message(
             chat_id=target_user_id,
-            text=("<b>Ваш профиль подтверждён модератором.</b>\n\n"),
+            text="<b>Ваш профиль подтверждён модератором.</b>\n\n",
             parse_mode="HTML",
         )
         user, created = await User.get_or_create(tg_id=target_user_id)

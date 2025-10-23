@@ -30,13 +30,16 @@ async def parse_target_info(
         await victim_event.fetch_related("victim__user")
         target_name = victim_event.victim.user.name
 
-    player_queue = await matchmaking.get_players_in_queue()
-    queued_player = await matchmaking.get_player_by_id(user.tg_id)
+    player_queue = await matchmaking.get_unique_players_in_queues()
+    queued_player = (
+        killer_player,
+        victim_player,
+    ) = await matchmaking.get_player_by_id(user.tg_id)
 
     return {
         "has_target": victim_event is not None,
         "no_target": victim_event is None,
-        "should_get_target": victim_event is None and queued_player is None,
+        "should_get_target": victim_event is None and killer_player is None,
         "enqueued": queued_player is not None,
         "not_enqueued": queued_player is None,
         "queue_length": len(player_queue),

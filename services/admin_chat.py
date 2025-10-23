@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from typing import Any
-
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 

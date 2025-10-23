@@ -61,6 +61,7 @@ async def on_get_target(
             "course_number": user.course_number,
             "group_name": user.group_name,
         },
+        "killers",
     )
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
