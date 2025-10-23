@@ -23,12 +23,6 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-    volumes:
-      - .:/app
-      - /app/.venv
-    environment:
-      - PYTHONPATH=/app
-      - WATCHFILES_FORCE_POLLING=true
 
   adminer:
     image: adminer
