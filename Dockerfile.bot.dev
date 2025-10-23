@@ -1,0 +1,25 @@
+﻿FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv add watchfiles
+
+COPY . .
+
+CMD ["uv", "run", "python", "-m", "watchfiles", "python -m bot.main", "."]
