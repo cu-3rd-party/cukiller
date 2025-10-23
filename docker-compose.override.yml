@@ -1,0 +1,18 @@
+﻿services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot.dev
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - PYTHONPATH=/app
+      - WATCHFILES_FORCE_POLLING=true
