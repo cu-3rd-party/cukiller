@@ -4,7 +4,7 @@ from aiogram import Dispatcher
 from aiogram_dialog import DialogManager
 
 from db.models import Game, User, Player, KillEvent
-from services.matchmaking import MatchmakingService
+from services.matchmaking import MatchmakingService, QueuePlayer
 from settings import Settings
 
 
@@ -19,33 +19,39 @@ async def parse_target_info(
         return {"no_target": False, "has_target": False, "is_hunted": False}
 
     victim_event = await KillEvent.filter(
-        killer=player, status="pending"
+        game=game, victim_id=user.id, status="pending"
     ).first()
     killer_event = await KillEvent.filter(
-        victim=player, status="pending"
+        game=game, killer_id=user.id, status="pending"
     ).first()
+    logger.debug(f"Found killer event {killer_event} and {victim_event}")
 
     target_name = "Неизвестно"
-    if victim_event:
-        await victim_event.fetch_related("victim__user")
-        target_name = victim_event.victim.user.name
+    if killer_event:
+        await killer_event.fetch_related("victim")
+        target_name = killer_event.victim.name
 
-    player_queue = await matchmaking.get_unique_players_in_queues()
-    queued_player = (
-        killer_player,
-        victim_player,
-    ) = await matchmaking.get_player_by_id(user.tg_id)
+    (
+        killers_queue,
+        victims_queue,
+    ) = await matchmaking.get_unique_players_in_queues()
+    killer_queued, victim_queued = await matchmaking.get_player_by_id(
+        user.tg_id
+    )
 
-    return {
-        "has_target": victim_event is not None,
-        "no_target": victim_event is None,
-        "should_get_target": victim_event is None and killer_player is None,
-        "enqueued": queued_player is not None,
-        "not_enqueued": queued_player is None,
-        "queue_length": len(player_queue),
-        "is_hunted": killer_event is not None,
+    ret = {
+        "has_target": killer_event is not None,
+        "no_target": killer_event is None,
+        "should_get_target": killer_event is None,
+        "enqueued": killer_queued is not None,
+        "not_enqueued": killer_queued is None,
+        "killers_queue_length": len(killers_queue),
+        "victims_queue_length": len(victims_queue),
+        "is_hunted": victim_event is not None,
         "target_name": target_name,
     }
+    logger.debug(ret)
+    return ret
 
 
 async def get_main_menu_info(

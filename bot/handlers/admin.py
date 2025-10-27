@@ -102,7 +102,7 @@ async def on_final_confirmation(
 
     creation_date = datetime.now()
     game = await Game().create(
-        name=manager.dialog_data["name"],
+        name=manager.dialog_data.get("name") or "test",
         start_date=creation_date,
     )
 
@@ -177,7 +177,7 @@ async def creategame(
             )
         )
         return
-    await dialog_manager.start(StartGame.name)
+    await dialog_manager.start(StartGame.confirm)
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))

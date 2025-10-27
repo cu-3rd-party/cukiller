@@ -30,7 +30,11 @@ main_menu_dialog = Dialog(
     Window(
         Const("главное меню"),
         Format(
-            "\nВы находитесь в очереди, текущая длина очереди: <b>{queue_length} человек</b>",
+            "\n<b>На вас открыта охота!</b>",
+            when="is_hunted",
+        ),
+        Format(
+            "\nВы находитесь в очереди на цель, текущая:\nКоличество потенциальных убийц: <b>{killers_queue_length}</b>\nКоличество потенциальных жертв: <b>{victims_queue_length}</b>",
             when="enqueued",
         ),
         Column(

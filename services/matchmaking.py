@@ -177,14 +177,15 @@ class MatchmakingService:
             )
             return False
 
-    async def get_unique_players_in_queues(self) -> Set[int]:
+    async def get_unique_players_in_queues(self) -> Tuple[Set[int], Set[int]]:
         killers, victims = await self.get_players_in_queues()
-        ret = set()
+        ret_killers = set()
         for i in killers:
-            ret.add(i.player_id)
+            ret_killers.add(i.player_id)
+        ret_victims = set()
         for i in victims:
-            ret.add(i.player_id)
-        return ret
+            ret_victims.add(i.player_id)
+        return ret_killers, ret_victims
 
     async def get_players_in_queues(
         self,
