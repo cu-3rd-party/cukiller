@@ -33,7 +33,7 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 
 def register_all_middlewares(dp: Dispatcher, settings: Settings) -> None:
-    dp.update.middleware(EnvironmentMiddleware(config=settings, dp=dp))
+    dp.update.middleware(EnvironmentMiddleware(config=settings, dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
     dp.message.middleware(PrivateMessagesMiddleware())
 

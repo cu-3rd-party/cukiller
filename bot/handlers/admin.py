@@ -7,13 +7,11 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message,
     BotCommand,
-    BotCommandScope,
     BotCommandScopeChat,
     CallbackQuery,
 )
-from aiogram_dialog import Dialog, Window, DialogManager, BgManagerFactory
-from aiogram_dialog.manager.bg_manager import BgManager, BgManagerFactoryImpl
-from aiogram_dialog.setup import DialogRegistry
+from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
@@ -104,7 +102,7 @@ async def on_final_confirmation(
 
     creation_date = datetime.now()
     game = await Game().create(
-        name=manager.dialog_data["name"],
+        name=manager.dialog_data.get("name") or "test",
         start_date=creation_date,
     )
 
@@ -179,7 +177,7 @@ async def creategame(
             )
         )
         return
-    await dialog_manager.start(StartGame.name)
+    await dialog_manager.start(StartGame.confirm)
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))

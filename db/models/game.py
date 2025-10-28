@@ -1,13 +1,6 @@
-from typing import TYPE_CHECKING
-
 from tortoise import fields
 
 from .base import TimestampedModel
-from .constants import GAME_VISIBILITY
-
-if TYPE_CHECKING:
-    from .kill_event import KillEvent
-    from .player import Player
 
 
 class Game(TimestampedModel):

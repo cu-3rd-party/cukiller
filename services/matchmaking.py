@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Set
 from datetime import datetime
 import asyncio
 import json
@@ -40,10 +40,10 @@ class QueuePlayer(BaseModel):
 class MatchResult(BaseModel):
     """Model for match results"""
 
-    player1_id: int = Field(..., gt=0)
-    player2_id: int = Field(..., gt=0)
-    player1_data: PlayerData
-    player2_data: PlayerData
+    killer_id: int = Field(..., gt=0)
+    victim_id: int = Field(..., gt=0)
+    killer_data: PlayerData
+    victim_data: PlayerData
     matched_at: datetime = Field(default_factory=datetime.now)
     match_quality: float = Field(..., ge=0, le=1)
 
@@ -55,64 +55,156 @@ class MatchmakingService:
         self.is_running = False
         self.logger = logger
 
-        # Redis keys
-        self.queue_key = "matchmaking:queue"
-        self.processing_key = "matchmaking:processing"
+        self.killers_queue_key = (
+            "matchmaking:killers_queue"  # Players without target
+        )
+        self.victims_queue_key = (
+            "matchmaking:victims_queue"  # Players without killer
+        )
         self.matches_key = "matchmaking:matches"
 
     async def add_player_to_queue(
-        self, player_id: int, player_data: Dict[str, Any]
+        self, player_id: int, player_data: Dict[str, Any], queue_type: str
     ) -> bool:
-        """Add player to matchmaking queue"""
+        """
+        Add player to specific queue (killers or victims)
+        :param player_id:
+        :param player_data:
+        :param queue_type: can be either "killers" or "victims"
+        """
         try:
-            existing_players = await self.get_players_in_queue()
+            if queue_type not in ["killers", "victims"]:
+                self.logger.error(f"Invalid queue type: {queue_type}")
+                return False
+
+            queue_player = QueuePlayer.create(player_id, player_data)
+            player_json = queue_player.model_dump_json()
+
+            if queue_type == "killers":
+                queue_key = self.killers_queue_key
+            else:
+                queue_key = self.victims_queue_key
+
+            # Check if player already exists in this queue
+            existing_players = await self.get_players_from_queue(queue_key)
             for existing_player in existing_players:
                 if existing_player.player_id == player_id:
                     self.logger.debug(
-                        f"Player {player_id} is already in the matchmaking queue"
+                        f"Player {player_id} is already in the {queue_type} queue"
                     )
                     return False
 
-            queue_player = QueuePlayer.create(player_id, player_data)
-
-            player_json = queue_player.model_dump_json()
-
             result = self.redis.zadd(
-                self.queue_key, {player_json: queue_player.rating}
+                queue_key, {player_json: queue_player.rating}
             )
 
             self.logger.debug(
-                f"Player {player_id} added to matchmaking queue with rating {queue_player.rating}"
+                f"Player {player_id} added to {queue_type} queue with rating {queue_player.rating}"
             )
             return bool(result)
         except Exception as e:
-            self.logger.error(f"Error adding player {player_id} to queue: {e}")
+            self.logger.error(
+                f"Error adding player {player_id} to {queue_type} queue: {e}"
+            )
             return False
 
-    async def remove_player_from_queue(self, player_id: int) -> bool:
-        """Remove player from matchmaking queue"""
+    async def add_player_to_queues(
+        self, player_id: int, player_data: Dict[str, Any]
+    ) -> bool:
+        """Add player to both killers and victims queues"""
         try:
-            queue_players = await self.get_players_in_queue()
+            queue_player = QueuePlayer.create(player_id, player_data)
+            player_json = queue_player.model_dump_json()
+
+            # Add to both queues
+            killer_result = self.redis.zadd(
+                self.killers_queue_key, {player_json: queue_player.rating}
+            )
+            victim_result = self.redis.zadd(
+                self.victims_queue_key, {player_json: queue_player.rating}
+            )
+
+            self.logger.debug(
+                f"Player {player_id} added to both killers and victims queues with rating {queue_player.rating}"
+            )
+            return bool(killer_result and victim_result)
+        except Exception as e:
+            self.logger.error(
+                f"Error adding player {player_id} to queues: {e}"
+            )
+            return False
+
+    async def remove_player_from_queues(self, player_id: int) -> bool:
+        """Remove player from both killers and victims queues"""
+        try:
+            removed_from_killers = await self.remove_player_from_queue(
+                self.killers_queue_key, player_id
+            )
+            removed_from_victims = await self.remove_player_from_queue(
+                self.victims_queue_key, player_id
+            )
+
+            return removed_from_killers or removed_from_victims
+        except Exception as e:
+            self.logger.error(
+                f"Error removing player {player_id} from queues: {e}"
+            )
+            return False
+
+    async def remove_player_from_queue(
+        self, queue_key: str, player_id: int
+    ) -> bool:
+        """
+        Remove player from specific queue
+
+        :param queue_key: can be either "matchmaking:killers_queue" or "matchmaking:victims_queue"
+        :param player_id: telegram id of the player's user
+        """
+        try:
+            queue_players = await self.get_players_from_queue(queue_key)
             for player in queue_players:
                 if player.player_id == player_id:
                     player_json = player.model_dump_json()
-                    self.redis.zrem(self.queue_key, player_json)
-                    self.logger.info(
-                        f"Player {player_id} removed from matchmaking queue"
+                    self.redis.zrem(queue_key, player_json)
+                    self.logger.debug(
+                        f"Player {player_id} removed from {queue_key}"
                     )
                     return True
             return False
         except Exception as e:
             self.logger.error(
-                f"Error removing player {player_id} from queue: {e}"
+                f"Error removing player {player_id} from {queue_key}: {e}"
             )
             return False
 
-    async def get_players_in_queue(self) -> List[QueuePlayer]:
-        """Get all players currently in matchmaking queue"""
+    async def get_unique_players_in_queues(self) -> Tuple[Set[int], Set[int]]:
+        killers, victims = await self.get_players_in_queues()
+        ret_killers = set()
+        for i in killers:
+            ret_killers.add(i.player_id)
+        ret_victims = set()
+        for i in victims:
+            ret_victims.add(i.player_id)
+        return ret_killers, ret_victims
+
+    async def get_players_in_queues(
+        self,
+    ) -> Tuple[List[QueuePlayer], List[QueuePlayer]]:
+        """Get all players currently in both queues"""
+        killers = await self.get_players_from_queue(self.killers_queue_key)
+        victims = await self.get_players_from_queue(self.victims_queue_key)
+        return killers, victims
+
+    async def get_players_from_queue(
+        self, queue_key: str
+    ) -> List[QueuePlayer]:
+        """
+        Get all players from specific queue.
+        :param queue_key: can be either "matchmaking:killers_queue" or "matchmaking:victims_queue"
+        """
         try:
             queue_members = self.redis.zrange(
-                self.queue_key, 0, -1, withscores=True
+                queue_key, 0, -1, withscores=True
             )
             players = []
             for member, score in queue_members:
@@ -121,26 +213,28 @@ class MatchmakingService:
                     player = QueuePlayer(**player_data)
                     players.append(player)
                 except Exception as e:
-                    self.logger.warning(f"Invalid player data in queue: {e}")
+                    self.logger.warning(
+                        f"Invalid player data in {queue_key}: {e}"
+                    )
                     continue
             return players
         except Exception as e:
-            self.logger.error(f"Error getting players from queue: {e}")
+            self.logger.error(f"Error getting players from {queue_key}: {e}")
             return []
 
     async def rate_player_pair(
         self,
-        player1: QueuePlayer,
-        player2: QueuePlayer,
+        killer: QueuePlayer,
+        victim: QueuePlayer,
         cur_time: datetime | None = None,
     ) -> float:
         """
-        Rates compatibility between two players. Returns value between 0 and 1.
+        Rates compatibility between killer and victim. Returns value between 0 and 1.
         """
         if cur_time is None:
             cur_time = datetime.now()
 
-        rating_diff = abs(player1.rating - player2.rating)
+        rating_diff = abs(killer.rating - victim.rating)
         if rating_diff > self.settings.max_rating_diff:
             return 0.0
 
@@ -151,20 +245,20 @@ class MatchmakingService:
 
         # Это хорошо, если курс совпадает
         course_bonus = self.settings.course_coefficient * (
-            player1.data.course_number == player2.data.course_number
+            killer.data.course_number == victim.data.course_number
         )
         # Это плохо, если группа совпадает
         group_bonus = self.settings.group_coefficient * (
-            player1.data.group_name == player2.data.group_name
+            killer.data.group_name == victim.data.group_name
         )
         # Это ужасно, если тип обучения не совпадает
         type_bonus = self.settings.type_coefficient * (
-            player1.data.type == player2.data.type
+            killer.data.type == victim.data.type
         )
         # Это плохо, если люди долго в очереди ждут
         time_bonus = self.settings.time_coefficient * (
-            (cur_time - player1.joined_at).total_seconds()
-            + (cur_time - player2.joined_at).total_seconds()
+            (cur_time - killer.joined_at).total_seconds()
+            + (cur_time - victim.joined_at).total_seconds()
         )
 
         match_quality = (
@@ -176,84 +270,101 @@ class MatchmakingService:
         )
         return max(0.0, min(1.0, match_quality))
 
-    async def find_best_match(
-        self, player1: QueuePlayer, players_queue: List[QueuePlayer]
+    async def find_best_victim_for_killer(
+        self, killer: QueuePlayer, victims_queue: List[QueuePlayer]
     ) -> Optional[QueuePlayer]:
         """
-        Find the best match for a player from the queue
+        Find the best victim for a killer from the victims queue
         Returns None if no satisfactory matches are found.
         """
         try:
-            best_match = None
+            best_victim = None
             best_score = 0.0
-            satisfactory_matches = []
+            satisfactory_victims = []
 
-            for candidate in players_queue:
-                if candidate.player_id == player1.player_id:
+            for victim_candidate in victims_queue:
+                if victim_candidate.player_id == killer.player_id:
                     continue
 
-                match_score = await self.rate_player_pair(player1, candidate)
+                match_score = await self.rate_player_pair(
+                    killer, victim_candidate
+                )
 
                 if match_score >= self.settings.quality_threshold:
-                    satisfactory_matches.append((candidate, match_score))
+                    satisfactory_victims.append(
+                        (victim_candidate, match_score)
+                    )
 
                     if match_score > best_score:
                         best_score = match_score
-                        best_match = candidate
+                        best_victim = victim_candidate
 
-            if satisfactory_matches:
-                return best_match
+            if satisfactory_victims:
+                return best_victim
             else:
                 self.logger.debug(
-                    f"No satisfactory matches found for player {player1.player_id}"
+                    f"No satisfactory victims found for killer {killer.player_id}"
                 )
                 return None
 
         except Exception as e:
             self.logger.error(
-                f"Error finding match for player {player1.player_id}: {e}"
+                f"Error finding victim for killer {killer.player_id}: {e}"
             )
             return None
 
     async def process_matchmaking(
         self,
     ) -> List[Tuple[QueuePlayer, QueuePlayer]]:
-        """Process the matchmaking queue and find suitable pairs"""
+        """Process the matchmaking queues and find suitable killer-victim pairs"""
         try:
-            players_queue = await self.get_players_in_queue()
-            if len(players_queue) < 2:
-                self.logger.info("Not enough players in queue for matchmaking")
+            killers_queue, victims_queue = await self.get_players_in_queues()
+
+            if not killers_queue or not victims_queue:
+                self.logger.info(
+                    "Not enough players in both queues for matchmaking"
+                )
                 return []
 
             self.logger.info(
-                f"Processing matchmaking for {len(players_queue)} players"
+                f"Processing matchmaking for {len(killers_queue)} killers and {len(victims_queue)} victims"
             )
 
             matched_pairs = []
-            processed_players = set()
+            processed_killers = set()
+            processed_victims = set()
 
-            # Sort players by join time for consistent matching
-            players_queue.sort(key=lambda x: x.joined_at)
+            # Sort killers by join time for consistent matching
+            killers_queue.sort(key=lambda x: x.joined_at)
 
-            for player in players_queue:
-                if player.player_id in processed_players:
+            for killer in killers_queue:
+                if killer.player_id in processed_killers:
                     continue
 
-                # Find a match for this player
-                match = await self.find_best_match(player, players_queue)
+                victim = await self.find_best_victim_for_killer(
+                    killer, victims_queue
+                )
 
-                if match and match.player_id not in processed_players:
+                if (
+                    victim
+                    and victim.player_id not in processed_victims
+                    and victim.player_id != killer.player_id
+                ):
                     # Found a match!
-                    matched_pairs.append((player, match))
-                    processed_players.add(player.player_id)
-                    processed_players.add(match.player_id)
+                    matched_pairs.append((killer, victim))
+                    processed_killers.add(killer.player_id)
+                    processed_victims.add(victim.player_id)
 
-                    # Remove matched players from queue
-                    await self.remove_player_from_queue(player.player_id)
-                    await self.remove_player_from_queue(match.player_id)
+                    # Remove matched players from respective queues
+                    await self.remove_player_from_queue(
+                        self.killers_queue_key, killer.player_id
+                    )
+                    await self.remove_player_from_queue(
+                        self.victims_queue_key, victim.player_id
+                    )
 
                     self.logger.info(
-                        f"Matched players {player.player_id} and {match.player_id}"
+                        f"Matched killer {killer.player_id} with victim {victim.player_id}"
                     )
 
             return matched_pairs
@@ -264,31 +375,29 @@ class MatchmakingService:
     async def notify_main_process(
         self, matched_pairs: List[Tuple[QueuePlayer, QueuePlayer]]
     ) -> None:
-        """Notify main process about matched pairs"""
+        """Notify main process about matched killer-victim pairs"""
         try:
-            for player1, player2 in matched_pairs:
+            for killer, victim in matched_pairs:
                 match_result = MatchResult(
-                    player1_id=player1.player_id,
-                    player2_id=player2.player_id,
-                    player1_data=player1.data,
-                    player2_data=player2.data,
-                    match_quality=await self.rate_player_pair(
-                        player1, player2
-                    ),
+                    killer_id=killer.player_id,
+                    victim_id=victim.player_id,
+                    killer_data=killer.data,
+                    victim_data=victim.data,
+                    match_quality=await self.rate_player_pair(killer, victim),
                 )
 
                 match_dict = match_result.model_dump()
 
                 self.logger.info(
-                    f"Match found: {player1.player_id} vs {player2.player_id} "
+                    f"Match found: killer {killer.player_id} vs victim {victim.player_id} "
                     f"(quality: {match_dict['match_quality']:.2f})"
                 )
                 requests.post(
                     "http://bot:8000/match",
                     json={
                         "secret_key": self.settings.secret_key,
-                        "player1": player1.player_id,
-                        "player2": player2.player_id,
+                        "killer": killer.player_id,
+                        "victim": victim.player_id,
                         "quality": match_dict["match_quality"],
                     },
                 )
@@ -300,29 +409,49 @@ class MatchmakingService:
             self.logger.error(f"Error notifying main process: {e}")
 
     async def restore_queue_state(self) -> None:
-        """Restore matchmaking queue state on service startup"""
+        """Restore matchmaking queues state on service startup"""
         try:
-            queue_size = self.redis.zcard(self.queue_key)
-            if queue_size > 0:
+            killers_size = self.redis.zcard(self.killers_queue_key)
+            victims_size = self.redis.zcard(self.victims_queue_key)
+
+            if killers_size > 0 or victims_size > 0:
                 self.logger.info(
-                    f"Restored {queue_size} players in matchmaking queue after restart"
+                    f"Restored {killers_size} killers and {victims_size} victims after restart"
                 )
 
-                players = await self.get_players_in_queue()
-                valid_players = 0
-                for player in players:
+                killers, victims = await self.get_players_in_queues()
+
+                valid_killers = 0
+                for killer in killers:
                     try:
-                        QueuePlayer(**player.model_dump())
-                        valid_players += 1
+                        QueuePlayer(**killer.model_dump())
+                        valid_killers += 1
                     except Exception as e:
                         self.logger.warning(
-                            f"Removing invalid player data from queue: {e}"
+                            f"Removing invalid killer data from queue: {e}"
                         )
-                        await self.remove_player_from_queue(player.player_id)
+                        await self.remove_player_from_queue(
+                            self.killers_queue_key, killer.player_id
+                        )
 
-                self.logger.info(f"Validated {valid_players} players in queue")
+                valid_victims = 0
+                for victim in victims:
+                    try:
+                        QueuePlayer(**victim.model_dump())
+                        valid_victims += 1
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Removing invalid victim data from queue: {e}"
+                        )
+                        await self.remove_player_from_queue(
+                            self.victims_queue_key, victim.player_id
+                        )
+
+                self.logger.info(
+                    f"Validated {valid_killers} killers and {valid_victims} victims"
+                )
             else:
-                self.logger.info("No players in queue on service startup")
+                self.logger.info("No players in queues on service startup")
         except Exception as e:
             self.logger.error(f"Error restoring queue state: {e}")
 
@@ -339,7 +468,7 @@ class MatchmakingService:
             if matched_pairs:
                 await self.notify_main_process(matched_pairs)
                 self.logger.info(
-                    f"Matchmaking cycle completed: {len(matched_pairs)} pairs matched"
+                    f"Matchmaking cycle completed: {len(matched_pairs)} killer-victim pairs matched"
                 )
             else:
                 self.logger.debug(
@@ -372,33 +501,67 @@ class MatchmakingService:
         self.is_running = False
         self.logger.info("Matchmaking service stopping...")
 
-    async def get_player_by_id(self, player_id: int) -> Optional[QueuePlayer]:
-        """Get a specific player from the queue by ID"""
-        players = await self.get_players_in_queue()
-        for player in players:
-            if player.player_id == player_id:
-                return player
-        return None
+    async def get_player_by_id(
+        self, player_id: int
+    ) -> Optional[Tuple[QueuePlayer, QueuePlayer]]:
+        """Get a specific player from both queues by ID"""
+        killers, victims = await self.get_players_in_queues()
+
+        killer_player = None
+        victim_player = None
+
+        for killer in killers:
+            if killer.player_id == player_id:
+                killer_player = killer
+                break
+
+        for victim in victims:
+            if victim.player_id == player_id:
+                victim_player = victim
+                break
+
+        return killer_player, victim_player
 
     async def update_player_rating(
         self, player_id: int, new_rating: float
     ) -> bool:
-        """Update a player's rating in the queue"""
+        """Update a player's rating in both queues"""
         try:
-            player = await self.get_player_by_id(player_id)
-            if not player:
-                return False
+            killer_player, victim_player = await self.get_player_by_id(
+                player_id
+            )
 
-            await self.remove_player_from_queue(player_id)
+            success = True
 
-            updated_data = player.data.model_dump()
-            updated_data["rating"] = new_rating
-            updated_player = QueuePlayer.create(player_id, updated_data)
+            # Update in killers queue if exists
+            if killer_player:
+                await self.remove_player_from_queue(
+                    self.killers_queue_key, player_id
+                )
+                updated_data = killer_player.data.model_dump()
+                updated_data["rating"] = new_rating
+                updated_player = QueuePlayer.create(player_id, updated_data)
+                player_json = updated_player.model_dump_json()
+                result = self.redis.zadd(
+                    self.killers_queue_key, {player_json: new_rating}
+                )
+                success = success and bool(result)
 
-            player_json = updated_player.model_dump_json()
-            result = self.redis.zadd(self.queue_key, {player_json: new_rating})
+            # Update in victims queue if exists
+            if victim_player:
+                await self.remove_player_from_queue(
+                    self.victims_queue_key, player_id
+                )
+                updated_data = victim_player.data.model_dump()
+                updated_data["rating"] = new_rating
+                updated_player = QueuePlayer.create(player_id, updated_data)
+                player_json = updated_player.model_dump_json()
+                result = self.redis.zadd(
+                    self.victims_queue_key, {player_json: new_rating}
+                )
+                success = success and bool(result)
 
-            return bool(result)
+            return success
         except Exception as e:
             self.logger.error(f"Error updating player {player_id} rating: {e}")
             return False

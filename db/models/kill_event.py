@@ -59,4 +59,4 @@ class KillEvent(TimestampedModel):
         )
 
     def __str__(self) -> str:
-        return f"<KillEvent g={self.game.id} {self.killer.id}->{self.victim.id} at {self.occurred_at}>"
+        return f"<KillEvent with id={self.id}>"
