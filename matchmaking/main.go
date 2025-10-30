@@ -105,7 +105,8 @@ func startupHttp() {
 	logger.Info("HTTP server starting on %s", addr)
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		logger.Fatal("HTTP server failed: %v", err)
+		logger.Error("HTTP server failed: %v", err)
+		os.Exit(1)
 	}
 }
 
@@ -134,4 +135,16 @@ func health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+type MatchedPair struct {
+	Victim  int     `json:"victim"`
+	Killer  int     `json:"killer"`
+	Quality float64 `json:"quality"`
+}
+
+type QueuePlayer struct {
+	TgId     int
+	JoinedAt time.Time
+	PlayerData
 }
