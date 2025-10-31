@@ -50,9 +50,6 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-var KillerPool = make(map[int]QueuePlayer)
-var VictimPool = make(map[int]QueuePlayer)
-
 func addKiller(w http.ResponseWriter, r *http.Request) {
 	// 	1. parse PlayerData from request
 	var data PlayerData
