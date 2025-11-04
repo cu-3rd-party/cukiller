@@ -30,12 +30,19 @@ async def get_queue_info(request: web.Request) -> web.StreamResponse:
     for ke in await KillEvent.filter(game=game).all():
         found_killers.add(ke.killer)
         found_victims.add(ke.victim)
-    potential_killers = await User.filter(is_in_game=True, id__not_in=found_killers).all()
-    potential_victims = await User.filter(is_in_game=True, id__not_in=found_victims).all()
-    return web.json_response(status=200, data={
-        "killers_queue": [i.tg_id for i in potential_killers],
-        "victims_queue": [i.tg_id for i in potential_victims],
-    })
+    potential_killers = await User.filter(
+        is_in_game=True, id__not_in=found_killers
+    ).all()
+    potential_victims = await User.filter(
+        is_in_game=True, id__not_in=found_victims
+    ).all()
+    return web.json_response(
+        status=200,
+        data={
+            "killers_queue": [i.tg_id for i in potential_killers],
+            "victims_queue": [i.tg_id for i in potential_victims],
+        },
+    )
 
 
 async def handle_match(request: web.Request) -> web.StreamResponse:

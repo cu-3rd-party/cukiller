@@ -53,8 +53,12 @@ async def confirm_participation(
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    requests.post("matchmaking:5432/add/killer/", json=player_data).raise_for_status()
-    requests.post("matchmaking:5432/add/victim/", json=player_data).raise_for_status()
+    requests.post(
+        "matchmaking:5432/add/killer/", json=player_data
+    ).raise_for_status()
+    requests.post(
+        "matchmaking:5432/add/victim/", json=player_data
+    ).raise_for_status()
     await user_dialog_manager.start(
         MainLoop.title, data={"user": user, "game": game}
     )
