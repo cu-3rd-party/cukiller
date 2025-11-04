@@ -19,7 +19,6 @@ services:
     env_file: .env
     depends_on:
       - db
-      - redis
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -61,28 +60,12 @@ services:
       - prometheus
     restart: unless-stopped
 
-  redis:
-    image: redis:8.2.2-alpine
-    env_file: .env
-    command:
-      - redis-server
-      - /usr/local/etc/redis/redis.conf
-      - --requirepass ${REDIS_PASSWORD}
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    restart: unless-stopped
-
   matchmaking:
     build:
       context: .
       dockerfile: Dockerfile.matchmaking
     env_file: .env
     restart: unless-stopped
-    depends_on:
-      - bot
 
 volumes:
   postgres_data:

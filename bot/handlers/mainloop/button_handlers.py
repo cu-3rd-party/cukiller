@@ -1,3 +1,4 @@
+import requests
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -48,21 +49,16 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
-    matchmaking: MatchmakingService = manager.middleware_data.get(
-        "matchmaking"
-    )
     user: User = manager.start_data.get("user")
-    await matchmaking.add_player_to_queue(
-        user.tg_id,
-        {
-            "player_id": user.tg_id,
-            "rating": user.rating,
-            "type": user.type,
-            "course_number": user.course_number,
-            "group_name": user.group_name,
-        },
-        "killers",
-    )
+
+    player_data = {
+        "player_id": user.tg_id,
+        "rating": user.rating,
+        "type": user.type,
+        "course_number": user.course_number,
+        "group_name": user.group_name,
+    }
+    requests.post("matchmaking:5432/add/killer/", json=player_data).raise_for_status()
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 

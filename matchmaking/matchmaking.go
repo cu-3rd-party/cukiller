@@ -39,7 +39,7 @@ func matchmaking() {
 	// because this function does a lot of heavy lifting we should have the same time for all rates
 	curTime := time.Now()
 	if len(KillerPool)+len(VictimPool) < 2 {
-		logger.Info("Not enough players in queues to process matchmaking")
+		//logger.Info("Not enough players in queues to process matchmaking")
 		return
 	}
 

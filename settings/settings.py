@@ -40,12 +40,6 @@ class Settings(BaseSettings):
         default=False, alias="TORTOISE_GENERATE_SCHEMAS"
     )
 
-    # ^ Redis
-    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
-    redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    redis_password: str = Field(alias="REDIS_PASSWORD")
-    redis_db: int = Field(default=0, alias="REDIS_DB")
-
     # ^ Matchmaking
     matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL")
     quality_threshold: float = Field(default=0.6, alias="QUALITY_THRESHOLD")

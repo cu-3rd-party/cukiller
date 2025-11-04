@@ -24,7 +24,7 @@ from services.discussion_invite import (
 )
 from db.main import close_db, init_db
 from services.matchmaking import MatchmakingService
-from settings import Settings, get_settings, get_redis_client
+from settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ async def run_bot(settings: Settings) -> None:
     dp = Dispatcher(storage=storage)
     dp["settings"] = settings
     matchmaking = MatchmakingService(
-        get_redis_client(), settings, logging.getLogger("bot.matchmaking")
+        settings, logging.getLogger("bot.matchmaking")
     )
     dp["matchmaking"] = matchmaking
 

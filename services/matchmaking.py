@@ -3,7 +3,6 @@ from typing import Dict, Any, List, Optional, Tuple, Set
 from datetime import datetime
 import asyncio
 import json
-import requests
 
 
 class PlayerData(BaseModel):
@@ -49,8 +48,7 @@ class MatchResult(BaseModel):
 
 
 class MatchmakingService:
-    def __init__(self, redis_client, settings, logger):
-        self.redis = redis_client
+    def __init__(self, settings, logger):
         self.settings = settings
         self.is_running = False
         self.logger = logger
