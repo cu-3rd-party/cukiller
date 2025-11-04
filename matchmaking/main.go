@@ -5,7 +5,6 @@ func main() {
 
 	db := MustGetDb()
 	initDb(db)
-	//restoreMatchmakingQueue()
 	go matchmakingTicker()
 	startupHttp()
 }

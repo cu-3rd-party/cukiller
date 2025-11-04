@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -39,8 +40,9 @@ func initDb(db *sql.DB) {
 
 // populateQueues finds players who are in game but don't have kill events and puts them into KillerPool and VictimPool
 func populateQueues(db *sql.DB) {
-	var gameId int
-	err := db.QueryRow(`SELECT id, start_date, end_date FROM games WHERE end_date ISNULL`).Scan(&gameId)
+	populationTime := time.Now()
+	var gameId []uint8
+	err := db.QueryRow(`SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			log.Printf("Error querying active game: %v", err)
@@ -48,9 +50,9 @@ func populateQueues(db *sql.DB) {
 		return
 	}
 	killerRows, err := db.Query(`
-        SELECT u.tg_id, u.global_rating, u.type, u.course_number, u.group_name 
+        SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
         FROM users u
-        LEFT JOIN kill_events k ON u.id = k.killer_user_id AND k.game_id = ?
+        LEFT JOIN kill_events k ON u.id = k.killer_user_id AND k.game_id = $1
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
@@ -64,13 +66,13 @@ func populateQueues(db *sql.DB) {
 		if err = killerRows.Scan(&playerId); err != nil {
 			continue
 		}
-		KillerPool[playerId] = QueuePlayer{TgId: playerId}
+		KillerPool[playerId] = QueuePlayer{TgId: playerId, JoinedAt: populationTime}
 	}
 
 	victimRows, err := db.Query(`
         SELECT u.id 
         FROM users u
-        LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = ?
+        LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = $1
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
@@ -84,6 +86,11 @@ func populateQueues(db *sql.DB) {
 		if err = victimRows.Scan(&playerId); err != nil {
 			continue
 		}
-		VictimPool.Add(playerId)
+		VictimPool[playerId] = QueuePlayer{
+			TgId:       playerId,
+			JoinedAt:   populationTime,
+			PlayerData: PlayerData{},
+		}
 	}
+	fmt.Println("test")
 }
