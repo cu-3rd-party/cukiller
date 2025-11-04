@@ -59,7 +59,7 @@ async def on_get_target(
         "group_name": user.group_name,
     }
     requests.post(
-        "matchmaking:5432/add/killer/", json=player_data
+        "http://localhost:6543/add/killer/", json=player_data
     ).raise_for_status()
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 

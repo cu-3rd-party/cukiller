@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL")
     quality_threshold: float = Field(default=0.6, alias="QUALITY_THRESHOLD")
 
+    matchmaking_service_url: str = Field(default="http://localhost:65432", alias="MATCHMAKING_URL")
     max_rating_diff: float = Field(default=1000, alias="MAX_RATING_DIFF")
     course_coefficient: float = Field(default=0.3, alias="COURSE_COEFFICIENT")
     group_coefficient: float = Field(default=-0.2, alias="GROUP_COEFFICIENT")

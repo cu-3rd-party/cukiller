@@ -49,6 +49,8 @@ func populateQueues(db *sql.DB) {
 		}
 		return
 	}
+
+	// --- Populate KillerPool ---
 	killerRows, err := db.Query(`
         SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
         FROM users u
@@ -62,15 +64,33 @@ func populateQueues(db *sql.DB) {
 	defer killerRows.Close()
 
 	for killerRows.Next() {
-		var playerId int
-		if err = killerRows.Scan(&playerId); err != nil {
+		var p QueuePlayer
+		var courseNumber sql.NullInt64
+		var groupName sql.NullString
+		var educationType string
+
+		err = killerRows.Scan(&p.TgId, &p.Rating, &educationType, &courseNumber, &groupName)
+		if err != nil {
+			log.Printf("Error scanning killer row: %v", err)
 			continue
 		}
-		KillerPool[playerId] = QueuePlayer{TgId: playerId, JoinedAt: populationTime}
+
+		p.Type = EducationTypeFromString(educationType)
+		if courseNumber.Valid {
+			num := int(courseNumber.Int64)
+			p.CourseNumber = &num
+		}
+		if groupName.Valid {
+			p.GroupName = GroupNameFromString(groupName.String)
+		}
+		p.JoinedAt = populationTime
+
+		KillerPool[p.TgId] = p
 	}
 
+	// --- Populate VictimPool ---
 	victimRows, err := db.Query(`
-        SELECT u.id 
+        SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
         FROM users u
         LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = $1
         WHERE u.is_in_game = TRUE AND k.id IS NULL
@@ -82,15 +102,29 @@ func populateQueues(db *sql.DB) {
 	defer victimRows.Close()
 
 	for victimRows.Next() {
-		var playerId int
-		if err = victimRows.Scan(&playerId); err != nil {
+		var p QueuePlayer
+		var courseNumber sql.NullInt64
+		var groupName sql.NullString
+		var educationType string
+
+		err = victimRows.Scan(&p.TgId, &p.Rating, &educationType, &courseNumber, &groupName)
+		if err != nil {
+			log.Printf("Error scanning victim row: %v", err)
 			continue
 		}
-		VictimPool[playerId] = QueuePlayer{
-			TgId:       playerId,
-			JoinedAt:   populationTime,
-			PlayerData: PlayerData{},
+
+		p.Type = EducationTypeFromString(educationType)
+		if courseNumber.Valid {
+			num := int(courseNumber.Int64)
+			p.CourseNumber = &num
 		}
+		if groupName.Valid {
+			p.GroupName = GroupNameFromString(groupName.String)
+		}
+		p.JoinedAt = populationTime
+
+		VictimPool[p.TgId] = p
 	}
-	fmt.Println("test")
+
+	log.Printf("Queue initialization complete: %d killers, %d victims", len(KillerPool), len(VictimPool))
 }
