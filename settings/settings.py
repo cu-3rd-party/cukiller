@@ -25,11 +25,11 @@ class Settings(BaseSettings):
     game_info_link: str = Field(alias="NEXT_GAME_LINK")
 
     # ^ PostgreSQL
-    pg_host: str = Field(default="db", alias="POSTGRES_HOST")
-    pg_port: int = Field(default=5432, alias="POSTGRES_PORT")
-    pg_db: str = Field(default="db", alias="POSTGRES_DB")
-    pg_user: str = Field(default="admin", alias="POSTGRES_USER")
-    pg_password: str = Field(default="admin", alias="POSTGRES_PASSWORD")
+    pg_host: str = Field(default="db", alias="DB_HOST")
+    pg_port: int = Field(default=5432, alias="DB_PORT")
+    pg_db: str = Field(default="db", alias="DB_NAME")
+    pg_user: str = Field(default="admin", alias="DB_USER")
+    pg_password: str = Field(default="admin", alias="DB_PASSWORD")
 
     # ^ Tortoise ORM
     tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
@@ -44,7 +44,9 @@ class Settings(BaseSettings):
     matchmaking_interval: int = Field(default=5, alias="MATCHMAKING_INTERVAL")
     quality_threshold: float = Field(default=0.6, alias="QUALITY_THRESHOLD")
 
-    matchmaking_service_url: str = Field(default="http://localhost:65432", alias="MATCHMAKING_URL")
+    matchmaking_service_url: str = Field(
+        default="http://localhost:65432", alias="MATCHMAKING_URL"
+    )
     max_rating_diff: float = Field(default=1000, alias="MAX_RATING_DIFF")
     course_coefficient: float = Field(default=0.3, alias="COURSE_COEFFICIENT")
     group_coefficient: float = Field(default=-0.2, alias="GROUP_COEFFICIENT")

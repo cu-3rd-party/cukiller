@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 # ---------- MODELS ----------
 
+
 class PlayerData(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -25,7 +26,9 @@ class QueuePlayer(BaseModel):
     rating: float = Field(..., ge=0)
 
     @classmethod
-    def create(cls, player_id: int, player_data: Dict[str, Any]) -> "QueuePlayer":
+    def create(
+        cls, player_id: int, player_data: Dict[str, Any]
+    ) -> "QueuePlayer":
         data_obj = PlayerData(**player_data)
         return cls(
             player_id=player_id,
@@ -45,6 +48,7 @@ class MatchResult(BaseModel):
 
 # ---------- SERVICE ----------
 
+
 class MatchmakingService:
     def __init__(self, settings, logger):
         self.settings = settings
@@ -54,17 +58,25 @@ class MatchmakingService:
 
     # -------------------- REST UTILS --------------------
 
-    async def _request(self, method: str, path: str, json_data: Optional[dict] = None) -> Optional[dict]:
+    async def _request(
+        self, method: str, path: str, json_data: Optional[dict] = None
+    ) -> Optional[dict]:
         """Unified helper to call the Go microservice via REST"""
         url = f"{self.base_url}{path}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.request(method, url, json=json_data, timeout=10) as resp:
+                async with session.request(
+                    method, url, json=json_data, timeout=10
+                ) as resp:
                     if resp.status != 200:
                         text = await resp.text()
-                        self.logger.error(f"HTTP {resp.status} {method} {url}: {text}")
+                        self.logger.error(
+                            f"HTTP {resp.status} {method} {url}: {text}"
+                        )
                         return None
-                    if "application/json" in resp.headers.get("Content-Type", ""):
+                    if "application/json" in resp.headers.get(
+                        "Content-Type", ""
+                    ):
                         return await resp.json()
                     return None
         except Exception as e:
@@ -88,20 +100,31 @@ class MatchmakingService:
         res = await self._request("POST", endpoint, json_data=data)
 
         if res is not None:
-            self.logger.debug(f"Added player {player_id} to {queue_type} queue via REST")
+            self.logger.debug(
+                f"Added player {player_id} to {queue_type} queue via REST"
+            )
             return True
         return False
 
-    async def add_player_to_queues(self, player_id: int, player_data: Dict[str, Any]) -> bool:
+    async def add_player_to_queues(
+        self, player_id: int, player_data: Dict[str, Any]
+    ) -> bool:
         """Add player to both queues"""
-        added_killer = await self.add_player_to_queue(player_id, player_data, "killer")
-        added_victim = await self.add_player_to_queue(player_id, player_data, "victim")
+        added_killer = await self.add_player_to_queue(
+            player_id, player_data, "killer"
+        )
+        added_victim = await self.add_player_to_queue(
+            player_id, player_data, "victim"
+        )
         return added_killer and added_victim
 
     # -------------------- MATCHMAKING LOGIC --------------------
 
     async def rate_player_pair(
-        self, killer: QueuePlayer, victim: QueuePlayer, cur_time: Optional[datetime] = None
+        self,
+        killer: QueuePlayer,
+        victim: QueuePlayer,
+        cur_time: Optional[datetime] = None,
     ) -> float:
         """Rate match quality between two players"""
         cur_time = cur_time or datetime.now()
@@ -109,16 +132,30 @@ class MatchmakingService:
         if rating_diff > self.settings.max_rating_diff:
             return 0.0
 
-        rating_similarity = 1.0 - min(rating_diff / self.settings.max_rating_diff, 1.0)
-        course_bonus = self.settings.course_coefficient * (killer.data.course_number == victim.data.course_number)
-        group_bonus = self.settings.group_coefficient * (killer.data.group_name == victim.data.group_name)
-        type_bonus = self.settings.type_coefficient * (killer.data.type == victim.data.type)
+        rating_similarity = 1.0 - min(
+            rating_diff / self.settings.max_rating_diff, 1.0
+        )
+        course_bonus = self.settings.course_coefficient * (
+            killer.data.course_number == victim.data.course_number
+        )
+        group_bonus = self.settings.group_coefficient * (
+            killer.data.group_name == victim.data.group_name
+        )
+        type_bonus = self.settings.type_coefficient * (
+            killer.data.type == victim.data.type
+        )
         time_bonus = self.settings.time_coefficient * (
             (cur_time - killer.joined_at).total_seconds()
             + (cur_time - victim.joined_at).total_seconds()
         )
 
-        quality = rating_similarity + course_bonus + group_bonus + type_bonus + time_bonus
+        quality = (
+            rating_similarity
+            + course_bonus
+            + group_bonus
+            + type_bonus
+            + time_bonus
+        )
         return max(0.0, min(1.0, quality))
 
     async def find_best_victim_for_killer(
@@ -151,7 +188,9 @@ class MatchmakingService:
             if victim and victim.player_id not in processed:
                 matched.append((killer, victim))
                 processed.update({killer.player_id, victim.player_id})
-                self.logger.info(f"Matched killer {killer.player_id} with victim {victim.player_id}")
+                self.logger.info(
+                    f"Matched killer {killer.player_id} with victim {victim.player_id}"
+                )
 
         return matched
 
@@ -188,7 +227,9 @@ class MatchmakingService:
                 )
 
                 # Notify Go bot endpoint
-                await self._request("POST", "/match/", json_data=match_result.model_dump())
+                await self._request(
+                    "POST", "/match/", json_data=match_result.model_dump()
+                )
 
         except Exception as e:
             self.logger.error(f"Error in matchmaking cycle: {e}")

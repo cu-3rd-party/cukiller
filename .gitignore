@@ -64,7 +64,7 @@ venv.bak/
 .DS_Store
 
 # Database
-postgres_db/
+DB_NAME/
 db.sqlite3
 
 redis.conf

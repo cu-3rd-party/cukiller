@@ -91,7 +91,7 @@ venv/
 .vscode/
 
 # Project files
-postgres_db/
+DB_NAME/
 redis.conf
 
 # Database
