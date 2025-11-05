@@ -29,15 +29,14 @@ func startupHttp() {
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Ping endpoint called from %s", r.RemoteAddr)
+	w.Header().Set("Content-Type", "application/json")
 
-	_, err := fmt.Fprintf(w, "ok\n")
+	_, err := fmt.Fprintf(w, "{\"message\": \"ok\"}")
 	if err != nil {
 		logger.Error("Failed to write ping response: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
@@ -69,8 +68,9 @@ func addVictim(w http.ResponseWriter, r *http.Request) {
 	// 	1. parse PlayerData from request
 	var data PlayerData
 	err := json.NewDecoder(r.Body).Decode(&data)
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		_, _ = w.Write([]byte("failed to parse PlayerData from json request"))
+		_, _ = w.Write([]byte(`{"message"": "failed to parse PlayerData from json request"}`))
 		w.WriteHeader(400)
 	}
 	// 2. put player into killer queue
