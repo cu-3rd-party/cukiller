@@ -92,7 +92,10 @@ func notifyMainProcess(pair MatchedPair) {
 	if err != nil {
 		return
 	}
-	_, _ = http.NewRequest("POST", "http://bot:8000/match/", bytes.NewBuffer(body))
+	_, err = http.NewRequest("POST", "http://bot:8000/match", bytes.NewBuffer(body))
+	if err != nil {
+		logger.Error("Failed to notify main process because of %v", err)
+	}
 }
 
 func RatePlayerPair(
