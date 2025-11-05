@@ -34,7 +34,7 @@ async def parse_target_info(
     (
         killers_queue,
         victims_queue,
-    ) = await matchmaking.get_unique_players_in_queues()
+    ) = await matchmaking.get_queues_length()
     killer_queued, victim_queued = await matchmaking.get_player_by_id(
         user.tg_id
     )
@@ -42,11 +42,11 @@ async def parse_target_info(
     ret = {
         "has_target": killer_event is not None,
         "no_target": killer_event is None,
-        "should_get_target": killer_event is None,
-        "enqueued": killer_queued is not None,
-        "not_enqueued": killer_queued is None,
-        "killers_queue_length": len(killers_queue),
-        "victims_queue_length": len(victims_queue),
+        "should_get_target": killer_event is None and not killer_queued,
+        "enqueued": killer_queued,
+        "not_enqueued": not killer_queued,
+        "killers_queue_length": killers_queue,
+        "victims_queue_length": victims_queue,
         "is_hunted": victim_event is not None,
         "target_name": target_name,
     }

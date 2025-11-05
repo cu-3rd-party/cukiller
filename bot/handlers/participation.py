@@ -24,6 +24,7 @@ async def confirm_participation(
 ):
     game: Game = manager.start_data["game"]
     user: User = manager.start_data["user"]
+    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
     user.is_in_game = True
     await user.save()
     player: Player = await Player().create(
@@ -53,14 +54,12 @@ async def confirm_participation(
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    requests.post(
-        "http://localhost:6543/add/killer/", json=player_data
-    ).raise_for_status()
-    requests.post(
-        "http://localhost:6543/add/victim/", json=player_data
-    ).raise_for_status()
+    await matchmaking.add_player_to_queues(
+        player_id=user.tg_id, player_data=player_data
+    )
     await user_dialog_manager.start(
-        MainLoop.title, data={"user": user, "game": game}
+        MainLoop.title,
+        data={"user": user, "game": game, "matchmaking": matchmaking},
     )
 
 

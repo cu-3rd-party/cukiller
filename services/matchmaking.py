@@ -56,6 +56,11 @@ class MatchmakingService:
         self.is_running = False
         self.base_url = settings.matchmaking_service_url.rstrip("/")
 
+    async def healthcheck(self):
+        data = await self._request("GET", "/ping/")
+        assert data is not None
+        self.logger.info("Healthcheck completed successfully")
+
     # -------------------- REST UTILS --------------------
 
     async def _request(
@@ -117,6 +122,15 @@ class MatchmakingService:
             player_id, player_data, "victim"
         )
         return added_killer and added_victim
+
+    async def get_queues_length(self):
+        data = await self._request("GET", "/get/queues/len/")
+        return data["Killers"], data["Victims"]
+
+    async def get_player_by_id(self, player_id: int):
+        self.logger.debug("Getting player by id %d", player_id)
+        data = await self._request("GET", f"/get/player/{player_id}")
+        return data["QueuedKiller"], data["QueuedVictim"]
 
     # -------------------- MATCHMAKING LOGIC --------------------
 

@@ -50,6 +50,7 @@ async def on_get_target(
 ):
     """Handle 'Get Target' button click"""
     user: User = manager.start_data.get("user")
+    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
 
     player_data = {
         "player_id": user.tg_id,
@@ -58,9 +59,7 @@ async def on_get_target(
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    requests.post(
-        "http://localhost:6543/add/killer/", json=player_data
-    ).raise_for_status()
+    await matchmaking.add_player_to_queue(user.tg_id, player_data, "killers")
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 
@@ -70,11 +69,13 @@ async def confirm_participation(
     # info about user and about game is stored in getter, how to access it?
     game = manager.start_data.get("game")
     user = manager.start_data.get("user")
+    matchmaking: MatchmakingService = manager.start_data.get("matchmaking")
     user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
     await user_dialog_manager.start(
-        ParticipationForm.confirm, data={"game": game, "user": user}
+        ParticipationForm.confirm,
+        data={"game": game, "user": user, "matchmaking": matchmaking},
     )

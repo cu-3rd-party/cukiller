@@ -12,13 +12,13 @@ async def init_db(settings: Settings) -> None:
     """Инициализация подключения к Tortoise ORM"""
 
     await Tortoise.init(config=settings.tortoise_config)
-    logger.info("Tortoise ORM инициализирована")
     if settings.tortoise_generate_schemas:
         await Tortoise.generate_schemas()
         logger.info("Генерация схем Tortoise ORM выполнена")
     await _ensure_default_admin_chat(settings)
     await _ensure_default_discussion_group(settings)
     await _ensure_default_admins(settings)
+    logger.info("Tortoise ORM инициализирована")
 
 
 async def close_db() -> None:
