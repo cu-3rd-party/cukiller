@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"math"
+	"net/http"
 	"time"
 )
 
@@ -85,7 +88,11 @@ func matchmaking() {
 }
 
 func notifyMainProcess(pair MatchedPair) {
-	// TODO: we should send request to bot:BOT_PORT/match/ with MatchedPair
+	body, err := json.Marshal(pair)
+	if err != nil {
+		return
+	}
+	_, _ = http.NewRequest("POST", "http://bot:8000/match/", bytes.NewBuffer(body))
 }
 
 func RatePlayerPair(
