@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -13,7 +14,9 @@ func startupHttp() {
 	http.HandleFunc("/health/", health)
 	http.HandleFunc("/add/killer/", addKiller)
 	http.HandleFunc("/add/victim/", addVictim)
-	http.HandleFunc("/get/playerData/", getQueues)
+	http.HandleFunc("/get/queues/", getQueues)
+	http.HandleFunc("/get/queues/len/", getQueuesLen)
+	http.HandleFunc("/get/player/{tg_id}", getPlayerByTgId)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 	logger.Info("HTTP server starting on %s", addr)
@@ -86,27 +89,57 @@ func addPlayerToPool(pool map[uint64]QueuePlayer, data PlayerData) {
 func getQueues(w http.ResponseWriter, r *http.Request) {
 	queues := getPools()
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(queues)
-	if err != nil {
-		println(err)
-		return
-	}
+	_ = json.NewEncoder(w).Encode(queues)
 }
 
 func getPools() any {
-	//ret := make([]PlayerData, 0, len(KillerPool)+len(VictimPool))
 	ret := struct {
 		Killers []PlayerData
 		Victims []PlayerData
 	}{}
-	ret.Killers = getPull(KillerPool, ret.Killers)
-	ret.Victims = getPull(VictimPool, ret.Victims)
+	ret.Killers = getPool(KillerPool, ret.Killers)
+	ret.Victims = getPool(VictimPool, ret.Victims)
 	return ret
 }
 
-func getPull(pool map[uint64]QueuePlayer, trg []PlayerData) []PlayerData {
+func getPool(pool map[uint64]QueuePlayer, trg []PlayerData) []PlayerData {
 	for _, player := range pool {
 		trg = append(trg, player.PlayerData)
 	}
 	return trg
+}
+
+func getQueuesLen(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		Killers int
+		Victims int
+	}{
+		Killers: len(KillerPool),
+		Victims: len(VictimPool),
+	})
+}
+
+func getPlayerByTgId(w http.ResponseWriter, r *http.Request) {
+	tgId, err := strconv.ParseUint(r.PathValue("tg_id"), 10, 64)
+	if err != nil {
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte("non-string tg id supplied"))
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	killer, queuedKiller := KillerPool[tgId]
+	victim, queuedVictim := VictimPool[tgId]
+
+	_ = json.NewEncoder(w).Encode(struct {
+		QueuedKiller bool
+		Killer       QueuePlayer
+		QueuedVictim bool
+		Victim       QueuePlayer
+	}{
+		QueuedKiller: queuedKiller,
+		Killer:       killer,
+		QueuedVictim: queuedVictim,
+		Victim:       victim,
+	})
 }
