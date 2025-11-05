@@ -62,6 +62,7 @@ func addKiller(w http.ResponseWriter, r *http.Request) {
 	// 2. put player into killer queue
 	addPlayerToPool(KillerPool, data)
 	w.WriteHeader(201)
+	logger.Info("Add killer with data request from %s with data %v", r.RemoteAddr, data)
 }
 
 func addVictim(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +77,7 @@ func addVictim(w http.ResponseWriter, r *http.Request) {
 	// 2. put player into killer queue
 	addPlayerToPool(VictimPool, data)
 	w.WriteHeader(201)
+	logger.Info("Add victim with data request from %s with data %v", r.RemoteAddr, data)
 }
 
 func addPlayerToPool(pool map[uint64]QueuePlayer, data PlayerData) {
@@ -90,6 +92,7 @@ func getQueues(w http.ResponseWriter, r *http.Request) {
 	queues := getPools()
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(queues)
+	logger.Info("Get queues request %s", r.RemoteAddr)
 }
 
 func getPools() any {
@@ -118,6 +121,7 @@ func getQueuesLen(w http.ResponseWriter, r *http.Request) {
 		Killers: len(KillerPool),
 		Victims: len(VictimPool),
 	})
+	logger.Info("Get queues len request from %s", r.RemoteAddr)
 }
 
 func getPlayerByTgId(w http.ResponseWriter, r *http.Request) {
