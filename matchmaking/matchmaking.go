@@ -6,13 +6,13 @@ import (
 )
 
 type MatchedPair struct {
-	Victim  int     `json:"victim"`
-	Killer  int     `json:"killer"`
+	Victim  uint64  `json:"victim"`
+	Killer  uint64  `json:"killer"`
 	Quality float64 `json:"quality"`
 }
 
 type QueuePlayer struct {
-	TgId     int
+	TgId     uint64
 	JoinedAt time.Time
 	PlayerData
 }
@@ -31,8 +31,8 @@ func matchmakingTicker() {
 	}
 }
 
-var KillerPool = make(map[int]QueuePlayer)
-var VictimPool = make(map[int]QueuePlayer)
+var KillerPool = make(map[uint64]QueuePlayer)
+var VictimPool = make(map[uint64]QueuePlayer)
 
 // matchmaking basically does all the heavy lifting needed for this microservice
 func matchmaking() {
@@ -43,8 +43,8 @@ func matchmaking() {
 		return
 	}
 
-	processedKillers := make(map[int]struct{})
-	processedVictims := make(map[int]struct{})
+	processedKillers := make(map[uint64]struct{})
+	processedVictims := make(map[uint64]struct{})
 
 	// we skip sorting killers by joinedAt but maybe add in the future
 

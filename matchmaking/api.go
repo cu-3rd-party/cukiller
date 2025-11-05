@@ -13,6 +13,7 @@ func startupHttp() {
 	http.HandleFunc("/health/", health)
 	http.HandleFunc("/add/killer/", addKiller)
 	http.HandleFunc("/add/victim/", addVictim)
+	http.HandleFunc("/get/playerData/", getQueues)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 	logger.Info("HTTP server starting on %s", addr)
@@ -76,10 +77,38 @@ func addVictim(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(201)
 }
 
-func addPlayerToPool(pool map[int]QueuePlayer, data PlayerData) {
+func addPlayerToPool(pool map[uint64]QueuePlayer, data PlayerData) {
 	pool[data.TgId] = QueuePlayer{
 		TgId:       data.TgId,
 		JoinedAt:   time.Now(),
 		PlayerData: data,
 	}
+}
+
+func getQueues(w http.ResponseWriter, r *http.Request) {
+	queues := getPools()
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(queues)
+	if err != nil {
+		println(err)
+		return
+	}
+}
+
+func getPools() any {
+	//ret := make([]PlayerData, 0, len(KillerPool)+len(VictimPool))
+	ret := struct {
+		Killers []PlayerData
+		Victims []PlayerData
+	}{}
+	ret.Killers = getPull(KillerPool, ret.Killers)
+	ret.Victims = getPull(VictimPool, ret.Victims)
+	return ret
+}
+
+func getPull(pool map[uint64]QueuePlayer, trg []PlayerData) []PlayerData {
+	for _, player := range pool {
+		trg = append(trg, player.PlayerData)
+	}
+	return trg
 }

@@ -130,7 +130,7 @@ const (
 
 // PlayerData represents a player in the matchmaking system
 type PlayerData struct {
-	TgId         int           `json:"tg_id"`                   // telegram id of the player
+	TgId         uint64        `json:"tg_id"`                   // telegram id of the player
 	Rating       int           `json:"rating"`                  // elo rating of the player
 	Type         EducationType `json:"type"`                    // education type
 	CourseNumber *int          `json:"course_number,omitempty"` // course number (optional)
@@ -138,7 +138,7 @@ type PlayerData struct {
 }
 
 // NewPlayerData creates a new PlayerData with validation
-func NewPlayerData(tgId int, rating int, educationType EducationType, courseNumber *int, groupName GroupName) (*PlayerData, error) {
+func NewPlayerData(tgId uint64, rating int, educationType EducationType, courseNumber *int, groupName GroupName) (*PlayerData, error) {
 	p := &PlayerData{
 		TgId:         tgId,
 		Rating:       rating,

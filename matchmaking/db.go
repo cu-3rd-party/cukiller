@@ -75,6 +75,8 @@ func populateQueues(db *sql.DB) {
 			continue
 		}
 
+		p.PlayerData.TgId = p.TgId
+
 		p.Type = EducationTypeFromString(educationType)
 		if courseNumber.Valid {
 			num := int(courseNumber.Int64)
@@ -113,6 +115,7 @@ func populateQueues(db *sql.DB) {
 			continue
 		}
 
+		p.PlayerData.TgId = p.TgId
 		p.Type = EducationTypeFromString(educationType)
 		if courseNumber.Valid {
 			num := int(courseNumber.Int64)
