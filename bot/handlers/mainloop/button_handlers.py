@@ -53,13 +53,13 @@ async def on_get_target(
     matchmaking: MatchmakingService = manager.start_data["matchmaking"]
 
     player_data = {
-        "player_id": user.tg_id,
+        "tg_id": user.tg_id,
         "rating": user.rating,
         "type": user.type,
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    await matchmaking.add_player_to_queue(user.tg_id, player_data, "killers")
+    await matchmaking.add_player_to_queue(user.tg_id, player_data, "killer")
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 

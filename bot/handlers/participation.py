@@ -48,7 +48,7 @@ async def confirm_participation(
         chat_id=user.tg_id,
     )
     player_data = {
-        "player_id": user.tg_id,
+        "tg_id": user.tg_id,
         "rating": user.rating,
         "type": user.type,
         "course_number": user.course_number,

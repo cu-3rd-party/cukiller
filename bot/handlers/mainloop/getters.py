@@ -4,7 +4,7 @@ from aiogram import Dispatcher
 from aiogram_dialog import DialogManager
 
 from db.models import Game, User, Player, KillEvent
-from services.matchmaking import MatchmakingService, QueuePlayer
+from services.matchmaking import MatchmakingService
 from settings import Settings
 
 

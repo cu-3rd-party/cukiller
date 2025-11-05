@@ -4,7 +4,7 @@ info:
   description: Matchmaking
   version: 1.0.0
 servers:
-  - url: 'http://localhost:5432'
+  - url: 'http://localhost:6543'
 paths:
   /ping/:
     get:

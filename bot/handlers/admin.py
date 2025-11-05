@@ -16,6 +16,7 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
 
+import settings
 from bot.filters.admin import AdminFilter
 from bot.misc.states.editgame import EditGame
 from bot.misc.states.participation import ParticipationForm
@@ -100,7 +101,6 @@ async def on_final_confirmation(
     callback: CallbackQuery,
     button: Button,
     manager: DialogManager,
-    settings: Settings,
     **kwargs,
 ):
     bot = manager.event.bot
@@ -126,7 +126,7 @@ async def on_final_confirmation(
             chat_id=user.tg_id,
         )
         matchmaking = MatchmakingService(
-            settings, logging.getLogger("matchmaking")
+            settings.get_settings(), logging.getLogger("matchmaking")
         )
         await user_dialog_manager.start(
             ParticipationForm.confirm,
