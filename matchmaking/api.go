@@ -46,8 +46,6 @@ func health(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func addKiller(w http.ResponseWriter, r *http.Request) {

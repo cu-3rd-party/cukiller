@@ -25,11 +25,11 @@ class Settings(BaseSettings):
     game_info_link: str = Field(alias="NEXT_GAME_LINK")
 
     # ^ PostgreSQL
-    pg_host: str = Field(default="db", alias="POSTGRES_HOST")
-    pg_port: int = Field(default=5432, alias="POSTGRES_PORT")
-    pg_db: str = Field(default="db", alias="POSTGRES_DB")
-    pg_user: str = Field(default="admin", alias="POSTGRES_USER")
-    pg_password: str = Field(default="admin", alias="POSTGRES_PASSWORD")
+    pg_host: str = Field(default="db", alias="DB_HOST")
+    pg_port: int = Field(default=5432, alias="DB_PORT")
+    pg_db: str = Field(default="db", alias="DB_NAME")
+    pg_user: str = Field(default="admin", alias="DB_USER")
+    pg_password: str = Field(default="admin", alias="DB_PASSWORD")
 
     # ^ Tortoise ORM
     tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
