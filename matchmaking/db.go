@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -45,7 +44,7 @@ func populateQueues(db *sql.DB) {
 	err := db.QueryRow(`SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			log.Printf("Error querying active game: %v", err)
+			logger.Error("Error querying active game: %v", err)
 		}
 		return
 	}
@@ -58,7 +57,7 @@ func populateQueues(db *sql.DB) {
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
-		log.Printf("Error querying potential killers: %v", err)
+		logger.Error("Error querying potential killers: %v", err)
 		return
 	}
 	defer killerRows.Close()
@@ -71,7 +70,7 @@ func populateQueues(db *sql.DB) {
 
 		err = killerRows.Scan(&p.TgId, &p.Rating, &educationType, &courseNumber, &groupName)
 		if err != nil {
-			log.Printf("Error scanning killer row: %v", err)
+			logger.Error("Error scanning killer row: %v", err)
 			continue
 		}
 
@@ -98,7 +97,7 @@ func populateQueues(db *sql.DB) {
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
-		log.Printf("Error querying potential victims: %v", err)
+		logger.Error("Error querying potential victims: %v", err)
 		return
 	}
 	defer victimRows.Close()
@@ -111,7 +110,7 @@ func populateQueues(db *sql.DB) {
 
 		err = victimRows.Scan(&p.TgId, &p.Rating, &educationType, &courseNumber, &groupName)
 		if err != nil {
-			log.Printf("Error scanning victim row: %v", err)
+			logger.Error("Error scanning victim row: %v", err)
 			continue
 		}
 
@@ -129,5 +128,5 @@ func populateQueues(db *sql.DB) {
 		VictimPool[p.TgId] = p
 	}
 
-	log.Printf("Queue initialization complete: %d killers, %d victims", len(KillerPool), len(VictimPool))
+	logger.Info("Queue initialization complete: %d killers, %d victims", len(KillerPool), len(VictimPool))
 }

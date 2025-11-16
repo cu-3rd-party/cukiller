@@ -10,7 +10,7 @@ type Logger struct {
 }
 
 var logger = &Logger{
-	log.New(os.Stdout, "[MATCHMAKING] ", log.LstdFlags|log.Lshortfile),
+	log.New(os.Stdout, "", log.LstdFlags),
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
