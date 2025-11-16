@@ -94,11 +94,11 @@ func getConfig() Config {
 			TimeCoefficient:   getEnvFloat64("TIME_COEFFICIENT", 0.001),
 		},
 		DatabaseConfig: DatabaseConfig{
-			DbUser:     getEnvString("DB_USER", "admin"),
-			DbPassword: getEnvString("DB_PASSWORD", "admin"),
-			DbHost:     getEnvString("DB_HOST", "localhost"),
-			DbPort:     getEnvString("DB_PORT", "5432"),
-			DbName:     getEnvString("DB_NAME", "db"),
+			DbUser:     getEnvString("POSTGRES_USER", "admin"),
+			DbPassword: getEnvString("POSTGRES_PASSWORD", "admin"),
+			DbHost:     getEnvString("POSTGRES_HOST", "localhost"),
+			DbPort:     getEnvString("POSTGRES_PORT", "5432"),
+			DbName:     getEnvString("POSTGRES_DB", "db"),
 		},
 	}
 }
