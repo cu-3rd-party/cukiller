@@ -14,7 +14,7 @@ from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from db.models import User, Game
 from services.matchmaking import MatchmakingService
-from settings import Settings
+from settings import settings
 
 router = Router(name="profile_moderation")
 
@@ -70,9 +70,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
 
 
 @router.callback_query(F.data.startswith(_CONFIRM_PREFIX))
-async def on_confirm_profile(
-    callback: CallbackQuery, bot: Bot, settings: Settings
-):
+async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     """
     Admin pressed 'confirm {user_id}'.
     - Notifies the user about approval.
@@ -120,12 +118,9 @@ async def on_confirm_profile(
             chat_id=user.tg_id,
         )
         game = await Game().filter(end_date=None).first()
-        matchmaking = MatchmakingService(
-            settings, logging.getLogger("matchmaking")
-        )
         await user_dialog_manager.start(
             MainLoop.title,
-            data={"user": user, "game": game, "matchmaking": matchmaking},
+            data={"user_tg_id": user.tg_id, "game_id": game.id},
         )
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it

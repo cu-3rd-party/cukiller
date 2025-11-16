@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router, Bot
+from aiogram import Router, Bot, types
 from aiogram.types import Message
 from aiogram.filters import CommandStart
 from aiogram_dialog import Dialog, DialogManager, Window
@@ -21,7 +21,7 @@ from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from bot.misc.states import MainLoop
 from db.models import User, Game
 from services.matchmaking import MatchmakingService
-from settings import Settings
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -112,16 +112,10 @@ async def user_start(
     message: Message,
     dialog_manager: DialogManager,
     bot: Bot,
-    user: User,
-    settings: Settings,
 ):
     await dialog_manager.reset_stack()
     game = await Game().filter(end_date=None).first()
-    user = await User().get(tg_id=user.tg_id)
-    matchmaking = MatchmakingService(
-        settings, logging.getLogger("matchmaking")
-    )
     await dialog_manager.start(
         MainLoop.title,
-        data={"user": user, "game": game, "matchmaking": matchmaking},
+        data={"user_tg_id": message.from_user.id, "game_id": game.id},
     )

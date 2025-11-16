@@ -23,7 +23,6 @@ from bot.misc.states.participation import ParticipationForm
 from bot.misc.states.startgame import StartGame
 from db.models import User, Game, Player
 from services.matchmaking import MatchmakingService
-from settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -125,12 +124,9 @@ async def on_final_confirmation(
             user_id=user.tg_id,
             chat_id=user.tg_id,
         )
-        matchmaking = MatchmakingService(
-            settings.get_settings(), logging.getLogger("matchmaking")
-        )
         await user_dialog_manager.start(
             ParticipationForm.confirm,
-            data={"game": game, "user": user, "matchmaking": matchmaking},
+            data={"game_id": game.id, "user_tg_id": user.tg_id},
         )
 
     await manager.done()
@@ -224,7 +220,6 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
         return {}
     game = await Game.get(id=game_id)
     return {
-        "game": game,
         "show_end_game": game.start_date is not None and game.end_date is None,
     }
 

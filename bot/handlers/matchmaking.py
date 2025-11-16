@@ -5,15 +5,13 @@ from aiohttp import web
 
 from db.models import KillEvent, Game, User
 from services.admin_chat import AdminChatService
-from settings import Settings
+from settings import settings
 
 router = Router()
 logger = logging.getLogger(__name__)
 
 
-def setup_matchmaking_routers(
-    app: web.Application, bot: Bot, settings: Settings
-) -> None:
+def setup_matchmaking_routers(app: web.Application, bot: Bot) -> None:
     app["bot"] = bot
     app["admin_chat"] = AdminChatService(bot)
     app["settings"] = settings

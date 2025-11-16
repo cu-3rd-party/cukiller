@@ -41,7 +41,7 @@ class RegisterUserMiddleware(BaseMiddleware):
         if cached_data and cached_data[
             "timestamp"
         ] > datetime.now() - timedelta(seconds=self.cache_ttl):
-            data["user"] = cached_data["user"]
+            data["user_tg_id"] = cached_data["user"].tg_id
             return await handler(event, data)
 
         db_user = await User().get_or_none(tg_id=user.id)
@@ -52,7 +52,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                     "user": db_user,
                     "timestamp": datetime.now(),
                 }
-                data["user"] = db_user
+                data["user_tg_id"] = db_user.tg_id
                 return await handler(event, data)
 
             user_data = {
@@ -77,7 +77,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "user": db_user,
                 "timestamp": datetime.now(),
             }
-            data["user"] = db_user
+            data["user_tg_id"] = db_user.tg_id
 
         else:
             user_data = {
@@ -96,7 +96,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "user": db_user,
                 "timestamp": datetime.now(),
             }
-            data["user"] = db_user
+            data["user_tg_id"] = db_user.tg_id
             logger.info(f"New user with telegram id: {user.id}")
 
         self._clean_cache()

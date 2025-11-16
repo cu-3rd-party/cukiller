@@ -13,6 +13,7 @@ from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
 from db.models import Player, Game, User
 from services.matchmaking import MatchmakingService
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,11 @@ router = Router()
 async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    game: Game = manager.start_data["game"]
-    user: User = manager.start_data["user"]
-    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
+    game: Game = await Game.get(id=manager.start_data["game_id"])
+    user: User = await User.get(tg_id=manager.start_data["user_tg_id"])
+    matchmaking: MatchmakingService = MatchmakingService(
+        settings, logging.getLogger("bot.matchmaking")
+    )
     user.is_in_game = True
     await user.save()
     player: Player = await Player().create(
@@ -59,7 +62,7 @@ async def confirm_participation(
     )
     await user_dialog_manager.start(
         MainLoop.title,
-        data={"user": user, "game": game, "matchmaking": matchmaking},
+        data={"user_tg_id": user.tg_id, "game_id": game.id},
     )
 
 

@@ -5,8 +5,7 @@ from aiogram_dialog import DialogManager
 
 from db.models import Game, User, Player, KillEvent
 from services.matchmaking import MatchmakingService
-from settings import Settings
-
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +55,18 @@ async def parse_target_info(
 
 async def get_main_menu_info(
     dialog_manager: DialogManager,
-    settings: Settings,
     dispatcher: Dispatcher,
     **kwargs,
 ):
-    game: Game = dialog_manager.start_data.get("game")
-    user: User = dialog_manager.start_data.get("user")
-    matchmaking: MatchmakingService = dispatcher.get("matchmaking")
+    game: Game = await Game.get(id=dialog_manager.start_data.get("game_id"))
+    user: User = await User.get(
+        tg_id=dialog_manager.start_data.get("user_tg_id")
+    )
+    matchmaking: MatchmakingService = MatchmakingService(
+        settings, logging.getLogger("bot.matchmaking")
+    )
 
     ret = {
-        "game": game,
-        "user": user,
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
@@ -83,13 +83,13 @@ async def get_target_info(
     dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
 ):
     """Getter for target info window"""
-    settings: Settings = dialog_manager.middleware_data["settings"]
-    game = dialog_manager.start_data.get("game")
-    matchmaking: MatchmakingService = dispatcher.get("matchmaking")
+    game = await Game.get(id=dialog_manager.start_data.get("game_id"))
+    user = await User.get(tg_id=dialog_manager.start_data.get("user_tg_id"))
+    matchmaking: MatchmakingService = MatchmakingService(
+        settings, logging.getLogger("bot.matchmaking")
+    )
 
     return {
         "report_link": settings.report_link,
-        **await parse_target_info(
-            game, dialog_manager.start_data["user"], matchmaking
-        ),
+        **await parse_target_info(game, user, matchmaking),
     }
