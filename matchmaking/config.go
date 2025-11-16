@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strconv"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	Port      int
 	BotUrl    string
 	SecretKey string
+	LogLevel
 	MatchmakingConfig
 	DatabaseConfig
 }
@@ -35,21 +37,26 @@ type MatchmakingConfig struct {
 	TimeCoefficient   float64
 }
 
+var confLogger = &Logger{
+	LogLevelDebug,
+	log.New(os.Stdout, "", log.LstdFlags),
+}
+
 // getEnvInt returns environment variable value or default if not set or invalid
 func getEnvInt(key string, defaultValue int) int {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
-		logger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
+		confLogger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
 		return defaultValue
 	}
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		logger.Warn("Failed to parse %s=%q, using default: %d", key, valueStr, defaultValue)
+		confLogger.Warn("Failed to parse %s=%q, using default: %d", key, valueStr, defaultValue)
 		return defaultValue
 	}
 
-	logger.Info("Loaded %s=%d", key, value)
+	confLogger.Info("Loaded %s=%d", key, value)
 	return value
 }
 
@@ -57,11 +64,11 @@ func getEnvInt(key string, defaultValue int) int {
 func getEnvString(key string, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		logger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
+		confLogger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
 		return defaultValue
 	}
 
-	logger.Info("Loaded %s=%d", key, value)
+	confLogger.Info("Loaded %s=%d", key, value)
 	return value
 }
 
@@ -69,18 +76,47 @@ func getEnvString(key string, defaultValue string) string {
 func getEnvFloat64(key string, defaultValue float64) float64 {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
-		logger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
+		confLogger.Warn("Environment variable %s not set, using default: %d", key, defaultValue)
 		return defaultValue
 	}
 
 	value, err := strconv.ParseFloat(valueStr, 64)
 	if err != nil {
-		logger.Warn("Failed to parse %s=%q, using default: %d", key, valueStr, defaultValue)
+		confLogger.Warn("Failed to parse %s=%q, using default: %d", key, valueStr, defaultValue)
 		return defaultValue
 	}
 
-	logger.Info("Loaded %s=%d", key, value)
+	confLogger.Info("Loaded %s=%d", key, value)
 	return value
+}
+
+type LogLevel uint8
+
+const (
+	LogLevelDebug LogLevel = iota
+	LogLevelInfo
+	LogLevelWarn
+	LogLevelError
+	LogLevelNone
+)
+
+func parseLogLevel(key string, defaultValue string) LogLevel {
+	var ret LogLevel
+	switch getEnvString(key, defaultValue) {
+	case "DEBUG":
+		ret = LogLevelDebug
+	case "INFO":
+		ret = LogLevelInfo
+	case "WARN":
+		ret = LogLevelWarn
+	case "ERROR":
+		ret = LogLevelError
+	case "NONE":
+		ret = LogLevelNone
+	default:
+		ret = LogLevelInfo
+	}
+	return ret
 }
 
 func getConfig() Config {
@@ -88,6 +124,7 @@ func getConfig() Config {
 		Port:      getEnvInt("PORT", 6543),
 		BotUrl:    getEnvString("BOT_URL", "http://localhost:8000"),
 		SecretKey: getEnvString("SECRET_KEY", ""),
+		LogLevel:  parseLogLevel("LOGLEVEL", "INFO"),
 		MatchmakingConfig: MatchmakingConfig{
 			Interval:          getEnvInt("MATCHMAKING_INTERVAL", 5),
 			QualityThreshold:  getEnvFloat64("QUALITY_THRESHOLD", 0.6),
