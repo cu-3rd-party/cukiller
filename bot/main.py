@@ -80,7 +80,10 @@ async def start_web_server(bot: Bot, settings: Settings) -> None:
     await site.start()
 
     _web_server = runner
-    logger.info("HTTP web server started on port %d for metrics endpoint", settings.web_server_port)
+    logger.info(
+        "HTTP web server started on port %d for metrics endpoint",
+        settings.web_server_port,
+    )
 
 
 async def stop_web_server() -> None:
