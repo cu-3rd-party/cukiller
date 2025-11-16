@@ -2,13 +2,9 @@ import json
 from typing import Optional, Dict, Any
 
 from db.models import Player
-from settings import get_redis_client
 
 
 class PlayerService:
-    def __init__(self):
-        self.redis_client = get_redis_client()
-
     @staticmethod
     def _player_to_dict(player: Player) -> Dict[str, Any]:
         """Convert Player instance to dictionary"""
@@ -16,7 +12,7 @@ class PlayerService:
             "id": player.id,
             "user_id": player.user.id,
             "game_id": player.game.id,
-            "player_rating": player.player_rating,
+            "player_rating": player.user.rating,
             "player_victim_id": player.player_victim.id,
             "player_killer_id": player.player_killer.id,
             "created_at": player.created_at.isoformat()

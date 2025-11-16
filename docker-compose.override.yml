@@ -6,7 +6,6 @@
     env_file: .env
     depends_on:
       - db
-      - redis
     ports:
       - "8000:8000"
     restart: unless-stopped

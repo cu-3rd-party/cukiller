@@ -1,5 +1,6 @@
 import logging
 
+import requests
 from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager
@@ -23,6 +24,7 @@ async def confirm_participation(
 ):
     game: Game = manager.start_data["game"]
     user: User = manager.start_data["user"]
+    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
     user.is_in_game = True
     await user.save()
     player: Player = await Player().create(
@@ -45,22 +47,19 @@ async def confirm_participation(
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
-    matchmaking: MatchmakingService = manager.middleware_data.get(
-        "matchmaking"
-    )
+    player_data = {
+        "tg_id": user.tg_id,
+        "rating": user.rating,
+        "type": user.type,
+        "course_number": user.course_number,
+        "group_name": user.group_name,
+    }
     await matchmaking.add_player_to_queues(
-        user.tg_id,
-        {
-            "player_id": user.tg_id,
-            "rating": user.rating,
-            "type": user.type,
-            "course_number": user.course_number,
-            "group_name": user.group_name,
-        },
+        player_id=user.tg_id, player_data=player_data
     )
-    await user_dialog_manager.done()
     await user_dialog_manager.start(
-        MainLoop.title, data={"user": user, "game": game}
+        MainLoop.title,
+        data={"user": user, "game": game, "matchmaking": matchmaking},
     )
 
 

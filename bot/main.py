@@ -24,7 +24,7 @@ from services.discussion_invite import (
 )
 from db.main import close_db, init_db
 from services.matchmaking import MatchmakingService
-from settings import Settings, get_settings, get_redis_client
+from settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +76,14 @@ async def start_web_server(bot: Bot, settings: Settings) -> None:
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    site = web.TCPSite(runner, "0.0.0.0", settings.web_server_port)
     await site.start()
 
     _web_server = runner
-    logger.info("HTTP web server started on port 8000 for metrics endpoint")
+    logger.info(
+        "HTTP web server started on port %d for metrics endpoint",
+        settings.web_server_port,
+    )
 
 
 async def stop_web_server() -> None:
@@ -98,6 +101,10 @@ async def on_startup(bot: Bot, settings: Settings) -> None:
     await generate_discussion_invite_link(bot, settings)
     await metrics_updater.start()
     await start_web_server(bot, settings)
+    await MatchmakingService(
+        settings,
+        logging.getLogger(__name__),
+    ).healthcheck()
 
 
 async def on_shutdown(bot: Bot, settings: Settings) -> None:
@@ -117,7 +124,7 @@ async def run_bot(settings: Settings) -> None:
     dp = Dispatcher(storage=storage)
     dp["settings"] = settings
     matchmaking = MatchmakingService(
-        get_redis_client(), settings, logging.getLogger("bot.matchmaking")
+        settings, logging.getLogger("bot.matchmaking")
     )
     dp["matchmaking"] = matchmaking
 

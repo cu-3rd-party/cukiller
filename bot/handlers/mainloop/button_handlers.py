@@ -1,3 +1,4 @@
+import requests
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -48,21 +49,17 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
-    matchmaking: MatchmakingService = manager.middleware_data.get(
-        "matchmaking"
-    )
     user: User = manager.start_data.get("user")
-    await matchmaking.add_player_to_queue(
-        user.tg_id,
-        {
-            "player_id": user.tg_id,
-            "rating": user.rating,
-            "type": user.type,
-            "course_number": user.course_number,
-            "group_name": user.group_name,
-        },
-        "killers",
-    )
+    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
+
+    player_data = {
+        "tg_id": user.tg_id,
+        "rating": user.rating,
+        "type": user.type,
+        "course_number": user.course_number,
+        "group_name": user.group_name,
+    }
+    await matchmaking.add_player_to_queue(user.tg_id, player_data, "killer")
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 
@@ -72,11 +69,13 @@ async def confirm_participation(
     # info about user and about game is stored in getter, how to access it?
     game = manager.start_data.get("game")
     user = manager.start_data.get("user")
+    matchmaking: MatchmakingService = manager.start_data.get("matchmaking")
     user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
     await user_dialog_manager.start(
-        ParticipationForm.confirm, data={"game": game, "user": user}
+        ParticipationForm.confirm,
+        data={"game": game, "user": user, "matchmaking": matchmaking},
     )
