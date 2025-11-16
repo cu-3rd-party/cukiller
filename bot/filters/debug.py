@@ -5,7 +5,5 @@ from settings import settings
 
 
 class DebugFilter(BaseFilter):
-    async def __call__(
-        self, message: Message, **kwargs
-    ) -> bool:
+    async def __call__(self, message: Message, **kwargs) -> bool:
         return settings.debug

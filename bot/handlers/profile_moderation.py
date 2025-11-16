@@ -70,9 +70,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
 
 
 @router.callback_query(F.data.startswith(_CONFIRM_PREFIX))
-async def on_confirm_profile(
-    callback: CallbackQuery, bot: Bot
-):
+async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     """
     Admin pressed 'confirm {user_id}'.
     - Notifies the user about approval.

@@ -11,9 +11,7 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-def setup_matchmaking_routers(
-    app: web.Application, bot: Bot
-) -> None:
+def setup_matchmaking_routers(app: web.Application, bot: Bot) -> None:
     app["bot"] = bot
     app["admin_chat"] = AdminChatService(bot)
     app["settings"] = settings

@@ -121,6 +121,7 @@ async def on_shutdown(bot: Bot) -> None:
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     """JSON encoder that supports UUID."""
+
     def default(self, obj):
         if isinstance(obj, UUID):
             return {"__uuid__": str(obj)}
@@ -129,6 +130,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 def enhanced_json_loader(data: str):
     """JSON loader that restores UUIDs."""
+
     def object_hook(obj):
         if "__uuid__" in obj:
             return UUID(obj["__uuid__"])
@@ -140,7 +142,6 @@ def enhanced_json_loader(data: str):
 def enhanced_json_dumper(obj) -> str:
     """JSON dumper that serializes UUIDs."""
     return json.dumps(obj, cls=EnhancedJSONEncoder)
-
 
 
 async def run_bot() -> None:

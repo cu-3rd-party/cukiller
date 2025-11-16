@@ -59,7 +59,9 @@ async def get_main_menu_info(
     **kwargs,
 ):
     game: Game = await Game.get(id=dialog_manager.start_data.get("game_id"))
-    user: User = await User.get(tg_id=dialog_manager.start_data.get("user_tg_id"))
+    user: User = await User.get(
+        tg_id=dialog_manager.start_data.get("user_tg_id")
+    )
     matchmaking: MatchmakingService = MatchmakingService(
         settings, logging.getLogger("bot.matchmaking")
     )
@@ -89,7 +91,5 @@ async def get_target_info(
 
     return {
         "report_link": settings.report_link,
-        **await parse_target_info(
-            game, user, matchmaking
-        ),
+        **await parse_target_info(game, user, matchmaking),
     }

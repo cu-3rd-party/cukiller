@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     # ^ Redis
     redis_host: str = Field(default="redis", alias="REDIS_HOST")
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    redis_password: str = Field(default="secure_password", alias="REDIS_PASSWORD")
+    redis_password: str = Field(
+        default="secure_password", alias="REDIS_PASSWORD"
+    )
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     # ^ Tortoise ORM
@@ -86,5 +88,6 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
 
 settings = Settings()
