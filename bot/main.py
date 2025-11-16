@@ -63,7 +63,7 @@ def register_all_handlers(dp: Dispatcher) -> None:
     if routers:
         dp.include_routers(*routers)
     else:
-        logger.warning("Не найдено ни одного роутера для регистрации")
+        logger.warn("Не найдено ни одного роутера для регистрации")
 
 
 # Global web server instance
@@ -182,7 +182,8 @@ async def run_bot() -> None:
 async def main() -> None:
     logging.basicConfig(
         level=os.environ.get("LOGLEVEL", "INFO").upper(),
-        format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
+        format="%(levelname)s:\t[%(asctime)s] - %(message)s",
+        # format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
     )
     logger.info("Запущен бот в проекте: %s", settings.project_name)
 

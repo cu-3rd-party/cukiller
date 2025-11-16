@@ -197,7 +197,7 @@ def parse_game_stage(game: Game) -> str:
     elif game.start_date:
         return "Начата"
     else:
-        logger.warning("start: %s; end: %s", game.start_date, game.end_date)
+        logger.warn("start: %s; end: %s", game.start_date, game.end_date)
         return "err"
 
 
