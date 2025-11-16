@@ -3,21 +3,21 @@ import logging
 from tortoise import Tortoise
 
 from db.models import Chat, User
-from settings import Settings
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def init_db(settings: Settings) -> None:
+async def init_db() -> None:
     """Инициализация подключения к Tortoise ORM"""
 
     await Tortoise.init(config=settings.tortoise_config)
     if settings.tortoise_generate_schemas:
         await Tortoise.generate_schemas()
         logger.info("Генерация схем Tortoise ORM выполнена")
-    await _ensure_default_admin_chat(settings)
-    await _ensure_default_discussion_group(settings)
-    await _ensure_default_admins(settings)
+    await _ensure_default_admin_chat()
+    await _ensure_default_discussion_group()
+    await _ensure_default_admins()
     logger.info("Tortoise ORM инициализирована")
 
 
@@ -28,7 +28,7 @@ async def close_db() -> None:
     logger.info("Tortoise ORM соединения закрыты")
 
 
-async def _ensure_default_admin_chat(settings: Settings) -> None:
+async def _ensure_default_admin_chat() -> None:
     defaults = {
         "chat_id": settings.admin_chat_id,
         "name": "Admin Logs",
@@ -43,7 +43,7 @@ async def _ensure_default_admin_chat(settings: Settings) -> None:
         )
 
 
-async def _ensure_default_discussion_group(settings: Settings) -> None:
+async def _ensure_default_discussion_group() -> None:
     defaults = {
         "chat_id": settings.discussion_chat_id,
         "name": "Discussion Group",
@@ -58,7 +58,7 @@ async def _ensure_default_discussion_group(settings: Settings) -> None:
         )
 
 
-async def _ensure_default_admins(settings: Settings) -> None:
+async def _ensure_default_admins() -> None:
     # Выдаем админки тем, кто указан
     admins = [int(i) for i in settings.admin_ids_raw.split(",")]
     for admin_id in admins:

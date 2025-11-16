@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     pg_user: str = Field(default="admin", alias="POSTGRES_USER")
     pg_password: str = Field(default="admin", alias="POSTGRES_PASSWORD")
 
+    # ^ Redis
+    redis_host: str = Field(default="redis", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_password: str = Field(default="secure_password", alias="REDIS_PASSWORD")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+
     # ^ Tortoise ORM
     tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
     tortoise_models: tuple[str, ...] = Field(
@@ -80,3 +86,5 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+settings = Settings()

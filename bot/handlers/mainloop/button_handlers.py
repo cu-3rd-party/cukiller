@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
@@ -9,6 +11,7 @@ from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
 from db.models import User
 from services.matchmaking import MatchmakingService
+from settings import settings
 
 
 async def on_i_was_killed(
@@ -49,8 +52,10 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
-    user: User = manager.start_data.get("user")
-    matchmaking: MatchmakingService = manager.start_data["matchmaking"]
+    user: User = await User.get(tg_id=manager.start_data.get("user_tg_id"))
+    matchmaking: MatchmakingService = MatchmakingService(
+        settings, logging.getLogger("bot.matchmaking")
+    )
 
     player_data = {
         "tg_id": user.tg_id,
@@ -77,5 +82,5 @@ async def confirm_participation(
     )
     await user_dialog_manager.start(
         ParticipationForm.confirm,
-        data={"game": game, "user": user, "matchmaking": matchmaking},
+        data={"game": game, "user": user},
     )
