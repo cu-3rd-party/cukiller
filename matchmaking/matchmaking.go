@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -30,16 +31,23 @@ func matchmakingTicker() {
 	for {
 		select {
 		case <-ticker.C:
-			matchmaking()
+			go matchmaking()
 		}
 	}
 }
 
 var KillerPool = make(map[uint64]QueuePlayer)
+var KillerPoolMutex = sync.Mutex{}
 var VictimPool = make(map[uint64]QueuePlayer)
+var VictimPoolMutex = sync.Mutex{}
 
 // matchmaking basically does all the heavy lifting needed for this microservice
 func matchmaking() {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	// because this function does a lot of heavy lifting we should have the same time for all rates
 	curTime := time.Now()
 	logger.Debug("Running matchmaking cycle at %s", curTime)
@@ -90,7 +98,7 @@ func matchmaking() {
 			logger.Warn("Failed to notify main process about new pair")
 		}
 		logger.Debug("Matched killer %d with victim %d", killer.TgId, bestVictim.TgId)
-	
+
 		delete(KillerPool, killer.TgId)
 		delete(VictimPool, bestVictim.TgId)
 	}

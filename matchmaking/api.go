@@ -52,6 +52,11 @@ func health(w http.ResponseWriter, r *http.Request) {
 }
 
 func addKiller(w http.ResponseWriter, r *http.Request) {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	// 	1. parse PlayerData from request
 	var data PlayerData
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -66,6 +71,11 @@ func addKiller(w http.ResponseWriter, r *http.Request) {
 }
 
 func addVictim(w http.ResponseWriter, r *http.Request) {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	// 	1. parse PlayerData from request
 	var data PlayerData
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -74,7 +84,7 @@ func addVictim(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"message"": "failed to parse PlayerData from json request"}`))
 		w.WriteHeader(400)
 	}
-	// 2. put player into killer queue
+	// 2. put player into victim queue
 	addPlayerToPool(VictimPool, data)
 	w.WriteHeader(201)
 	logger.Info("Add victim with data request from %s with data %v", r.RemoteAddr, data)
@@ -96,6 +106,11 @@ func getQueues(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPools() any {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	ret := struct {
 		Killers []PlayerData
 		Victims []PlayerData
@@ -113,6 +128,11 @@ func getPool(pool map[uint64]QueuePlayer, trg []PlayerData) []PlayerData {
 }
 
 func getQueuesLen(w http.ResponseWriter, r *http.Request) {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(struct {
 		Killers int
@@ -125,6 +145,11 @@ func getQueuesLen(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPlayerByTgId(w http.ResponseWriter, r *http.Request) {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
 	tgId, err := strconv.ParseUint(r.PathValue("tg_id"), 10, 64)
 	if err != nil {
 		w.WriteHeader(400)
