@@ -7,7 +7,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/sql:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5433:5432"
+      - "5432:5432"
     restart: unless-stopped
 
   bot:
