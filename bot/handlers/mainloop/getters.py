@@ -65,8 +65,6 @@ async def get_main_menu_info(
     )
 
     ret = {
-        "game": game,
-        "user": user,
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
@@ -83,12 +81,15 @@ async def get_target_info(
     dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
 ):
     """Getter for target info window"""
-    game = dialog_manager.start_data.get("game")
-    matchmaking: MatchmakingService = dispatcher.get("matchmaking")
+    game = await Game.get(id=dialog_manager.start_data.get("game_id"))
+    user = await User.get(tg_id=dialog_manager.start_data.get("user_tg_id"))
+    matchmaking: MatchmakingService = MatchmakingService(
+        settings, logging.getLogger("bot.matchmaking")
+    )
 
     return {
         "report_link": settings.report_link,
         **await parse_target_info(
-            game, dialog_manager.start_data["user"], matchmaking
+            game, user, matchmaking
         ),
     }

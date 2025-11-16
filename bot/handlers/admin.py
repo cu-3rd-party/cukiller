@@ -126,7 +126,7 @@ async def on_final_confirmation(
         )
         await user_dialog_manager.start(
             ParticipationForm.confirm,
-            data={"game": game, "user": user},
+            data={"game_id": game.id, "user_tg_id": user.tg_id},
         )
 
     await manager.done()
@@ -220,7 +220,6 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
         return {}
     game = await Game.get(id=game_id)
     return {
-        "game": game,
         "show_end_game": game.start_date is not None and game.end_date is None,
     }
 

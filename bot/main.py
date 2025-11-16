@@ -1,3 +1,5 @@
+import json
+from uuid import UUID
 import asyncio
 import importlib
 import logging
@@ -117,6 +119,30 @@ async def on_shutdown(bot: Bot) -> None:
     await close_db()
 
 
+class EnhancedJSONEncoder(json.JSONEncoder):
+    """JSON encoder that supports UUID."""
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            return {"__uuid__": str(obj)}
+        return super().default(obj)
+
+
+def enhanced_json_loader(data: str):
+    """JSON loader that restores UUIDs."""
+    def object_hook(obj):
+        if "__uuid__" in obj:
+            return UUID(obj["__uuid__"])
+        return obj
+
+    return json.loads(data, object_hook=object_hook)
+
+
+def enhanced_json_dumper(obj) -> str:
+    """JSON dumper that serializes UUIDs."""
+    return json.dumps(obj, cls=EnhancedJSONEncoder)
+
+
+
 async def run_bot() -> None:
     storage = RedisStorage(
         redis=Redis(
@@ -127,7 +153,9 @@ async def run_bot() -> None:
         ),
         key_builder=DefaultKeyBuilder(
             with_destiny=True,
-        )
+        ),
+        json_dumps=enhanced_json_dumper,
+        json_loads=enhanced_json_loader,
     )
 
     bot = Bot(

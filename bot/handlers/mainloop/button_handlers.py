@@ -9,7 +9,7 @@ from aiogram_dialog.widgets.kbd import Button
 from bot.handlers import participation
 from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
-from db.models import User
+from db.models import User, Game
 from services.matchmaking import MatchmakingService
 from settings import settings
 
@@ -44,10 +44,6 @@ async def on_back_to_menu(
     await manager.switch_to(MainLoop.title)
 
 
-# async def on_write_report(callback: CallbackQuery, button: Button, manager: DialogManager):
-#     """Handle 'Write Report' button click"""
-#     # TODO: Implement report functionality
-#     await callback.answer("Написание репорта...")
 async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
@@ -72,9 +68,8 @@ async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     # info about user and about game is stored in getter, how to access it?
-    game = manager.start_data.get("game")
-    user = manager.start_data.get("user")
-    matchmaking: MatchmakingService = manager.start_data.get("matchmaking")
+    game: Game = await Game.get(id=manager.start_data.get("game_id"))
+    user: User = await User.get(tg_id=manager.start_data.get("user"))
     user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
@@ -82,5 +77,5 @@ async def confirm_participation(
     )
     await user_dialog_manager.start(
         ParticipationForm.confirm,
-        data={"game": game, "user": user},
+        data={"game_id": game.id, "user_tg_id": user.tg_id},
     )
