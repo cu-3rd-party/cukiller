@@ -1,10 +1,12 @@
 openapi: 3.1.0
 info:
-  title: Matchmaking
-  description: Matchmaking
+  title: Matchmaking API
+  description: Matchmaking service HTTP API
   version: 1.0.0
+
 servers:
-  - url: 'http://localhost:6543'
+  - url: http://localhost:6543
+
 paths:
   /ping/:
     get:
@@ -12,41 +14,223 @@ paths:
       operationId: ping
       responses:
         '200':
-          description: The server is working correctly
+          description: Server is alive
           content:
-            text/plain:
-              example: "Hello, world!\n"
+            application/json:
+              example:
+                message: ok
         '500':
-          description: Failed to write to body
+          description: Failed to write response
+
   /health/:
     get:
-      summary: Get API health status
+      summary: API health check
       operationId: health
       responses:
         '200':
-          description: The server is healthy
+          description: Status info
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "healthy"
-                  timestamp:
-                    type: string
-                    format: date-time
-                    example: "2023-10-05T14:30:00Z"
+                $ref: '#/components/schemas/HealthResponse'
         '500':
-          description: Failed to write to body
+          description: Failed to write response
+
+  /add/killer/:
+    post:
+      summary: Add player to killer queue
+      operationId: addKiller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerData'
+      responses:
+        '201':
+          description: Player added
+        '400':
+          description: Invalid JSON body
+
+  /add/victim/:
+    post:
+      summary: Add player to victim queue
+      operationId: addVictim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerData'
+      responses:
+        '201':
+          description: Player added
+        '400':
+          description: Invalid JSON body
+
+  /get/queues/:
+    get:
+      summary: Get lists of queued killers and victims
+      operationId: getQueues
+      responses:
+        '200':
+          description: Current queues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuesResponse'
+
+  /get/queues/len/:
+    get:
+      summary: Get lengths of both queues
+      operationId: getQueuesLen
+      responses:
+        '200':
+          description: Queue lengths
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuesLenResponse'
+
+  /get/player/{tg_id}:
+    get:
+      summary: Get player queue status by Telegram ID
+      operationId: getPlayerByTgId
+      parameters:
+        - name: tg_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Player queue status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerByIdResponse'
+        '400':
+          description: Invalid tg_id format
 
 components:
   schemas:
+
+    EducationType:
+      type: string
+      description: Type of education
+      example: "bachelor"
+      enum:
+        - bachelor
+        - master
+        - specialist
+        - other
+
+    GroupName:
+      type: string
+      description: Group specialization name
+      example: "development"
+      enum:
+        - development
+        - ai
+        - business-analytics
+
+    PlayerData:
+      type: object
+      description: Player data provided by the Telegram bot
+      properties:
+        tg_id:
+          type: integer
+          format: uint64
+        rating:
+          type: integer
+          example: 1500
+        type:
+          $ref: '#/components/schemas/EducationType'
+        course_number:
+          type: integer
+          nullable: true
+          example: 3
+        group_name:
+          $ref: '#/components/schemas/GroupName'
+      required:
+        - tg_id
+        - rating
+        - type
+
+    QueuePlayer:
+      type: object
+      description: Player currently in a queue
+      properties:
+        TgId:
+          type: integer
+          format: uint64
+        JoinedAt:
+          type: string
+          format: date-time
+        PlayerData:
+          $ref: '#/components/schemas/PlayerData'
+      required:
+        - TgId
+        - JoinedAt
+        - PlayerData
+
+    MatchedPair:
+      type: object
+      description: Result of a matchmaking pairing
+      properties:
+        victim:
+          type: integer
+          format: uint64
+        killer:
+          type: integer
+          format: uint64
+        quality:
+          type: number
+          format: float
+      required:
+        - victim
+        - killer
+        - quality
+
+    QueuesResponse:
+      type: object
+      properties:
+        Killers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerData'
+        Victims:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerData'
+
+    QueuesLenResponse:
+      type: object
+      properties:
+        Killers:
+          type: integer
+        Victims:
+          type: integer
+
+    PlayerByIdResponse:
+      type: object
+      properties:
+        QueuedKiller:
+          type: boolean
+        Killer:
+          $ref: '#/components/schemas/QueuePlayer'
+        QueuedVictim:
+          type: boolean
+        Victim:
+          $ref: '#/components/schemas/QueuePlayer'
+
     HealthResponse:
       type: object
       properties:
         status:
           type: string
+          example: "healthy"
         timestamp:
           type: string
           format: date-time
