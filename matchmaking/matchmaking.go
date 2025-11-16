@@ -9,9 +9,10 @@ import (
 )
 
 type MatchedPair struct {
-	Victim  uint64  `json:"victim"`
-	Killer  uint64  `json:"killer"`
-	Quality float64 `json:"quality"`
+	SecretKey string  `json:"secret_key"`
+	Victim    uint64  `json:"victim"`
+	Killer    uint64  `json:"killer"`
+	Quality   float64 `json:"quality"`
 }
 
 type QueuePlayer struct {
@@ -41,6 +42,7 @@ var VictimPool = make(map[uint64]QueuePlayer)
 func matchmaking() {
 	// because this function does a lot of heavy lifting we should have the same time for all rates
 	curTime := time.Now()
+	logger.Debug("Running matchmaking cycle at %s", curTime)
 	if len(KillerPool)+len(VictimPool) < 2 {
 		//logger.Info("Not enough players in queues to process matchmaking")
 		return
@@ -78,24 +80,37 @@ func matchmaking() {
 
 		processedKillers[killer.TgId] = struct{}{}
 		processedVictims[bestVictim.TgId] = struct{}{}
-		logger.Info("Matched killer %d with victim %d", killer.TgId, bestVictim.TgId)
-		notifyMainProcess(MatchedPair{
-			Killer:  killer.TgId,
-			Victim:  bestVictim.TgId,
-			Quality: bestRating,
+		ok := notifyMainProcess(MatchedPair{
+			SecretKey: conf.SecretKey,
+			Killer:    killer.TgId,
+			Victim:    bestVictim.TgId,
+			Quality:   bestRating,
 		})
+		if !ok {
+			logger.Warn("Failed to notify main process about new pair")
+		}
+		logger.Debug("Matched killer %d with victim %d", killer.TgId, bestVictim.TgId)
+	
+		delete(KillerPool, killer.TgId)
+		delete(VictimPool, bestVictim.TgId)
 	}
 }
 
-func notifyMainProcess(pair MatchedPair) {
+func notifyMainProcess(pair MatchedPair) bool {
 	body, err := json.Marshal(pair)
 	if err != nil {
-		return
+		return false
 	}
-	_, err = http.NewRequest("POST", "http://bot:8000/match", bytes.NewBuffer(body))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", conf.BotUrl+"/match", bytes.NewBuffer(body))
+	resp, err := client.Do(req)
 	if err != nil {
 		logger.Error("Failed to notify main process because of %v", err)
 	}
+	if resp.StatusCode != 200 {
+		return false
+	}
+	return true
 }
 
 func RatePlayerPair(

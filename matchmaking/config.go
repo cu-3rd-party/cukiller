@@ -8,7 +8,9 @@ import (
 var conf = getConfig()
 
 type Config struct {
-	Port int
+	Port      int
+	BotUrl    string
+	SecretKey string
 	MatchmakingConfig
 	DatabaseConfig
 }
@@ -83,7 +85,9 @@ func getEnvFloat64(key string, defaultValue float64) float64 {
 
 func getConfig() Config {
 	return Config{
-		Port: getEnvInt("PORT", 6543),
+		Port:      getEnvInt("PORT", 6543),
+		BotUrl:    getEnvString("BOT_URL", "http://localhost:8000"),
+		SecretKey: getEnvString("SECRET_KEY", ""),
 		MatchmakingConfig: MatchmakingConfig{
 			Interval:          getEnvInt("MATCHMAKING_INTERVAL", 5),
 			QualityThreshold:  getEnvFloat64("QUALITY_THRESHOLD", 0.6),

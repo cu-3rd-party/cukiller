@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     project_name: str = Field(default="MyProject", alias="PROJECT_NAME")
     debug: bool = Field(default=False, alias="DEBUG")
     secret_key: str = Field(default="very_secret_key", alias="SECRET_KEY")
+    web_server_port: int = Field(default="8000", alias="BOT_WEB_SERVER_PORT")
 
     # ^ Bot
     bot_name: str = Field(default="cu_killer_bot", alias="BOT_NAME")

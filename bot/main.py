@@ -76,11 +76,11 @@ async def start_web_server(bot: Bot, settings: Settings) -> None:
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    site = web.TCPSite(runner, "0.0.0.0", settings.web_server_port)
     await site.start()
 
     _web_server = runner
-    logger.info("HTTP web server started on port 8000 for metrics endpoint")
+    logger.info("HTTP web server started on port %d for metrics endpoint", settings.web_server_port)
 
 
 async def stop_web_server() -> None:

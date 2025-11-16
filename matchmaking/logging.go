@@ -24,3 +24,7 @@ func (l *Logger) Warn(format string, v ...interface{}) {
 func (l *Logger) Error(format string, v ...interface{}) {
 	l.Printf("ERROR: "+format, v...)
 }
+
+func (l *Logger) Debug(format string, v ...interface{}) {
+	l.Printf("DEBUG: "+format, v...)
+}
