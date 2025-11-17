@@ -42,7 +42,9 @@ async def extract_target(killer_event: KillEvent | None):
     return victim.name, victim.tg_id
 
 
-async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
+async def parse_target_info(
+    game: Game | None, user: User, matchmaking: MatchmakingService
+):
     """Compute target-related info for the main menu or target window."""
     player = await Player.filter(user=user, game=game).first()
     if not player:
@@ -51,26 +53,37 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
     killer_event, victim_event = await get_pending_events(game, user)
     target_name, target_tg_id = await extract_target(killer_event)
 
-    killers_queue_len, victims_queue_len = await matchmaking.get_queues_length()
-    killer_queued, victim_queued = await matchmaking.get_player_by_id(user.tg_id)
+    (
+        killers_queue_len,
+        victims_queue_len,
+    ) = await matchmaking.get_queues_length()
+    killer_queued, victim_queued = await matchmaking.get_player_by_id(
+        user.tg_id
+    )
 
     return {
-        "has_target": killer_event is not None and not killer_event.killer_confirmed,
-        "pending_kill_confirmed": killer_event is not None and killer_event.killer_confirmed,
+        "has_target": killer_event is not None
+        and not killer_event.killer_confirmed,
+        "pending_kill_confirmed": killer_event is not None
+        and killer_event.killer_confirmed,
         "no_target": killer_event is None,
         "should_get_target": killer_event is None and not killer_queued,
         "enqueued": killer_queued,
         "not_enqueued": not killer_queued,
         "killers_queue_length": killers_queue_len,
         "victims_queue_length": victims_queue_len,
-        "is_hunted": victim_event is not None and not victim_event.victim_confirmed,
-        "pending_victim_confirmed": victim_event is not None and victim_event.victim_confirmed,
+        "is_hunted": victim_event is not None
+        and not victim_event.victim_confirmed,
+        "pending_victim_confirmed": victim_event is not None
+        and victim_event.victim_confirmed,
         "target_name": target_name,
         "target_profile_link": target_tg_id and f"tg://user?id={target_tg_id}",
     }
 
 
-async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
+async def get_main_menu_info(
+    dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
+):
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
 
@@ -85,7 +98,9 @@ async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatch
     }
 
 
-async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
+async def get_target_info(
+    dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
+):
     """Getter for target info window."""
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
