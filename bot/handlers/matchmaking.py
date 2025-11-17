@@ -1,8 +1,11 @@
 import logging
 
 from aiogram import Router, Bot
+from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiohttp import web
 
+from bot.handlers import mainloop_dialog
+from bot.misc.states import MainLoop
 from db.models import KillEvent, Game, User
 from services.admin_chat import AdminChatService
 from settings import settings
@@ -80,6 +83,30 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
         chat_id=victim_user.tg_id,
         text="На вас открыта охота",
         parse_mode="HTML",
+    )
+
+    victim_dialog_manager = BgManagerFactoryImpl(
+        router=mainloop_dialog.router
+    ).bg(
+        bot=bot,
+        user_id=victim_user.tg_id,
+        chat_id=victim_user.tg_id,
+    )
+    killer_dialog_manager = BgManagerFactoryImpl(
+        router=mainloop_dialog.router
+    ).bg(
+        bot=bot,
+        user_id=killer_user.tg_id,
+        chat_id=killer_user.tg_id,
+    )
+
+    await victim_dialog_manager.start(
+        MainLoop.target_info,
+        data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
+    )
+    await killer_dialog_manager.start(
+        MainLoop.target_info,
+        data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
     )
 
     return web.StreamResponse(status=200)
