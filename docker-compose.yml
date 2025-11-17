@@ -1,15 +1,4 @@
 services:
-  db:
-    image: postgres:18-alpine
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infra/sql:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-
   bot:
     build:
       context: .
@@ -19,6 +8,28 @@ services:
     depends_on:
       - db
       - matchmaking
+    restart: unless-stopped
+
+  matchmaking:
+    build:
+      context: ./matchmaking
+      dockerfile: Dockerfile
+    ports:
+      - "6543:6543"
+    env_file: .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:18-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/sql:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
     restart: unless-stopped
 
   redis:
@@ -64,15 +75,6 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
-    restart: unless-stopped
-
-  matchmaking:
-    build:
-      context: ./matchmaking
-      dockerfile: Dockerfile
-    ports:
-      - "6543:6543"
-    env_file: .env
     restart: unless-stopped
 
 volumes:

@@ -96,3 +96,5 @@ redis.conf
 
 # Database
 pfp/
+
+prometheus/
