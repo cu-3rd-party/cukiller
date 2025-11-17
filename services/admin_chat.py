@@ -66,7 +66,7 @@ class AdminChatService:
                         text="deny",
                         callback_data=f"deny {tg_id}",
                     ),
-                ]
+                ],
             ]
         )
 

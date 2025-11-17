@@ -10,7 +10,11 @@ from aiogram_dialog.widgets.kbd import Button, Row, Group, Column
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
-from bot.filters.confirmed import ConfirmedFilter, PendingFilter, ProfileNonexistentFilter
+from bot.filters.confirmed import (
+    ConfirmedFilter,
+    PendingFilter,
+    ProfileNonexistentFilter,
+)
 from bot.filters.debug import DebugFilter
 from bot.misc.states import RegisterForm
 from services.admin_chat import AdminChatService
@@ -252,35 +256,55 @@ register_dialog = Dialog(
     Window(
         Const("Выбери свою форму обучения:"),
         create_course_type_buttons(),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.name)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
+        ),
         state=RegisterForm.course_type,
     ),
     # Bachelor course number selection
     Window(
         Const("Выбери свой курс (бакалавриат):"),
         create_course_number_buttons("bachelor"),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+        ),
         state=RegisterForm.course_number_bachelor,
     ),
     # Master course number selection
     Window(
         Const("Выбери свой курс (магистратура):"),
         create_course_number_buttons("master"),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+        ),
         state=RegisterForm.course_number_master,
     ),
     # Other status selection
     Window(
         Const("Уточни свой статус:"),
         create_course_number_buttons("other"),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+        ),
         state=RegisterForm.course_other,
     ),
     # Group selection
     Window(
         Const("Выбери свой поток:"),
         create_group_buttons(),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+        ),
         state=RegisterForm.group_name,
     ),
     # About yourself
@@ -289,7 +313,11 @@ register_dialog = Dialog(
             "Теперь расскажи немного о себе:\n"
             "(Интересы, хобби, чем занимаешься - это поможет другим участникам познакомиться с тобой)"
         ),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.group_name)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.group_name),
+        ),
         MessageInput(on_about_input, content_types=ContentType.TEXT),
         state=RegisterForm.about,
     ),
@@ -298,7 +326,11 @@ register_dialog = Dialog(
         Const(
             "Отправь свою фотографию:\nЕё будут видеть другие участники игры"
         ),
-        Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.about)),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
+        ),
         MessageInput(on_photo_input, content_types=ContentType.PHOTO),
         state=RegisterForm.photo,
     ),
@@ -337,12 +369,14 @@ async def user_start(
 
 @router.message(CommandStart(), PendingFilter(), ~AdminFilter())
 async def user_start(
-        message: Message,
-        dialog_manager: DialogManager,
-        bot: Bot,
+    message: Message,
+    dialog_manager: DialogManager,
+    bot: Bot,
 ):
     queue_len = len(await User.filter(status="pending").all())
-    await message.reply(f"Пожалуйста, подождите. Ваш профиль находится на проверке\n\nВсего в очереди находится <b>{queue_len}</b> человек")
+    await message.reply(
+        f"Пожалуйста, подождите. Ваш профиль находится на проверке\n\nВсего в очереди находится <b>{queue_len}</b> человек"
+    )
 
 
 @router.message(
