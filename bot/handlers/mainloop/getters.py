@@ -5,6 +5,7 @@ from aiogram.enums import ContentType
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
+from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, User, Player, KillEvent
 from services.matchmaking import MatchmakingService
 from settings import settings
@@ -35,13 +36,13 @@ async def get_pending_events(game: Game, user: User):
 
 
 def get_advanced_info(user: User):
-    ret = [f"Тип: {user.type}"]
+    ret = [f"Тип: {COURSE_TYPES[user.type]}"]
     if user.course_number:
         ret.append(f"Курс: {user.course_number}")
     if user.group_name:
         ret.append(f"Поток: {user.group_name}")
     if user.about_user:
-        ret.append(f"О себе:\n{user.about_user}")
+        ret.append(f"О себе: {user.about_user}")
     return "\n".join(ret)
 
 
