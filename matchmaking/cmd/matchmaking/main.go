@@ -1,10 +1,14 @@
 package main
 
+import (
+	. "matchmaking/internal"
+)
+
 func main() {
 	logger.Info("Starting matchmaking service...")
 
 	db := MustGetDb()
-	initDb(db)
-	go matchmakingTicker()
-	startupHttp()
+	InitDb(db)
+	go MatchmakingTicker()
+	StartupHttp()
 }

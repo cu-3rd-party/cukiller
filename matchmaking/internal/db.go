@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"database/sql"
@@ -32,8 +32,8 @@ func MustGetDb() *sql.DB {
 	return db
 }
 
-// initDb is called on startup
-func initDb(db *sql.DB) {
+// InitDb is called on startup
+func InitDb(db *sql.DB) {
 	populateQueues(db)
 }
 
@@ -60,7 +60,12 @@ func populateQueues(db *sql.DB) {
 		logger.Error("Error querying potential killers: %v", err)
 		return
 	}
-	defer killerRows.Close()
+	defer func(killerRows *sql.Rows) {
+		err := killerRows.Close()
+		if err != nil {
+			logger.Error("Failed to close killerRows")
+		}
+	}(killerRows)
 
 	for killerRows.Next() {
 		var p QueuePlayer
@@ -100,7 +105,12 @@ func populateQueues(db *sql.DB) {
 		logger.Error("Error querying potential victims: %v", err)
 		return
 	}
-	defer victimRows.Close()
+	defer func(victimRows *sql.Rows) {
+		err := victimRows.Close()
+		if err != nil {
+			logger.Error("Failed to close victimRows")
+		}
+	}(victimRows)
 
 	for victimRows.Next() {
 		var p QueuePlayer

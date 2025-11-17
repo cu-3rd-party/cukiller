@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ type QueuePlayer struct {
 	PlayerData
 }
 
-func matchmakingTicker() {
+func MatchmakingTicker() {
 	ticker := time.NewTicker(time.Second * time.Duration(conf.MatchmakingConfig.Interval))
 	defer ticker.Stop()
 

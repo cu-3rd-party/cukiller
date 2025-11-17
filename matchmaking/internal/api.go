@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func startupHttp() {
+func StartupHttp() {
 	http.HandleFunc("/ping/", ping)
 	http.HandleFunc("/health/", health)
 	http.HandleFunc("/add/killer/", addKiller)

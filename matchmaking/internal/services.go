@@ -1,4 +1,4 @@
-package main
+package internal
 
 func AbsDiffInt(x, y int) int {
 	if x < y {

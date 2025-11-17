@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"log"
@@ -11,34 +11,34 @@ type Logger struct {
 }
 
 var logger = &Logger{
-	conf.LogLevel,
-	log.New(os.Stdout, "", log.LstdFlags),
+	LogLevel: conf.LogLevel,
+	Logger:   log.New(os.Stdout, "", log.LstdFlags),
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
 	if l.LogLevel > LogLevelInfo {
 		return
 	}
-	l.Printf("INFO: "+format, v...)
+	l.Printf("INFO:\t"+format, v...)
 }
 
 func (l *Logger) Warn(format string, v ...interface{}) {
 	if l.LogLevel > LogLevelWarn {
 		return
 	}
-	l.Printf("WARN: "+format, v...)
+	l.Printf("WARN:\t"+format, v...)
 }
 
 func (l *Logger) Error(format string, v ...interface{}) {
 	if l.LogLevel > LogLevelError {
 		return
 	}
-	l.Printf("ERROR: "+format, v...)
+	l.Printf("ERROR:\t"+format, v...)
 }
 
 func (l *Logger) Debug(format string, v ...interface{}) {
 	if l.LogLevel > LogLevelDebug {
 		return
 	}
-	l.Printf("DEBUG: "+format, v...)
+	l.Printf("DEBUG:\t"+format, v...)
 }
