@@ -11,17 +11,18 @@ from aiogram.types import (
     CallbackQuery,
 )
 from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog.api.entities import StartMode, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.api.entities import StartMode, ShowMode
 
 from bot.filters.admin import AdminFilter
 from bot.misc.states.editgame import EditGame
 from bot.misc.states.participation import ParticipationForm
 from bot.misc.states.startgame import StartGame
 from db.models import User, Game, Player
+from services.logging import log_dialog_action
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ async def stats(message: Message, bot: Bot):
     )
 
 
+@log_dialog_action("ADMIN_CAMPAIGN_NAME_INPUT")
 async def on_name_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
@@ -88,6 +90,7 @@ async def on_name_input(
     await manager.next()
 
 
+@log_dialog_action("ADMIN_CAMPAIGN_DESCRIPTION_INPUT")
 async def on_description_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
@@ -95,6 +98,7 @@ async def on_description_input(
     await manager.next()
 
 
+@log_dialog_action("ADMIN_CAMPAIGN_FINAL_CONFIRMATION")
 async def on_final_confirmation(
     callback: CallbackQuery,
     button: Button,
@@ -139,6 +143,7 @@ async def on_final_confirmation(
     )
 
 
+@log_dialog_action("ADMIN_RESET_GAME_CREATION")
 async def on_reset_game_creation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
@@ -229,6 +234,7 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
     }
 
 
+@log_dialog_action("ADMIN_GAME_SELECTED")
 async def on_game_selected(
     callback: CallbackQuery, widget, manager: DialogManager, item_id: str
 ):
@@ -237,6 +243,7 @@ async def on_game_selected(
     await manager.next()
 
 
+@log_dialog_action("ADMIN_GAME_ACTION_CLICKED")
 async def on_action_clicked(
     callback: CallbackQuery, widget, manager: DialogManager
 ):

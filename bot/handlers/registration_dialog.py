@@ -18,6 +18,7 @@ from bot.filters.debug import DebugFilter
 from bot.misc.states import RegisterForm
 from db.models import User
 from services.admin_chat import AdminChatService
+from services.logging import log_dialog_action
 from settings import settings
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ GROUP_NAMES_RU = ["Разработка", "ИИ", "Бизнес-аналитик
 GROUP_NAMES_EN = ["dev", "ai", "ba"]
 
 
+@log_dialog_action("REGISTRATION_NAME_INPUT")
 async def on_name_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
@@ -59,6 +61,7 @@ async def on_name_input(
     await manager.next()
 
 
+@log_dialog_action("REGISTRATION_TYPE_SELECTED")
 async def on_course_type_selected(
     callback: CallbackQuery,
     button: Button,
@@ -74,6 +77,7 @@ async def on_course_type_selected(
         await manager.switch_to(RegisterForm.course_other)
 
 
+@log_dialog_action("REGISTRATION_COURSE_NUMBER_SELECTED")
 async def on_course_number_selected(
     callback: CallbackQuery,
     button: Button,
@@ -97,6 +101,7 @@ async def on_course_number_selected(
         await manager.switch_to(RegisterForm.about)
 
 
+@log_dialog_action("REGISTRATION_GROUP_SELECTED")
 async def on_group_selected(
     callback: CallbackQuery,
     button: Button,
@@ -107,6 +112,7 @@ async def on_group_selected(
     await manager.next()
 
 
+@log_dialog_action("REGISTRATION_ABOUT_INPUT")
 async def on_about_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
@@ -118,6 +124,7 @@ async def on_about_input(
     await manager.next()
 
 
+@log_dialog_action("REGISTRATION_PHOTO_INPUT")
 async def on_photo_input(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
@@ -131,6 +138,7 @@ async def on_photo_input(
     await manager.next()
 
 
+@log_dialog_action("REGISTRATION_FINAL_CONFIRMATION")
 async def on_final_confirmation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
@@ -189,6 +197,7 @@ async def on_final_confirmation(
     await manager.done()
 
 
+@log_dialog_action("REGISTRATION_RESTART")
 async def on_restart_registration(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):

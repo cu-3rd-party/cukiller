@@ -1,6 +1,5 @@
 import logging
 
-import requests
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -11,76 +10,103 @@ from bot.handlers.kills_confirmation import (
     ConfirmKillVictim,
     ConfirmKillKiller,
 )
-from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
 from db.models import User, Game, KillEvent
+from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
-from settings import settings
 
 logger = logging.getLogger(__name__)
 
 
+async def _get_user_and_game(manager: DialogManager) -> tuple[User, Game]:
+    user: User = manager.middleware_data["user"]
+    game_id = manager.start_data.get("game_id")
+    game: Game = await Game.get(id=game_id)
+    return user, game
+
+
+async def _start_kill_confirmation(
+    manager: DialogManager,
+    kill_event: KillEvent,
+    state,
+):
+    await manager.start(
+        state,
+        data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},
+    )
+
+
+async def _get_pending_event(user_id: int, game_id: int, role: str):
+    """role: 'victim' | 'killer'"""
+    filters = {
+        "victim": {"victim_id": user_id},
+        "killer": {"killer_id": user_id},
+    }[role]
+
+    return await KillEvent.filter(
+        **filters, game_id=game_id, status="pending"
+    ).first()
+
+
+@log_dialog_action("I_WAS_KILLED")
 async def on_i_was_killed(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    """Handle 'I was killed' button click"""
-    logger.info("%d сказал, что его убили", callback.from_user.id)
-    user: User = manager.middleware_data["user"]
-    game: Game = await Game.get(id=manager.start_data.get("game_id"))
-    kill_event: KillEvent = await KillEvent.filter(
-        victim_id=user.id, game_id=game.id, status="pending"
-    ).first()
-    await manager.start(
-        ConfirmKillVictim.confirm,
-        data={"kill_event_id": kill_event.id, "game_id": game.id},
+    logger.info("%d: reported they were killed", callback.from_user.id)
+
+    user, game = await _get_user_and_game(manager)
+    kill_event = await _get_pending_event(user.id, game.id, role="victim")
+
+    await _start_kill_confirmation(
+        manager, kill_event, ConfirmKillVictim.confirm
     )
 
 
+@log_dialog_action("I_KILLED")
 async def on_i_killed(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    """Handle 'I killed' button click"""
-    logger.info("%d сказал, что убил свою цель", callback.from_user.id)
-    user: User = manager.middleware_data["user"]
-    game: Game = await Game.get(id=manager.start_data.get("game_id"))
-    kill_event: KillEvent = await KillEvent.filter(
-        killer_id=user.id, game_id=game.id, status="pending"
-    ).first()
-    await manager.start(
-        ConfirmKillKiller.confirm,
-        data={"kill_event_id": kill_event.id, "game_id": game.id},
+    logger.info("%d: reported they killed their target", callback.from_user.id)
+
+    user, game = await _get_user_and_game(manager)
+    kill_event = await _get_pending_event(user.id, game.id, role="killer")
+
+    await _start_kill_confirmation(
+        manager, kill_event, ConfirmKillKiller.confirm
     )
 
 
+@log_dialog_action("GET_TARGET")
 async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    """Handle 'Get Target' button click"""
     user: User = manager.middleware_data["user"]
-    matchmaking: MatchmakingService = MatchmakingService()
 
-    player_data = {
+    data = {
         "tg_id": user.tg_id,
         "rating": user.rating,
         "type": user.type,
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    await matchmaking.add_player_to_queue(user.tg_id, player_data, "killer")
+
+    await MatchmakingService().add_player_to_queue(user.tg_id, data, "killer")
     await callback.answer("Вы были поставлены в очередь, ожидайте...")
 
 
+@log_dialog_action("CONFIRM_PARTICIPATION")
 async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    game: Game = await Game.get(id=manager.start_data.get("game_id"))
-    user: User = await manager.middleware_data["user"]
-    user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
+    user, game = await _get_user_and_game(manager)
+
+    dialog = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
-    await user_dialog_manager.start(
+
+    await dialog.start(
         ParticipationForm.confirm,
-        data={"game_id": (game and game.id) or None, "user_tg_id": user.tg_id},
+        data={"game_id": game.id, "user_tg_id": user.tg_id},
     )

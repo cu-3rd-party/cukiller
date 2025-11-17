@@ -1,26 +1,26 @@
 import logging
 
-import requests
 from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Column, Button
 from aiogram_dialog.widgets.text import Const
-from aiogram_dialog.api.entities import StartMode, ShowMode
 
 from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
 from db.models import Player, Game, User
+from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
-from settings import settings
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
 
+@log_dialog_action("CONFIRM_PARTICIPATION")
 async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):

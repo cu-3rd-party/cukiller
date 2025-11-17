@@ -158,7 +158,13 @@ async def handle_confirm(
         )
         await notify_player(kill_event.killer, bot, manager, killer_delta)
         await notify_player(kill_event.victim, bot, manager, victim_delta)
-        await notify_chat(bot, kill_event.killer, kill_event.victim, killer_delta, victim_delta)
+        await notify_chat(
+            bot,
+            kill_event.killer,
+            kill_event.victim,
+            killer_delta,
+            victim_delta,
+        )
         await add_back_to_queues(kill_event.killer, kill_event.victim)
 
     await kill_event.save()
@@ -187,7 +193,9 @@ async def handle_deny(
     setattr(kill_event, f"{role}_confirmed", False)
     setattr(kill_event, f"{role}_confirmed_at", None)
 
-    logger.info("%d отказался признавать убийство, будучи %s", from_user.id, role)
+    logger.info(
+        "%d отказался признавать убийство, будучи %s", from_user.id, role
+    )
 
     await kill_event.save()
 
@@ -264,7 +272,9 @@ router.include_router(
                 on_click=on_victim_confirm,
             ),
             Button(
-                Const("Наглая ложь, меня не убивали"), id="deny", on_click=on_victim_deny
+                Const("Наглая ложь, меня не убивали"),
+                id="deny",
+                on_click=on_victim_deny,
             ),
             state=ConfirmKillVictim.double_confirm,
         ),
@@ -286,7 +296,11 @@ router.include_router(
             Button(
                 Const("Да, я убил"), id="confirm", on_click=on_killer_confirm
             ),
-            Button(Const("Нет, я ее не убивал"), id="deny", on_click=on_killer_deny),
+            Button(
+                Const("Нет, я ее не убивал"),
+                id="deny",
+                on_click=on_killer_deny,
+            ),
             state=ConfirmKillKiller.double_confirm,
         ),
     )

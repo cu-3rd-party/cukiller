@@ -1,12 +1,12 @@
-import json
-from uuid import UUID
 import asyncio
 import importlib
+import json
 import logging
 import os
 from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
+from uuid import UUID
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -15,22 +15,22 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
 from aiohttp import web
+from redis.asyncio import Redis
 
 from bot.handlers.matchmaking import setup_matchmaking_routers
 from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
+from bot.middlewares.logging import VerboseLoggingMiddleware
 from bot.middlewares.private_messages import PrivateMessagesMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
 from bot.middlewares.user import UserMiddleware
+from db.main import close_db, init_db
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
-from db.main import close_db, init_db
 from services.matchmaking import MatchmakingService
 from settings import settings
-
-from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 def register_all_middlewares(dp: Dispatcher) -> None:
     dp.update.middleware(UserMiddleware())
+    dp.update.middleware(VerboseLoggingMiddleware())
     dp.callback_query.middleware(UserMiddleware())
     dp.update.middleware(EnvironmentMiddleware(dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
