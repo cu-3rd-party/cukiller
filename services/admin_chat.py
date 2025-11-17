@@ -53,6 +53,12 @@ class AdminChatService:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
+                        text="inspect",
+                        url=f"tg://user?id={tg_id}",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
                         text="confirm",
                         callback_data=f"confirm {tg_id}",
                     ),
