@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     report_link: str = Field(alias="REPORT_LINK")
     game_info_link: str = Field(alias="NEXT_GAME_LINK")
 
+    # ^ ELO
+    K_KILLER: int = 32
+    K_VICTIM: int = 32
+    ELO_SCALE: int = 400
+    DEFAULT_RATING: int = 600
+
     # ^ PostgreSQL
     pg_host: str = Field(default="db", alias="POSTGRES_HOST")
     pg_port: int = Field(default=5432, alias="POSTGRES_PORT")

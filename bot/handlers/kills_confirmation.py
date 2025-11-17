@@ -3,15 +3,17 @@ from datetime import datetime
 
 from aiogram import Router
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, User as TgUser
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.api.entities import ShowMode
 
+from bot.misc.states import MainLoop
 from db.models import KillEvent, User
 from services.matchmaking import MatchmakingService
+from settings import settings
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -58,11 +60,34 @@ async def add_back_to_queues(killer: User, victim: User):
         )
 
 
+async def modify_rating(killer: User, victim: User):
+    """After successful kill, update ELO ratings of killer and victim."""
+    killer_rating = killer.rating
+    victim_rating = victim.rating
+
+    expected_killer = 1 / (
+        1 + 10 ** ((victim_rating - killer_rating) / settings.ELO_SCALE)
+    )
+    expected_victim = 1 / (
+        1 + 10 ** ((killer_rating - victim_rating) / settings.ELO_SCALE)
+    )
+
+    killer_new = killer_rating + settings.K_KILLER * (1 - expected_killer)
+    victim_new = victim_rating + settings.K_VICTIM * (0 - expected_victim)
+
+    killer.rating = round(killer_new)
+    victim.rating = round(victim_new)
+
+    await killer.save()
+    await victim.save()
+
+
 async def handle_confirm(
     manager: DialogManager,
     role: str,
     opposite_role: str,
     opposite_state: State,
+    from_user: TgUser,
 ):
     """Shared confirmation handler for both killer and victim."""
     kill_event: KillEvent = await KillEvent.get(
@@ -84,10 +109,17 @@ async def handle_confirm(
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
+        await modify_rating(kill_event.killer, kill_event.victim)
         await add_back_to_queues(kill_event.killer, kill_event.victim)
 
     await kill_event.save()
-    await manager.done()
+    await manager.start(
+        MainLoop.title,
+        data={
+            "user_tg_id": from_user.id,
+            "game_id": manager.start_data["game_id"],
+        },
+    )
 
 
 async def on_victim_confirm(
@@ -98,6 +130,7 @@ async def on_victim_confirm(
         role="victim",
         opposite_role="killer",
         opposite_state=ConfirmKillKiller.double_confirm,
+        from_user=callback.from_user,
     )
 
 
@@ -109,6 +142,7 @@ async def on_killer_confirm(
         role="killer",
         opposite_role="victim",
         opposite_state=ConfirmKillVictim.double_confirm,
+        from_user=callback.from_user,
     )
 
 

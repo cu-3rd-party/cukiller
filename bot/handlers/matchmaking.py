@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Router, Bot
+from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiohttp import web
 
@@ -101,12 +102,14 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
     )
 
     await victim_dialog_manager.start(
-        MainLoop.target_info,
+        MainLoop.title,
         data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
     await killer_dialog_manager.start(
-        MainLoop.target_info,
+        MainLoop.title,
         data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
     return web.StreamResponse(status=200)

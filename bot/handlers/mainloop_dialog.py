@@ -30,19 +30,23 @@ main_menu_dialog = Dialog(
     Window(
         Const("Главное меню\n"),
         Format(
+            "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
+            when="user_participating",
+        ),
+        Format(
             "Вы запросили подтверждение убийства вас у вашего убийцы, ожидайте",
             when="pending_victim_confirmed",
         ),
         Format(
-            "Вы запросили подтверждение вашего убийства у вашей жертвы, ожидайте",
+            "Вы запросили подтверждение вашего убийства у вашей жертвы, ожидайте\n",
             when="pending_kill_confirmed",
         ),
         Format(
-            "\n<b>На вас открыта охота!</b>",
+            "<b>На вас открыта охота!</b>\n",
             when="is_hunted",
         ),
         Format(
-            "\nВы находитесь в очереди на цель, текущая:\nКоличество потенциальных убийц: <b>{killers_queue_length}</b>\nКоличество потенциальных жертв: <b>{victims_queue_length}</b>",
+            "Вы находитесь в очереди на цель, текущая:\nКоличество потенциальных убийц: <b>{killers_queue_length}</b>\nКоличество потенциальных жертв: <b>{victims_queue_length}</b>",
             when="enqueued",
         ),
         Column(

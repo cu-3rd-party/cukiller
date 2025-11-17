@@ -40,6 +40,7 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 def register_all_middlewares(dp: Dispatcher) -> None:
     dp.update.middleware(UserMiddleware())
+    dp.callback_query.middleware(UserMiddleware())
     dp.update.middleware(EnvironmentMiddleware(dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
     dp.message.middleware(PrivateMessagesMiddleware())

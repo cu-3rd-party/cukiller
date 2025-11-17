@@ -19,6 +19,7 @@ from bot.filters.debug import DebugFilter
 from bot.misc.states import RegisterForm
 from services.admin_chat import AdminChatService
 from db.models import User
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,7 @@ async def on_final_confirmation(
     user.photo = user_data.get("photo")
     user.type = user_data.get("type")
     user.status = "pending"
+    user.rating = settings.DEFAULT_RATING
 
     await user.save()
 
@@ -316,7 +318,7 @@ register_dialog = Dialog(
         Button(
             Const("Назад"),
             id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.group_name),
+            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
         ),
         MessageInput(on_about_input, content_types=ContentType.TEXT),
         state=RegisterForm.about,
@@ -403,7 +405,7 @@ async def user_fast_reg(
             "photo": "fastreg",
             "type": "fastreg",
             "status": "confirmed",
-            "rating": 600,
+            "rating": settings.DEFAULT_RATING,
         },
     )
     await message.answer("fastreg success")
