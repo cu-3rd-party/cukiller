@@ -28,7 +28,15 @@ router = Router()
 
 main_menu_dialog = Dialog(
     Window(
-        Const("главное меню"),
+        Const("Главное меню\n"),
+        Format(
+            "Вы запросили подтверждение убийства вас у вашего убийцы, ожидайте",
+            when="pending_victim_confirmed",
+        ),
+        Format(
+            "Вы запросили подтверждение вашего убийства у вашей жертвы, ожидайте",
+            when="pending_kill_confirmed",
+        ),
         Format(
             "\n<b>На вас открыта охота!</b>",
             when="is_hunted",
