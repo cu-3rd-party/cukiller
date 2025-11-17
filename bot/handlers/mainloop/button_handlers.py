@@ -7,27 +7,49 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button
 
 from bot.handlers import participation
+from bot.handlers.kills_confirmation import (
+    ConfirmKillVictim,
+    ConfirmKillKiller,
+)
 from bot.misc.states import MainLoop
 from bot.misc.states.participation import ParticipationForm
-from db.models import User, Game
+from db.models import User, Game, KillEvent
 from services.matchmaking import MatchmakingService
 from settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 async def on_i_was_killed(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'I was killed' button click"""
-    # TODO: Implement kill confirmation functionality
-    await callback.answer("Подтверждение убийства...")
+    logger.info("%d сказал, что его убили", callback.from_user.id)
+    user: User = manager.middleware_data["user"]
+    game: Game = await Game.get(id=manager.start_data.get("game_id"))
+    kill_event: KillEvent = await KillEvent.filter(
+        victim_id=user.id, game_id=game.id, status="pending"
+    ).first()
+    await manager.start(
+        ConfirmKillVictim.confirm,
+        data={"kill_event_id": kill_event.id, "game_id": game.id},
+    )
 
 
 async def on_i_killed(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'I killed' button click"""
-    # TODO: Implement kill report functionality
-    await callback.answer("Репорт об убийстве...")
+    logger.info("%d сказал, что убил свою цель", callback.from_user.id)
+    user: User = manager.middleware_data["user"]
+    game: Game = await Game.get(id=manager.start_data.get("game_id"))
+    kill_event: KillEvent = await KillEvent.filter(
+        killer_id=user.id, game_id=game.id, status="pending"
+    ).first()
+    await manager.start(
+        ConfirmKillKiller.confirm,
+        data={"kill_event_id": kill_event.id, "game_id": game.id},
+    )
 
 
 async def on_get_target(
@@ -51,7 +73,6 @@ async def on_get_target(
 async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
-    # info about user and about game is stored in getter, how to access it?
     game: Game = await Game.get(id=manager.start_data.get("game_id"))
     user: User = await manager.middleware_data["user"]
     user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(

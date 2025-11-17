@@ -26,9 +26,11 @@ async def parse_target_info(
     logger.debug(f"Found killer event {killer_event} and {victim_event}")
 
     target_name = "Неизвестно"
+    target_id = None
     if killer_event:
         await killer_event.fetch_related("victim")
         target_name = killer_event.victim.name
+        target_id = killer_event.victim.tg_id
 
     (
         killers_queue,
@@ -48,6 +50,7 @@ async def parse_target_info(
         "victims_queue_length": victims_queue,
         "is_hunted": victim_event is not None,
         "target_name": target_name,
+        "target_profile_link": target_id and f"tg://user?id={target_id}",
     }
     logger.debug(ret)
     return ret

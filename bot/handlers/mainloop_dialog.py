@@ -86,6 +86,12 @@ main_menu_dialog = Dialog(
                 id="write_report",
                 url=Format("{report_link}"),
             ),
+            Url(
+                Const("Открыть профиль (DEBUG)"),
+                id="profile",
+                url=Format("{target_profile_link}"),
+                when="target_profile_link",
+            ),
             Button(
                 Const("Я убил"),
                 id="i_killed",
