@@ -89,11 +89,16 @@ async def modify_rating(killer: User, victim: User):
     return killer_delta, victim_delta
 
 
-async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
-    await bot.send_message(chat_id=user.tg_id, text=(
-        f"Убийство было обоюдно подтверждено!\n\n"
-        f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(round(delta))}</b> очков рейтинга"
-    ))
+async def notify_player(
+    user: User, bot: Bot, manager: DialogManager, delta: int
+):
+    await bot.send_message(
+        chat_id=user.tg_id,
+        text=(
+            f"Убийство было обоюдно подтверждено!\n\n"
+            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(round(delta))}</b> очков рейтинга"
+        ),
+    )
 
     dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
         bot=bot,
@@ -101,7 +106,9 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
         chat_id=user.tg_id,
     )
     await dialog_manager.start(
-        MainLoop.title, data={**manager.start_data, "user_tg_id": user.tg_id}, show_mode=ShowMode.DELETE_AND_SEND
+        MainLoop.title,
+        data={**manager.start_data, "user_tg_id": user.tg_id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 
@@ -133,7 +140,9 @@ async def handle_confirm(
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
-        killer_delta, victim_delta = await modify_rating(kill_event.killer, kill_event.victim)
+        killer_delta, victim_delta = await modify_rating(
+            kill_event.killer, kill_event.victim
+        )
         await notify_player(kill_event.killer, bot, manager, killer_delta)
         await notify_player(kill_event.victim, bot, manager, victim_delta)
         await add_back_to_queues(kill_event.killer, kill_event.victim)
