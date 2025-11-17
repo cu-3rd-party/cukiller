@@ -15,14 +15,13 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.api.entities import StartMode, ShowMode
 
-import settings
 from bot.filters.admin import AdminFilter
 from bot.misc.states.editgame import EditGame
 from bot.misc.states.participation import ParticipationForm
 from bot.misc.states.startgame import StartGame
 from db.models import User, Game, Player
-from services.matchmaking import MatchmakingService
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +125,12 @@ async def on_final_confirmation(
         )
         await user_dialog_manager.start(
             ParticipationForm.confirm,
-            data={"game_id": game.id, "user_tg_id": user.tg_id},
+            data={
+                "game_id": (game and game.id) or None,
+                "user_tg_id": user.tg_id,
+            },
+            mode=StartMode.NEW_STACK,
+            show_mode=ShowMode.DELETE_AND_SEND,
         )
 
     await manager.done()
@@ -202,7 +206,7 @@ def parse_game_stage(game: Game) -> str:
 
 
 async def get_games_data(**kwargs):
-    games = await Game().all()
+    games = await Game().filter(end_date=None).all()
     return {
         "games": [
             {
@@ -220,6 +224,7 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
         return {}
     game = await Game.get(id=game_id)
     return {
+        "game_name": game.name,
         "show_end_game": game.start_date is not None and game.end_date is None,
     }
 
@@ -249,19 +254,18 @@ async def on_action_clicked(
     await manager.switch_to(EditGame.edit)
 
 
-async def on_get_game_info(
-    callback: CallbackQuery, widget, manager: DialogManager
-):
-    game_id = manager.dialog_data["game_id"]
+async def game_info_getter(dialog_manager: DialogManager, **kwargs):
+    game_id = dialog_manager.dialog_data["game_id"]
     game = await Game().get(id=game_id)
     participants_count = await Player().filter(game=game_id).count()
-    await callback.message.answer(
-        f'Информация об игре "{game.name}" с айди {game_id}\n\n'
-        f"Начало игры: {game.start_date}\n"
-        f"Конец игры: {game.end_date}\n"
-        f"\nКоличество участников: <b>{participants_count}</b>\n"
-    )
-    await manager.switch_to(EditGame.edit)
+    return {
+        "game_info": (
+            f'Информация об игре "{game.name}" с айди {game_id}\n\n'
+            f"Начало игры: {game.start_date}\n"
+            f"Конец игры: {game.end_date}\n"
+            f"\nКоличество участников: <b>{participants_count}</b>\n"
+        )
+    }
 
 
 game_edit_dialog = Dialog(
@@ -280,7 +284,8 @@ game_edit_dialog = Dialog(
         getter=get_games_data,
     ),
     Window(
-        Format("Ну и что с ней делать будем?\n\nИгра: {game.name}"),
+        Format("Ну и что с ней делать будем?"),
+        Format("Игра {game_name}", when="game_name"),
         Row(
             Button(
                 Const("Закончить игру"),
@@ -293,7 +298,7 @@ game_edit_dialog = Dialog(
             Button(
                 Const("Посмотреть информацию"),
                 id="info",
-                on_click=on_get_game_info,
+                on_click=lambda c, b, m: m.switch_to(EditGame.info),
             )
         ),
         Row(
@@ -305,6 +310,16 @@ game_edit_dialog = Dialog(
         ),
         state=EditGame.edit,
         getter=get_selected_game_data,
+    ),
+    Window(
+        Format("{game_info}"),
+        Button(
+            Const("Назад"),
+            id="back",
+            on_click=lambda c, b, m: m.switch_to(EditGame.edit),
+        ),
+        state=EditGame.info,
+        getter=game_info_getter,
     ),
 )
 router.include_router(game_edit_dialog)

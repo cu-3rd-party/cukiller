@@ -108,10 +108,7 @@ async def on_startup(bot: Bot) -> None:
     await generate_discussion_invite_link(bot)
     await metrics_updater.start()
     await start_web_server(bot)
-    await MatchmakingService(
-        settings,
-        logging.getLogger(__name__),
-    ).healthcheck()
+    await MatchmakingService().healthcheck()
 
 
 async def on_shutdown(bot: Bot) -> None:

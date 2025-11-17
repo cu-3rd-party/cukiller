@@ -120,7 +120,10 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
         game = await Game().filter(end_date=None).first()
         await user_dialog_manager.start(
             MainLoop.title,
-            data={"user_tg_id": user.tg_id, "game_id": game.id},
+            data={
+                "user_tg_id": user.tg_id,
+                "game_id": (game and game.id) or None,
+            },
         )
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it

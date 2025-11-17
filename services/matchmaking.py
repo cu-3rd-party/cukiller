@@ -1,21 +1,21 @@
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 from pydantic import BaseModel, Field, ConfigDict
 
+from settings import settings
+
 
 # ---------- SERVICE ----------
 
 
 class MatchmakingService:
-    def __init__(self, settings, logger):
-        self.settings = settings
-        self.logger = logger
-        self.is_running = False
-        self.base_url = settings.matchmaking_service_url.rstrip("/")
+    logger = logging.getLogger("bot.matchmaking")
+    base_url = settings.matchmaking_service_url.rstrip("/")
 
     async def healthcheck(self):
         data = await self._request("GET", "/ping/")

@@ -11,9 +11,7 @@ from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.user import UserFilter
 from bot.handlers.mainloop.button_handlers import (
     on_i_was_killed,
-    on_target_info,
     on_i_killed,
-    on_back_to_menu,
     on_get_target,
     confirm_participation,
 )
@@ -73,7 +71,7 @@ main_menu_dialog = Dialog(
             Button(
                 Format("Ваша цель: {target_name}"),
                 id="target_info",
-                on_click=on_target_info,
+                on_click=lambda c, b, m: m.switch_to(MainLoop.target_info),
                 when="has_target",
             ),
         ),
@@ -96,7 +94,7 @@ main_menu_dialog = Dialog(
             Button(
                 Const("Назад"),
                 id="back_to_menu",
-                on_click=on_back_to_menu,
+                on_click=lambda c, b, m: m.switch_to(MainLoop.title),
             ),
         ),
         getter=get_target_info,
@@ -117,5 +115,8 @@ async def user_start(
     game = await Game().filter(end_date=None).first()
     await dialog_manager.start(
         MainLoop.title,
-        data={"user_tg_id": message.from_user.id, "game_id": game.id},
+        data={
+            "user_tg_id": message.from_user.id,
+            "game_id": (game and game.id) or None,
+        },
     )

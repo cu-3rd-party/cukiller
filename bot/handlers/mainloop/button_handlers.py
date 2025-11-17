@@ -22,13 +22,6 @@ async def on_i_was_killed(
     await callback.answer("Подтверждение убийства...")
 
 
-async def on_target_info(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
-    """Handle 'Your Target' button click - go to target info window"""
-    await manager.switch_to(MainLoop.target_info)
-
-
 async def on_i_killed(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
@@ -37,21 +30,12 @@ async def on_i_killed(
     await callback.answer("Репорт об убийстве...")
 
 
-async def on_back_to_menu(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
-    """Handle 'Back to menu' button click"""
-    await manager.switch_to(MainLoop.title)
-
-
 async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
     user: User = manager.middleware_data["user"]
-    matchmaking: MatchmakingService = MatchmakingService(
-        settings, logging.getLogger("bot.matchmaking")
-    )
+    matchmaking: MatchmakingService = MatchmakingService()
 
     player_data = {
         "tg_id": user.tg_id,
@@ -77,5 +61,5 @@ async def confirm_participation(
     )
     await user_dialog_manager.start(
         ParticipationForm.confirm,
-        data={"game_id": game.id, "user_tg_id": user.tg_id},
+        data={"game_id": (game and game.id) or None, "user_tg_id": user.tg_id},
     )

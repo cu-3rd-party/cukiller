@@ -7,6 +7,7 @@ from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Column, Button
 from aiogram_dialog.widgets.text import Const
+from aiogram_dialog.api.entities import StartMode, ShowMode
 
 from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
@@ -25,9 +26,7 @@ async def confirm_participation(
 ):
     game: Game = await Game.get(id=manager.start_data["game_id"])
     user: User = manager.middleware_data["user"]
-    matchmaking: MatchmakingService = MatchmakingService(
-        settings, logging.getLogger("bot.matchmaking")
-    )
+    matchmaking: MatchmakingService = MatchmakingService()
     user.is_in_game = True
     await user.save()
     player: Player = await Player().create(
@@ -62,7 +61,8 @@ async def confirm_participation(
     )
     await user_dialog_manager.start(
         MainLoop.title,
-        data={"user_tg_id": user.tg_id, "game_id": game.id},
+        data={"user_tg_id": user.tg_id, "game_id": (game and game.id) or None},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 
