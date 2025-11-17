@@ -2,23 +2,22 @@ import logging
 
 from aiogram import Router, Bot, types
 from aiogram.enums import ContentType
-from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
+from aiogram.types import Message, CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Button, Row, Group, Column
+from aiogram_dialog.widgets.kbd import Button, Group, Column
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import (
-    ConfirmedFilter,
     PendingFilter,
     ProfileNonexistentFilter,
 )
 from bot.filters.debug import DebugFilter
 from bot.misc.states import RegisterForm
-from services.admin_chat import AdminChatService
 from db.models import User
+from services.admin_chat import AdminChatService
 from settings import settings
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,14 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 # Constants for course types and numbers
-COURSE_TYPES = {"bachelor": "Бакалавр", "master": "Магистр", "other": "Другое"}
+COURSE_TYPES = {
+    "bachelor": "Бакалавр",
+    "master": "Магистр",
+    "other": "Другое",
+    "worker": "сотрудник ЦУ",
+    "aspirant": "аспирант",
+}
+REVERSE_TYPES = {"сотрудник ЦУ": "worker", "аспирант": "aspirant"}
 
 COURSE_NUMBERS_RU = {
     "bachelor": ["1", "2", "3", "4"],
@@ -87,7 +93,7 @@ async def on_course_number_selected(
         await manager.switch_to(RegisterForm.about)
     else:  # other
         manager.dialog_data["db_course_number"] = None
-        manager.dialog_data["type"] = course_number
+        manager.dialog_data["type"] = REVERSE_TYPES[course_number]
         await manager.switch_to(RegisterForm.about)
 
 
@@ -313,7 +319,7 @@ register_dialog = Dialog(
     Window(
         Const(
             "Теперь расскажи немного о себе:\n"
-            "(Интересы, хобби, чем занимаешься - это поможет другим участникам познакомиться с тобой)"
+            "(Интересы, хобби, чем занимаешься - это поможет другим участникам найти тебя)"
         ),
         Button(
             Const("Назад"),

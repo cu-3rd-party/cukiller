@@ -24,6 +24,7 @@ type QueuePlayer struct {
 
 func MatchmakingTicker() {
 	ticker := time.NewTicker(time.Second * time.Duration(conf.MatchmakingConfig.Interval))
+	chosenVictimTicker := time.NewTicker(time.Second * time.Duration(conf.MatchmakingConfig.Interval) * 100)
 	defer ticker.Stop()
 
 	logger.Info("Matchmaking ticker started with interval: %d seconds", conf.Interval)
@@ -32,6 +33,10 @@ func MatchmakingTicker() {
 		select {
 		case <-ticker.C:
 			go matchmaking()
+		case <-chosenVictimTicker.C:
+			ChosenVictimMutex.Lock()
+			ChosenVictim = make(map[uint64]uint64) // clearing chosen victims
+			ChosenVictimMutex.Unlock()
 		}
 	}
 }
@@ -40,70 +45,100 @@ var KillerPool = make(map[uint64]QueuePlayer)
 var KillerPoolMutex = sync.Mutex{}
 var VictimPool = make(map[uint64]QueuePlayer)
 var VictimPoolMutex = sync.Mutex{}
+var ChosenVictim = make(map[uint64]uint64) // killer → victim
+var ChosenVictimMutex = sync.Mutex{}
 
 // matchmaking basically does all the heavy lifting needed for this microservice
 func matchmaking() {
 	KillerPoolMutex.Lock()
 	defer KillerPoolMutex.Unlock()
+
 	VictimPoolMutex.Lock()
 	defer VictimPoolMutex.Unlock()
 
-	// because this function does a lot of heavy lifting we should have the same time for all rates
+	ChosenVictimMutex.Lock()
+	defer ChosenVictimMutex.Unlock()
+
 	curTime := time.Now()
 	logger.Debug("Running matchmaking cycle at %s", curTime)
+
 	if len(KillerPool)+len(VictimPool) < 2 {
-		//logger.Info("Not enough players in queues to process matchmaking")
 		return
 	}
 
 	processedKillers := make(map[uint64]struct{})
 	processedVictims := make(map[uint64]struct{})
 
-	// we skip sorting killers by joinedAt but maybe add in the future
-
-	for _, killer := range KillerPool {
-		if _, processed := processedKillers[killer.TgId]; processed {
+	for killerId, killer := range KillerPool {
+		// killer уже обработан?
+		if _, skip := processedKillers[killerId]; skip {
 			continue
 		}
 
-		var bestRating float64 = 0
-		var bestVictim *QueuePlayer
-		for _, victim := range VictimPool {
-			if killer.TgId == victim.TgId {
+		bestRating := 0.0
+		var bestVictimId uint64 = 0
+
+		// ищем лучшую жертву
+		for victimId, victim := range VictimPool {
+
+			// killer не может быть жертвой себе
+			if killerId == victimId {
 				continue
 			}
-			if _, processed := processedVictims[victim.TgId]; processed {
+
+			// victim уже обработан?
+			if _, skip := processedVictims[victimId]; skip {
 				continue
 			}
+
+			// анти-цикл: victim уже выбрал killer как цель?
+			if prevVictim, ok := ChosenVictim[victimId]; ok && prevVictim == killerId {
+				continue // взаимный цикл — пропускаем
+			}
+
+			// считаем рейтинг пары
 			rating := RatePlayerPair(&killer, &victim, curTime)
 			if rating < conf.QualityThreshold {
 				continue
 			}
+
 			if rating > bestRating {
 				bestRating = rating
-				bestVictim = &victim
+				bestVictimId = victimId
 			}
 		}
 
-		if bestVictim == nil {
+		// не нашли подходящую жертву
+		if bestVictimId == 0 {
 			continue
 		}
 
-		processedKillers[killer.TgId] = struct{}{}
-		processedVictims[bestVictim.TgId] = struct{}{}
-		ok := notifyMainProcess(MatchedPair{
-			SecretKey: conf.SecretKey,
-			Killer:    killer.TgId,
-			Victim:    bestVictim.TgId,
-			Quality:   bestRating,
-		})
-		if !ok {
-			logger.Warn("Failed to notify main process about new pair")
-		}
-		logger.Debug("Matched killer %d with victim %d", killer.TgId, bestVictim.TgId)
+		// помечаем как использованных
+		processedKillers[killerId] = struct{}{}
+		processedVictims[bestVictimId] = struct{}{}
+		ChosenVictim[killerId] = bestVictimId
 
-		delete(KillerPool, killer.TgId)
-		delete(VictimPool, bestVictim.TgId)
+		// уведомляем основной процесс
+		for {
+			ok := notifyMainProcess(MatchedPair{
+				SecretKey: conf.SecretKey,
+				Killer:    killerId,
+				Victim:    bestVictimId,
+				Quality:   bestRating,
+			})
+			if !ok {
+				logger.Warn("Failed to notify main process about new pair: %d and %d", killerId, bestVictimId)
+			}
+			if ok {
+				break
+			}
+		}
+
+		logger.Debug("Matched killer %d with victim %d (quality %.3f)", killerId, bestVictimId, bestRating)
+
+		// полностью удаляем обе стороны из обоих пулов
+		delete(KillerPool, killerId)
+		delete(VictimPool, bestVictimId)
 	}
 }
 
