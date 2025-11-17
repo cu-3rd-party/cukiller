@@ -69,6 +69,9 @@ func matchmaking() {
 		var bestRating float64 = 0
 		var bestVictim *QueuePlayer
 		for _, victim := range VictimPool {
+			if killer.TgId == victim.TgId {
+				continue
+			}
 			if _, processed := processedVictims[victim.TgId]; processed {
 				continue
 			}
