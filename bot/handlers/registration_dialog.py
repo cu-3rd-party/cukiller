@@ -1,20 +1,16 @@
 import logging
 
-from aiogram import Router, Bot, types
+from aiogram import Bot, Router
 from aiogram.enums import ContentType
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Window, Dialog, DialogManager
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Button, Group, Column
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.kbd import Button, Column, Group
+from aiogram_dialog.widgets.text import Const
 
 from bot.filters.admin import AdminFilter
-from bot.filters.confirmed import (
-    PendingFilter,
-    ProfileNonexistentFilter,
-)
-from bot.filters.debug import DebugFilter
+from bot.filters.confirmed import ProfileNonexistentFilter
 from bot.misc.states import RegisterForm
 from db.models import User
 from services.admin_chat import AdminChatService
@@ -25,353 +21,270 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
-# Constants for course types and numbers
+# ---------------------------------------------
+# CONSTANTS
+# ---------------------------------------------
+
 COURSE_TYPES = {
     "bachelor": "Бакалавр",
     "master": "Магистр",
-    "other": "Другое",
-    "worker": "сотрудник ЦУ",
-    "aspirant": "аспирант",
+    "worker": "Сотрудник ЦУ",
 }
-REVERSE_TYPES = {"сотрудник ЦУ": "worker", "аспирант": "aspirant"}
 
-COURSE_NUMBERS_RU = {
+COURSE_NUMBERS = {
     "bachelor": ["1", "2", "3", "4"],
     "master": ["1", "2"],
-    "other": ["сотрудник ЦУ", "аспирант"],
 }
 
-COURSE_NUMBERS_EN = {
-    "bachelor": ["1", "2", "3", "4"],
-    "master": ["1", "2"],
-    "other": ["worker", "aspirant"],
-}
-
-GROUP_NAMES_RU = ["Разработка", "ИИ", "Бизнес-аналитика"]
-GROUP_NAMES_EN = ["dev", "ai", "ba"]
+GROUP_NAMES = ["Разработка", "ИИ", "Бизнес-аналитика"]
 
 
-@log_dialog_action("REGISTRATION_NAME_INPUT")
-async def on_name_input(
-    message: Message, message_input: MessageInput, manager: DialogManager
-):
-    name = message.text.strip()
+# ---------------------------------------------
+# HELPERS
+# ---------------------------------------------
 
-    manager.dialog_data["name"] = name
+
+def course_number_required(course_type: str) -> bool:
+    return course_type in ("bachelor", "master")
+
+
+def group_required(course_type: str) -> bool:
+    return course_type == "bachelor"
+
+
+# ---------------------------------------------
+# HANDLERS
+# ---------------------------------------------
+
+
+@log_dialog_action("REG_NAME_INPUT")
+async def on_name_input(m: Message, _, manager: DialogManager):
+    manager.dialog_data["name"] = m.text.strip()
     await manager.next()
 
 
-@log_dialog_action("REGISTRATION_TYPE_SELECTED")
-async def on_course_type_selected(
-    callback: CallbackQuery,
-    button: Button,
-    manager: DialogManager,
-    course_type: str,
+@log_dialog_action("REG_TYPE_SELECTED")
+async def on_type_selected(
+    c: CallbackQuery, _, manager: DialogManager, course_type: str
 ):
     manager.dialog_data["course_type"] = course_type
-    if course_type == "bachelor":
-        await manager.switch_to(RegisterForm.course_number_bachelor)
-    elif course_type == "master":
-        await manager.switch_to(RegisterForm.course_number_master)
+
+    if course_number_required(course_type):
+        await manager.switch_to(RegisterForm.course_number)
     else:
-        await manager.switch_to(RegisterForm.course_other)
+        await manager.switch_to(RegisterForm.about)
 
 
-@log_dialog_action("REGISTRATION_COURSE_NUMBER_SELECTED")
+@log_dialog_action("REG_COURSE_NUMBER_SELECTED")
 async def on_course_number_selected(
-    callback: CallbackQuery,
-    button: Button,
-    manager: DialogManager,
-    course_number: str,
+    c: CallbackQuery, _, manager: DialogManager, num: str
 ):
-    manager.dialog_data["course_number"] = course_number
+    manager.dialog_data["course_number"] = int(num)
 
-    course_type = manager.dialog_data.get("course_type")
-    if course_type == "bachelor":
-        manager.dialog_data["db_course_number"] = int(course_number)
-        manager.dialog_data["type"] = "bachelor"
+    if group_required(manager.dialog_data["course_type"]):
         await manager.switch_to(RegisterForm.group_name)
-    elif course_type == "master":
-        manager.dialog_data["db_course_number"] = int(course_number)
-        manager.dialog_data["type"] = "master"
-        await manager.switch_to(RegisterForm.about)
-    else:  # other
-        manager.dialog_data["db_course_number"] = None
-        manager.dialog_data["type"] = REVERSE_TYPES[course_number]
+    else:
         await manager.switch_to(RegisterForm.about)
 
 
-@log_dialog_action("REGISTRATION_GROUP_SELECTED")
+@log_dialog_action("REG_GROUP_SELECTED")
 async def on_group_selected(
-    callback: CallbackQuery,
-    button: Button,
-    manager: DialogManager,
-    group_name: str,
+    c: CallbackQuery, _, manager: DialogManager, group: str
 ):
-    manager.dialog_data["group_name"] = group_name
+    manager.dialog_data["group_name"] = group
     await manager.next()
 
 
-@log_dialog_action("REGISTRATION_ABOUT_INPUT")
-async def on_about_input(
-    message: Message, message_input: MessageInput, manager: DialogManager
-):
-    about_text = message.text.strip()
-
-    # TODO: add validation
-
-    manager.dialog_data["about_user"] = about_text
+@log_dialog_action("REG_ABOUT_INPUT")
+async def on_about_input(m: Message, _, manager: DialogManager):
+    manager.dialog_data["about"] = m.text.strip()
     await manager.next()
 
 
-@log_dialog_action("REGISTRATION_PHOTO_INPUT")
-async def on_photo_input(
-    message: Message, message_input: MessageInput, manager: DialogManager
-):
-    if not message.photo:
-        await message.answer("Пожалуйста, отправь фотографию.")
-        return
-
-    # Get the highest quality photo
-    photo_id = message.photo[-1].file_id
-    manager.dialog_data["photo"] = photo_id
+@log_dialog_action("REG_PHOTO_INPUT")
+async def on_photo_input(m: Message, _, manager: DialogManager):
+    if not m.photo:
+        return await m.answer("Пожалуйста, отправь фото.")
+    manager.dialog_data["photo"] = m.photo[-1].file_id
     await manager.next()
+    return None
 
 
-@log_dialog_action("REGISTRATION_FINAL_CONFIRMATION")
+@log_dialog_action("REG_FINAL_CONFIRM")
 async def on_final_confirmation(
-    callback: CallbackQuery, button: Button, manager: DialogManager
+    c: CallbackQuery, b: Button, manager: DialogManager
 ):
     bot: Bot = manager.middleware_data["bot"]
-    user_data = manager.dialog_data
+    d = manager.dialog_data
+    tg_user = c.from_user
 
-    # Save user to database
-    telegram_user = callback.from_user
-    user = await User.get_or_none(tg_id=telegram_user.id)
+    # DB save
+    user = await User.get_or_none(tg_id=tg_user.id) or User(tg_id=tg_user.id)
 
-    if not user:
-        user = User(tg_id=telegram_user.id)
-
-    user.tg_username = telegram_user.username
-    user.name = user_data.get("name")
-    user.course_number = user_data.get("db_course_number")
-    user.group_name = user_data.get("group_name")
-    user.about_user = user_data.get("about_user")
-    user.photo = user_data.get("photo")
-    user.type = user_data.get("type")
+    user.name = d["name"]
+    user.tg_username = tg_user.username
+    user.type = d["course_type"]
+    user.course_number = d.get("course_number")
+    user.group_name = d.get("group_name")
+    user.about_user = d["about"]
+    user.photo = d["photo"]
     user.status = "pending"
     user.rating = settings.DEFAULT_RATING
 
     await user.save()
 
-    # Prepare text for admin confirmation
-    course_type_display = COURSE_TYPES.get(user_data.get("course_type"), "")
-    course_number_display = user_data.get("course_number", "")
-
+    # Notify admin
     text = (
-        f"<b>Новый профиль для проверки:</b>\n\n"
-        f"<b>Имя:</b> {user_data.get('name', 'Не указано')}\n"
-        f"<b>Тип обучения:</b> {course_type_display}\n"
-        f"<b>Курс/Статус:</b> {course_number_display}\n"
-        f"<b>Поток:</b> {user_data.get('group_name', 'Не указано')}\n"
-        f"<b>О себе:</b> {user_data.get('about_user', 'Не указано')}\n"
-        f"<b>Username:</b> @{telegram_user.username if telegram_user.username else 'Не указан'}\n"
-        f"<b>ID:</b> {telegram_user.id}"
+        f"<b>Новый профиль:</b>\n\n"
+        f"<b>Имя:</b> {user.name}\n"
+        f"<b>Тип:</b> {COURSE_TYPES[user.type]}\n"
+        f"<b>Курс:</b> {user.course_number or '-'}\n"
+        f"<b>Поток:</b> {user.group_name or '-'}\n"
+        f"<b>О себе:</b> {user.about_user}\n"
+        f"<b>Username:</b> @{tg_user.username or 'не указан'}\n"
+        f"<b>ID:</b> {tg_user.id}"
     )
 
-    # Send to admin for verification
-    admin_chat = AdminChatService(bot=bot)
-    await admin_chat.send_profile_confirmation_request(
+    await AdminChatService(bot).send_profile_confirmation_request(
         key="logs",
-        photo=user_data.get("photo"),
-        tg_id=telegram_user.id,
+        photo=user.photo,
+        tg_id=tg_user.id,
         text=text,
         tag="profile_confirm",
     )
 
-    await callback.message.answer(
-        "Твой профиль отправлен на проверку! "
-        "Мы уведомим тебя, когда он будет одобрен."
-    )
-
+    await c.message.answer("Твой профиль отправлен на проверку!")
     await manager.done()
 
 
-@log_dialog_action("REGISTRATION_RESTART")
-async def on_restart_registration(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
-    await manager.switch_to(RegisterForm.name)
+# ---------------------------------------------
+# BUTTON FACTORIES
+# ---------------------------------------------
 
 
-# Widget factories
-def create_course_type_buttons():
+def btns_course_types():
     return Column(
         *[
             Button(
-                Const(display_name),
-                id=f"type_{course_type}",
-                on_click=lambda e,
-                b,
-                m,
-                ct=course_type: on_course_type_selected(e, b, m, ct),
+                Const(title),
+                id=f"type_{t}",
+                on_click=lambda c, b, m, x=t: on_type_selected(c, b, m, x),
             )
-            for course_type, display_name in COURSE_TYPES.items()
+            for t, title in COURSE_TYPES.items()
         ]
     )
 
 
-def create_course_number_buttons(course_type: str):
-    return Group(
-        *[
-            Button(
-                Const(number_ru),
-                id=f"course_{course_type}_{number_en.replace(' ', '_').replace('-', '_')}",
-                on_click=lambda e,
-                b,
-                m,
-                cn=number_ru: on_course_number_selected(e, b, m, cn),
-            )
-            for number_ru, number_en in zip(
-                COURSE_NUMBERS_RU.get(course_type, []),
-                COURSE_NUMBERS_EN.get(course_type, []),
-            )
-        ],
-        width=2,
-    )
-
-
-def create_group_buttons():
+def btns_groups():
     return Column(
         *[
             Button(
-                Const(group_name_ru),
-                id=f"group_{group_name_en.replace(' ', '_').replace('-', '_')}",
-                on_click=lambda e, b, m, gn=group_name_ru: on_group_selected(
-                    e, b, m, gn
+                Const(name),
+                id=f"group_{i}",
+                on_click=lambda c, b, m, x=name: on_group_selected(c, b, m, x),
+            )
+            for i, name in enumerate(GROUP_NAMES)
+        ]
+    )
+
+
+def course_buttons():
+    # bachelor: 1–4
+    bachelor_btns = [
+        Button(
+            Const(num),
+            id=f"course_bachelor_{num}",
+            when="is_bachelor",
+            on_click=lambda c, b, m, x=num: on_course_number_selected(
+                c, b, m, x
+            ),
+        )
+        for num in ["1", "2", "3", "4"]
+    ]
+
+    # master: 1–2
+    master_btns = [
+        Button(
+            Const(num),
+            id=f"course_master_{num}",
+            when="is_master",
+            on_click=lambda c, b, m, x=num: on_course_number_selected(
+                c, b, m, x
+            ),
+        )
+        for num in ["1", "2"]
+    ]
+
+    return Group(*bachelor_btns, *master_btns, width=2)
+
+
+async def reg_getter(dialog_manager: DialogManager, **_):
+    course_type = dialog_manager.dialog_data.get("course_type")
+    return {
+        "course_type": course_type,
+        "is_bachelor": course_type == "bachelor",
+        "is_master": course_type == "master",
+    }
+
+
+# ---------------------------------------------
+# DIALOG
+# ---------------------------------------------
+
+router.include_router(
+    Dialog(
+        Window(
+            Const("Привет! Как тебя зовут?"),
+            MessageInput(on_name_input),
+            state=RegisterForm.name,
+        ),
+        Window(
+            Const("Выбери тип обучения:"),
+            btns_course_types(),
+            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.name)),
+            state=RegisterForm.course_type,
+        ),
+        Window(
+            Const("Выбери курс:"),
+            course_buttons(),
+            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            getter=reg_getter,
+            state=RegisterForm.course_number,
+        ),
+        Window(
+            Const("Выбери свой поток:"),
+            btns_groups(),
+            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            state=RegisterForm.group_name,
+        ),
+        Window(
+            Const("Расскажи о себе:"),
+            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            MessageInput(on_about_input, content_types=ContentType.TEXT),
+            state=RegisterForm.about,
+        ),
+        Window(
+            Const("Теперь отправь фото:"),
+            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.about)),
+            MessageInput(on_photo_input, content_types=ContentType.PHOTO),
+            state=RegisterForm.photo,
+        ),
+        Window(
+            Const("Проверь данные и отправь на проверку:"),
+            Column(
+                Button(
+                    Const("Отправить"), id="go", on_click=on_final_confirmation
                 ),
-            )
-            for group_name_ru, group_name_en in zip(
-                GROUP_NAMES_RU, GROUP_NAMES_EN
-            )
-        ]
+                Button(
+                    Const("Начать заново"),
+                    id="restart",
+                    on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
+                ),
+            ),
+            state=RegisterForm.confirm,
+        ),
     )
-
-
-# Dialog windows
-register_dialog = Dialog(
-    # Name input
-    Window(
-        Format("Привет! Сейчас зарегистрируем тебя. Как тебя звать?"),
-        Format(
-            "Помни, что вся информация которую ты подашь будет проходить модерацию, так что не лукавь"
-        ),
-        MessageInput(on_name_input, content_types=ContentType.TEXT),
-        state=RegisterForm.name,
-    ),
-    # Course type selection
-    Window(
-        Const("Выбери свою форму обучения:"),
-        create_course_type_buttons(),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
-        ),
-        state=RegisterForm.course_type,
-    ),
-    # Bachelor course number selection
-    Window(
-        Const("Выбери свой курс (бакалавриат):"),
-        create_course_number_buttons("bachelor"),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-        ),
-        state=RegisterForm.course_number_bachelor,
-    ),
-    # Master course number selection
-    Window(
-        Const("Выбери свой курс (магистратура):"),
-        create_course_number_buttons("master"),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-        ),
-        state=RegisterForm.course_number_master,
-    ),
-    # Other status selection
-    Window(
-        Const("Уточни свой статус:"),
-        create_course_number_buttons("other"),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-        ),
-        state=RegisterForm.course_other,
-    ),
-    # Group selection
-    Window(
-        Const("Выбери свой поток:"),
-        create_group_buttons(),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-        ),
-        state=RegisterForm.group_name,
-    ),
-    # About yourself
-    Window(
-        Const(
-            "Теперь расскажи немного о себе:\n"
-            "(Интересы, хобби, чем занимаешься - это поможет другим участникам найти тебя)"
-        ),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-        ),
-        MessageInput(on_about_input, content_types=ContentType.TEXT),
-        state=RegisterForm.about,
-    ),
-    # Photo upload
-    Window(
-        Const(
-            "Отправь свою фотографию:\nЕё будут видеть другие участники игры"
-        ),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
-        ),
-        MessageInput(on_photo_input, content_types=ContentType.PHOTO),
-        state=RegisterForm.photo,
-    ),
-    # Final confirmation
-    Window(
-        Const("Всё готово! Проверь свои данные и отправляй на проверку:"),
-        Column(
-            Button(
-                Const("Отправить на проверку"),
-                id="confirm_submit",
-                on_click=on_final_confirmation,
-            ),
-            Button(
-                Const("Начать заново"),
-                id="restart",
-                on_click=on_restart_registration,
-            ),
-        ),
-        state=RegisterForm.confirm,
-    ),
-    name="user_registration_dialog",
 )
-
-router.include_router(register_dialog)
 
 
 @router.message(CommandStart(), ProfileNonexistentFilter(), ~AdminFilter())
@@ -382,45 +295,3 @@ async def user_start(
 ):
     await dialog_manager.reset_stack()
     await dialog_manager.start(RegisterForm.name)
-
-
-@router.message(CommandStart(), PendingFilter(), ~AdminFilter())
-async def user_start(
-    message: Message,
-    dialog_manager: DialogManager,
-    bot: Bot,
-):
-    queue_len = len(await User.filter(status="pending").all())
-    await message.reply(
-        f"Пожалуйста, подождите. Ваш профиль находится на проверке\n\nВсего в очереди находится <b>{queue_len}</b> человек"
-    )
-
-
-@router.message(
-    Command(commands=["fastreg"]),
-    ProfileNonexistentFilter(),
-    ~AdminFilter(),
-    DebugFilter(),
-)
-async def user_fast_reg(
-    message: Message,
-    dialog_manager: DialogManager,
-    bot: Bot,
-    user: types.User,
-):
-    await dialog_manager.reset_stack()
-    await User().update_or_create(
-        tg_id=user.tg_id,
-        tg_username=user.tg_username,
-        defaults={
-            "name": user.name,
-            "course_number": 1,
-            "group_name": "Разработка",
-            "about_user": "test user",
-            "photo": "fastreg",
-            "type": "fastreg",
-            "status": "confirmed",
-            "rating": settings.DEFAULT_RATING,
-        },
-    )
-    await message.answer("fastreg success")
