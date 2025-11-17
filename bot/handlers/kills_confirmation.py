@@ -2,18 +2,18 @@ import logging
 from datetime import datetime
 
 from aiogram import Router
+from aiogram.client.bot import Bot
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery, User as TgUser
-from aiogram.client.bot import Bot
 from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
-from aiogram_dialog.api.entities import ShowMode
 
 from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
-from db.models import KillEvent, User
+from db.models import KillEvent, User, Chat
 from services.matchmaking import MatchmakingService
 from settings import settings
 
@@ -112,6 +112,19 @@ async def notify_player(
     )
 
 
+async def notify_chat(
+    bot: Bot, killer: User, victim: User, killer_delta: int, victim_delta: int
+):
+    await bot.send_message(
+        chat_id=(await Chat.get(key="discussion")).chat_id,
+        text=(
+            f"<b>{killer.name}</b> убил <b>{victim.name}</b>\n\n"
+            f"Новый MMR {killer.name}: {killer.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
+            f"Новый MMR {victim.name}: {victim.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+        ),
+    )
+
+
 async def handle_confirm(
     bot: Bot,
     manager: DialogManager,
@@ -145,6 +158,7 @@ async def handle_confirm(
         )
         await notify_player(kill_event.killer, bot, manager, killer_delta)
         await notify_player(kill_event.victim, bot, manager, victim_delta)
+        await notify_chat(bot, kill_event.killer, kill_event.victim, killer_delta, victim_delta)
         await add_back_to_queues(kill_event.killer, kill_event.victim)
 
     await kill_event.save()
@@ -155,6 +169,27 @@ async def handle_confirm(
             "game_id": manager.start_data["game_id"],
         },
     )
+
+
+async def handle_deny(
+    bot: Bot,
+    manager: DialogManager,
+    opposite_role: str,
+    role: str,
+    opposite_state: State,
+    from_user: TgUser,
+):
+    """Shared denial handler for both killer and victim."""
+    kill_event: KillEvent = await KillEvent.get(
+        id=manager.start_data["kill_event_id"]
+    )
+
+    setattr(kill_event, f"{role}_confirmed", False)
+    setattr(kill_event, f"{role}_confirmed_at", None)
+
+    logger.info("%d отказался признавать убийство, будучи %s", from_user.id, role)
+
+    await kill_event.save()
 
 
 async def on_victim_confirm(
@@ -174,6 +209,32 @@ async def on_killer_confirm(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     return await handle_confirm(
+        callback.bot,
+        manager,
+        role="killer",
+        opposite_role="victim",
+        opposite_state=ConfirmKillVictim.double_confirm,
+        from_user=callback.from_user,
+    )
+
+
+async def on_victim_deny(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    return await handle_deny(
+        callback.bot,
+        manager,
+        role="victim",
+        opposite_role="killer",
+        opposite_state=ConfirmKillKiller.double_confirm,
+        from_user=callback.from_user,
+    )
+
+
+async def on_killer_deny(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    return await handle_deny(
         callback.bot,
         manager,
         role="killer",
@@ -203,7 +264,7 @@ router.include_router(
                 on_click=on_victim_confirm,
             ),
             Button(
-                Const("Наглая ложь, меня не убивали"), id="deny", on_click=...
+                Const("Наглая ложь, меня не убивали"), id="deny", on_click=on_victim_deny
             ),
             state=ConfirmKillVictim.double_confirm,
         ),
@@ -225,7 +286,7 @@ router.include_router(
             Button(
                 Const("Да, я убил"), id="confirm", on_click=on_killer_confirm
             ),
-            Button(Const("Нет, я ее не убивал"), id="deny", on_click=...),
+            Button(Const("Нет, я ее не убивал"), id="deny", on_click=on_killer_deny),
             state=ConfirmKillKiller.double_confirm,
         ),
     )
