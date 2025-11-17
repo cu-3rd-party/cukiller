@@ -1,9 +1,9 @@
 import logging
 
 from aiogram import Dispatcher
+from aiogram.enums import ContentType
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
-from aiogram.enums import ContentType
 
 from db.models import Game, User, Player, KillEvent
 from services.matchmaking import MatchmakingService
@@ -39,14 +39,16 @@ def get_advanced_info(user: User):
     if user.course_number:
         ret.append(f"Курс: {user.course_number}")
     if user.group_name:
-        ret.append(f"Группа: {user.group_name}")
+        ret.append(f"Поток: {user.group_name}")
+    if user.about_user:
+        ret.append(f"О себе:\n{user.about_user}")
     return "\n".join(ret)
 
 
 async def extract_target(killer_event: KillEvent | None):
     """Return target info."""
     if not killer_event:
-        return "Неизвестно", None
+        return "Неизвестно", None, None, None
 
     await killer_event.fetch_related("victim")
     victim: User = killer_event.victim
