@@ -44,7 +44,7 @@ class RegisterUserMiddleware(BaseMiddleware):
             data["user_tg_id"] = cached_data["user"].tg_id
             return await handler(event, data)
 
-        db_user = await User().get_or_none(tg_id=user.id)
+        db_user = data["user"]
 
         if db_user:
             if db_user.status == "confirmed":

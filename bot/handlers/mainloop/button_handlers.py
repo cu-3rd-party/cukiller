@@ -48,7 +48,7 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     """Handle 'Get Target' button click"""
-    user: User = await User.get(tg_id=manager.start_data.get("user_tg_id"))
+    user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService(
         settings, logging.getLogger("bot.matchmaking")
     )
@@ -69,7 +69,7 @@ async def confirm_participation(
 ):
     # info about user and about game is stored in getter, how to access it?
     game: Game = await Game.get(id=manager.start_data.get("game_id"))
-    user: User = await User.get(tg_id=manager.start_data.get("user"))
+    user: User = await manager.middleware_data["user"]
     user_dialog_manager = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,

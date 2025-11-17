@@ -24,7 +24,7 @@ async def confirm_participation(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     game: Game = await Game.get(id=manager.start_data["game_id"])
-    user: User = await User.get(tg_id=manager.start_data["user_tg_id"])
+    user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService(
         settings, logging.getLogger("bot.matchmaking")
     )

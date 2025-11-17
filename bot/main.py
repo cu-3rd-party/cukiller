@@ -21,6 +21,7 @@ from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
 from bot.middlewares.private_messages import PrivateMessagesMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
+from bot.middlewares.user import UserMiddleware
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
@@ -38,6 +39,7 @@ HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 
 def register_all_middlewares(dp: Dispatcher) -> None:
+    dp.update.middleware(UserMiddleware())
     dp.update.middleware(EnvironmentMiddleware(dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
     dp.message.middleware(PrivateMessagesMiddleware())
