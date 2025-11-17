@@ -6,6 +6,7 @@ from aiogram.filters import CommandStart
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import Button, Column, Url
 from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.media import DynamicMedia
 
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.user import UserFilter
@@ -92,6 +93,9 @@ main_menu_dialog = Dialog(
     ),
     Window(
         Const("Информация о цели"),
+        Format("\nИмя: <b>{target_name}</b>\n", when="target_name"),
+        Format("{target_advanced_info}", when="target_advanced_info"),
+        DynamicMedia("target_photo", when="target_photo"),
         Column(
             Url(
                 Const("Написать репорт"),

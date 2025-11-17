@@ -2,6 +2,8 @@ import logging
 
 from aiogram import Dispatcher
 from aiogram_dialog import DialogManager
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram.enums import ContentType
 
 from db.models import Game, User, Player, KillEvent
 from services.matchmaking import MatchmakingService
@@ -32,14 +34,32 @@ async def get_pending_events(game: Game, user: User):
     return killer_event, victim_event
 
 
+def get_advanced_info(user: User):
+    ret = [f"Тип: {user.type}"]
+    if user.course_number:
+        ret.append(f"Курс: {user.course_number}")
+    if user.group_name:
+        ret.append(f"Группа: {user.group_name}")
+    return "\n".join(ret)
+
+
 async def extract_target(killer_event: KillEvent | None):
-    """Return target name and profile link."""
+    """Return target info."""
     if not killer_event:
         return "Неизвестно", None
 
     await killer_event.fetch_related("victim")
-    victim = killer_event.victim
-    return victim.name, victim.tg_id
+    victim: User = killer_event.victim
+    return (
+        victim.name,
+        victim.tg_id,
+        MediaAttachment(
+            type=ContentType.PHOTO, file_id=MediaId(file_id=victim.photo)
+        )
+        if victim.photo != "fastreg"
+        else None,
+        get_advanced_info(victim),
+    )
 
 
 async def parse_target_info(
@@ -51,7 +71,12 @@ async def parse_target_info(
         return {"no_target": False, "has_target": False, "is_hunted": False}
 
     killer_event, victim_event = await get_pending_events(game, user)
-    target_name, target_tg_id = await extract_target(killer_event)
+    (
+        target_name,
+        target_tg_id,
+        target_photo,
+        target_advanced_info,
+    ) = await extract_target(killer_event)
 
     (
         killers_queue_len,
@@ -77,6 +102,8 @@ async def parse_target_info(
         "pending_victim_confirmed": victim_event is not None
         and victim_event.victim_confirmed,
         "target_name": target_name,
+        "target_photo": target_photo,
+        "target_advanced_info": target_advanced_info,
         "target_profile_link": target_tg_id and f"tg://user?id={target_tg_id}",
     }
 
