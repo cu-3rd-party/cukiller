@@ -1,10 +1,11 @@
 import logging
 
-from aiogram import Router, Bot, types
-from aiogram.types import Message
+from aiogram import Router, Bot
 from aiogram.filters import CommandStart
+from aiogram.types import Message
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import Button, Column, Url
+from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.confirmed import ConfirmedFilter
@@ -17,9 +18,7 @@ from bot.handlers.mainloop.button_handlers import (
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from bot.misc.states import MainLoop
-from db.models import User, Game
-from services.matchmaking import MatchmakingService
-from settings import settings
+from db.models import Game
 
 logger = logging.getLogger(__name__)
 
@@ -92,18 +91,21 @@ main_menu_dialog = Dialog(
     ),
     Window(
         Const("Информация о цели"),
+        Format("\nИмя: <b>{target_name}</b>\n", when="target_name"),
+        Format("{target_advanced_info}", when="target_advanced_info"),
+        DynamicMedia("target_photo", when="target_photo"),
         Column(
             Url(
                 Const("Написать репорт"),
                 id="write_report",
                 url=Format("{report_link}"),
             ),
-            Url(
-                Const("Открыть профиль (DEBUG)"),
-                id="profile",
-                url=Format("{target_profile_link}"),
-                when="target_profile_link",
-            ),
+            # Url(
+            #     Const("Открыть профиль (DEBUG)"),
+            #     id="profile",
+            #     url=Format("{target_profile_link}"),
+            #     when="target_profile_link",
+            # ),
             Button(
                 Const("Я убил"),
                 id="i_killed",

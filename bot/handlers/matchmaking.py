@@ -76,13 +76,13 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
 
     await bot.send_message(
         chat_id=killer_user.tg_id,
-        text=f"Вам была выдана цель: @{victim_user.tg_username or victim_user.tg_id}",  # TODO: player preview
+        text=f"Вам была выдана цель, посмотрите",
         parse_mode="HTML",
     )
 
     await bot.send_message(
         chat_id=victim_user.tg_id,
-        text="На вас открыта охота",
+        text="На вас открыта охота!",
         parse_mode="HTML",
     )
 

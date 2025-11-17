@@ -1,8 +1,12 @@
+import logging
+
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from db.models import User
 from db.models.chat import Chat
+
+logger = logging.getLogger(__name__)
 
 
 class ChatServiceError(Exception):
@@ -14,26 +18,48 @@ class ChatNotFoundError(ChatServiceError):
         super().__init__(f"Чат с ключом '{key}' не найден")
 
 
+def _build_body(text: str, tag: str | None) -> str:
+    return f"#{tag}\n\n{text}" if tag else text
+
+
+def _buttons(tg_id: int, with_inspect: bool) -> InlineKeyboardMarkup:
+    rows = []
+    if with_inspect:
+        logger.warning(f"User {tg_id} has forced us to disable inspect")
+        rows.append(
+            [InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text="confirm", callback_data=f"confirm {tg_id}"
+            ),
+            InlineKeyboardButton(text="deny", callback_data=f"deny {tg_id}"),
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 class AdminChatService:
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
+    async def _get_chat(self, key: str) -> Chat:
+        chat = await Chat.get_or_none(key=key)
+        if chat is None:
+            raise ChatNotFoundError(key)
+        return chat
+
     async def send_message(
         self, key: str, text: str, tag: str | None = None
     ) -> None:
-        chat: Chat | None = await Chat.get_or_none(key=key)
-        if chat is None:
-            raise ChatNotFoundError(key)
-
-        body = text if not tag else f"#{tag}\n\n{text}"
-
-        send_kwargs = {
-            "chat_id": chat.chat_id,
-            "text": body,
-            "parse_mode": "HTML",
-        }
-
-        await self.bot.send_message(**send_kwargs)
+        """Send a text message to a chat by key"""
+        chat = await self._get_chat(key)
+        await self.bot.send_message(
+            chat_id=chat.chat_id,
+            text=_build_body(text, tag),
+            parse_mode="HTML",
+        )
 
     async def send_profile_confirmation_request(
         self,
@@ -43,41 +69,27 @@ class AdminChatService:
         text: str,
         tag: str | None = None,
     ):
-        chat: Chat | None = await Chat.get_or_none(key=key)
-        if chat is None:
-            raise ChatNotFoundError(key)
+        """Send a profile confirmation request with fallback keyboard"""
+        chat = await self._get_chat(key)
+        await User.get_or_create(tg_id=tg_id)
 
-        user_obj, _ = await User.get_or_create(tg_id=tg_id)
+        body = _build_body(text, tag)
 
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="inspect",
-                        url=f"tg://user?id={tg_id}",
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="confirm",
-                        callback_data=f"confirm {tg_id}",
-                    ),
-                    InlineKeyboardButton(
-                        text="deny",
-                        callback_data=f"deny {tg_id}",
-                    ),
-                ],
-            ]
-        )
-
-        body = text if not tag else f"#{tag}\n\n{text}"
-
-        send_kwargs = {
-            "chat_id": chat.chat_id,
-            "photo": photo,
-            "caption": body,
-            "reply_markup": keyboard,
-            "parse_mode": "HTML",
-        }
-
-        await self.bot.send_photo(**send_kwargs)
+        try:
+            reply_markup = _buttons(tg_id, with_inspect=True)
+            await self.bot.send_photo(
+                chat_id=chat.chat_id,
+                photo=photo,
+                caption=body,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+            )
+        except:
+            reply_markup = _buttons(tg_id, with_inspect=False)
+            await self.bot.send_photo(
+                chat_id=chat.chat_id,
+                photo=photo,
+                caption=body,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+            )
