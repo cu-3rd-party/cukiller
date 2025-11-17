@@ -241,31 +241,51 @@ router.include_router(
         Window(
             Const("Выбери тип обучения:"),
             btns_course_types(),
-            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.name)),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
+            ),
             state=RegisterForm.course_type,
         ),
         Window(
             Const("Выбери курс:"),
             course_buttons(),
-            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+            ),
             getter=reg_getter,
             state=RegisterForm.course_number,
         ),
         Window(
             Const("Выбери свой поток:"),
             btns_groups(),
-            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+            ),
             state=RegisterForm.group_name,
         ),
         Window(
             Const("Расскажи о себе:"),
-            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type)),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+            ),
             MessageInput(on_about_input, content_types=ContentType.TEXT),
             state=RegisterForm.about,
         ),
         Window(
             Const("Теперь отправь фото:"),
-            Button(Const("Назад"), id="back", on_click=lambda c, b, m: m.switch_to(RegisterForm.about)),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
+            ),
             MessageInput(on_photo_input, content_types=ContentType.PHOTO),
             state=RegisterForm.photo,
         ),

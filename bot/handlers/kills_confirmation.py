@@ -122,6 +122,7 @@ async def notify_chat(
             f"Новый MMR {killer.name}: {killer.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
             f"Новый MMR {victim.name}: {victim.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
         ),
+        message_effect_id="5046509860389126442",  # 🎉 эффект сообщению
     )
 
 
