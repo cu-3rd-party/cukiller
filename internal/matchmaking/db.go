@@ -1,9 +1,9 @@
 package matchmaking
 
 import (
+	"cukiller/internal/shared"
 	"database/sql"
 	"errors"
-	"matchmaking/internal/shared"
 	"time"
 
 	_ "github.com/lib/pq"

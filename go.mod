@@ -1,4 +1,4 @@
-module matchmaking
+module cukiller
 
 go 1.24.0
 

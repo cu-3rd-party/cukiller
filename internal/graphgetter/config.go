@@ -1,7 +1,7 @@
 package graphgetter
 
 import (
-	"matchmaking/internal/shared"
+	"cukiller/internal/shared"
 )
 
 var conf = getConfig()
