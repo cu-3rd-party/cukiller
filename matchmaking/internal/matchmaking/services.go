@@ -1,4 +1,4 @@
-package internal
+package matchmaking
 
 func AbsDiffInt(x, y int) int {
 	if x < y {

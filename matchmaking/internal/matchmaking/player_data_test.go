@@ -1,4 +1,4 @@
-package internal
+package matchmaking
 
 import (
 	"encoding/json"

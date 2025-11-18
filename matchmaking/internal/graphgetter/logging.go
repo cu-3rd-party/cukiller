@@ -1,19 +1,16 @@
-package internal
+package graphgetter
 
 import (
 	"log"
-	"os"
+	"matchmaking/internal/shared"
 )
 
 type Logger struct {
-	LogLevel
+	shared.LogLevel
 	*log.Logger
 }
 
-var logger = &Logger{
-	LogLevel: conf.LogLevel,
-	Logger:   log.New(os.Stdout, "", log.LstdFlags),
-}
+var logger = shared.GetLogger(conf.LogLevel)
 
 func (l *Logger) Info(format string, v ...interface{}) {
 	if l.LogLevel > LogLevelInfo {

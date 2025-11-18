@@ -1,4 +1,4 @@
-package internal
+package matchmaking
 
 import (
 	"bytes"
@@ -23,8 +23,8 @@ type QueuePlayer struct {
 }
 
 func MatchmakingTicker() {
-	ticker := time.NewTicker(time.Second * time.Duration(conf.MatchmakingConfig.Interval))
-	chosenVictimTicker := time.NewTicker(time.Second * time.Duration(conf.MatchmakingConfig.Interval) * 100)
+	ticker := time.NewTicker(time.Second * time.Duration(conf.ConfigMatchmaking.Interval))
+	chosenVictimTicker := time.NewTicker(time.Second * time.Duration(conf.ConfigMatchmaking.Interval) * 100)
 	defer ticker.Stop()
 
 	logger.Info("Matchmaking ticker started with interval: %d seconds", conf.Interval)

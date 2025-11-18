@@ -1,9 +1,8 @@
-package internal
+package matchmaking
 
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -14,26 +13,9 @@ type QueueInfo struct {
 	VictimsQueue []int64 `json:"victims_queue"`
 }
 
-// MustGetDb returns a database connection
-func MustGetDb() *sql.DB {
-	connStr := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		conf.DbUser,
-		conf.DbPassword,
-		conf.DbHost,
-		conf.DbPort,
-		conf.DbName,
-	)
-
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		panic("Failed to connect to database")
-	}
-	return db
-}
-
 // InitDb is called on startup
-func InitDb(db *sql.DB) {
+func InitDb() {
+	db := conf.ConfigDatabase.MustGetDb()
 	populateQueues(db)
 }
 

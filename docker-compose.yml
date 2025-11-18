@@ -13,7 +13,7 @@ services:
   matchmaking:
     build:
       context: ./matchmaking
-      dockerfile: Dockerfile
+      dockerfile: matchmaking/matchmaking.Dockerfile
     ports:
       - "6543:6543"
     env_file: .env

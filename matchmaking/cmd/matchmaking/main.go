@@ -1,14 +1,21 @@
 package main
 
 import (
-	. "matchmaking/internal"
+	"log"
+	. "matchmaking/internal/matchmaking"
+	"matchmaking/internal/shared"
+	"os"
 )
+
+var logger = &shared.Logger{
+	LogLevel: shared.LogLevelDebug,
+	Logger:   log.New(os.Stdout, "", log.LstdFlags),
+}
 
 func main() {
 	logger.Info("Starting matchmaking service...")
 
-	db := MustGetDb()
-	InitDb(db)
+	InitDb()
 	go MatchmakingTicker()
 	StartupHttp()
 }
