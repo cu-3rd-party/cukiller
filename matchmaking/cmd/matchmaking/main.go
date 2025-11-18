@@ -13,7 +13,7 @@ var logger = &shared.Logger{
 }
 
 func main() {
-	logger.Info("Starting matchmaking service...")
+	logger.Info("Starting service...")
 
 	InitDb()
 	go MatchmakingTicker()

@@ -3,6 +3,7 @@ package matchmaking
 import (
 	"database/sql"
 	"errors"
+	"matchmaking/internal/shared"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -13,9 +14,11 @@ type QueueInfo struct {
 	VictimsQueue []int64 `json:"victims_queue"`
 }
 
+var db = conf.ConfigDatabase.MustGetDb()
+
 // InitDb is called on startup
 func InitDb() {
-	db := conf.ConfigDatabase.MustGetDb()
+	go shared.MonitorDbConnection(db, time.Second*time.Duration(conf.DbPingDelay))
 	populateQueues(db)
 }
 

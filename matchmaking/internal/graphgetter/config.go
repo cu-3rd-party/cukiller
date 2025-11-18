@@ -5,6 +5,7 @@ import (
 )
 
 var conf = getConfig()
+var logger = shared.GetLogger(conf.LogLevel)
 
 type Config struct {
 	Port      int
