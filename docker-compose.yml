@@ -12,10 +12,21 @@ services:
 
   matchmaking:
     build:
-      context: ./matchmaking
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: matchmaking.Dockerfile
     ports:
       - "6543:6543"
+    env_file: .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  graphgetter:
+    build:
+      context: .
+      dockerfile: graphgetter.Dockerfile
+    ports:
+      - "6544:6544"
     env_file: .env
     depends_on:
       - db

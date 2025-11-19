@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: Graph info getter API
+  description: Graph info getter service HTTP API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:6544
+
+paths:
+  /health/:
+    get:
+      summary: API health check
+      operationId: health
+      responses:
+        '200':
+          description: Status info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Failed to write response
+
+  /connections.csv:
+    get:
+      summary: Get anonymized pending kill-event graph as CSV
+      description: |
+        Returns an anonymized edge list of all **pending** kill events in CSV format.
+        
+        The CSV has the following columns:
+        - **from** — anonymized killer user ID (int)
+        - **to** — anonymized victim user ID (int)
+        
+        Example Pandas usage:
+
+        ```python
+        import pandas as pd
+        df = pd.read_csv("http://localhost:6544/connections.csv")
+        ```
+      operationId: getConnectionsCsv
+      responses:
+        '200':
+          description: Anonymized graph edges in CSV format
+          content:
+            text/csv:
+              schema:
+                type: string
+                example: |
+                  from,to
+                  1,2
+                  2,3
+                  3,5
+                  1,5
+        '500':
+          description: Failed to fetch or serialize graph data
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - timestamp

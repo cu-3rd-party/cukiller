@@ -1,18 +1,51 @@
-package internal
+package shared
 
 import (
 	"log"
 	"os"
 )
 
+var logger = GetLogger(LogLevelDebug)
+
+type LogLevel uint8
+
+const (
+	LogLevelDebug LogLevel = iota
+	LogLevelInfo
+	LogLevelWarn
+	LogLevelError
+	LogLevelNone
+)
+
+func ParseLogLevel(value string) LogLevel {
+	var ret LogLevel
+	switch value {
+	case "DEBUG":
+		ret = LogLevelDebug
+	case "INFO":
+		ret = LogLevelInfo
+	case "WARN":
+		ret = LogLevelWarn
+	case "ERROR":
+		ret = LogLevelError
+	case "NONE":
+		ret = LogLevelNone
+	default:
+		ret = LogLevelInfo
+	}
+	return ret
+}
+
+func GetLogger(level LogLevel) *Logger {
+	return &Logger{
+		LogLevel: level,
+		Logger:   log.New(os.Stdout, "", log.LstdFlags),
+	}
+}
+
 type Logger struct {
 	LogLevel
 	*log.Logger
-}
-
-var logger = &Logger{
-	LogLevel: conf.LogLevel,
-	Logger:   log.New(os.Stdout, "", log.LstdFlags),
 }
 
 func (l *Logger) Info(format string, v ...interface{}) {
