@@ -23,4 +23,7 @@ COPY db/ ./db/
 COPY services/ ./services/
 COPY settings/ ./settings/
 
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl --fail --silent http://localhost:8000/health || exit 1
+
 CMD ["uv", "run", "python", "-m", "bot.main"]

@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: CU Killer Bot API
+  version: 1.0.0
+  description: HTTP API for matchmaking, queue restoration, metrics and health check.
+
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /match:
+    post:
+      summary: Create a new match between killer and victim
+      description: >
+        Endpoint is called by matchmaking service.  
+        Creates KillEvent, sends notifications, starts both players' dialogs.
+      security:
+        - SecretKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRequest"
+      responses:
+        '200':
+          description: Match successfully created
+        '403':
+          description: Invalid or missing secret key
+        '500':
+          description: Internal server error
+
+  /restore:
+    get:
+      summary: Get players in matchmaking queues
+      description: >
+        Shows potential killers and victims based on whether they are active and
+        not assigned in any KillEvent.  
+        Used for diagnostics.
+      responses:
+        '200':
+          description: Queue info successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueInfo"
+        '500':
+          description: Internal server error
+
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      description: >
+        Returns all metrics in Prometheus exposition format.
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Metrics generation failed
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: >
+        Returns basic service health and database accessibility info.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+components:
+  securitySchemes:
+    SecretKeyAuth:
+      type: apiKey
+      in: header
+      name: secret-key
+
+  schemas:
+    MatchRequest:
+      type: object
+      required:
+        - killer
+        - victim
+        - quality
+      properties:
+        killer:
+          type: integer
+          description: Telegram ID of killer
+          example: 123456789
+        victim:
+          type: integer
+          description: Telegram ID of victim
+          example: 987654321
+        quality:
+          type: number
+          format: float
+          description: Match quality score (0–1 or higher)
+          example: 0.82
+
+    QueueInfo:
+      type: object
+      properties:
+        killers_queue:
+          type: array
+          items:
+            type: integer
+          example: [1111, 2222, 3333]
+        victims_queue:
+          type: array
+          items:
+            type: integer
+          example: [4444, 5555]
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-19T18:55:12.123456"
+        service:
+          type: string
+          example: cukiller-bot
+        error:
+          type: string
+          nullable: true
+          example: null

@@ -1,11 +1,8 @@
-import asyncio
-import json
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+import sys
+from typing import Any, Dict, Optional
 
 import aiohttp
-from pydantic import BaseModel, Field, ConfigDict
 
 from settings import settings
 
@@ -19,7 +16,9 @@ class MatchmakingService:
 
     async def healthcheck(self):
         data = await self._request("GET", "/ping/")
-        assert data is not None
+        if data is None:
+            self.logger.fatal("Failed to ping matchmaking service")
+            sys.exit(1)
         self.logger.info("Healthcheck completed successfully")
 
     # -------------------- REST UTILS --------------------
