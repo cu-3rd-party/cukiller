@@ -84,6 +84,11 @@ func matchmaking() {
 				continue
 			}
 
+			// обрабатываем чтоб не было одиночных циклов
+			if ArePaired(victimId, killerId) {
+				continue
+			}
+
 			if PlayersWerePairedRecently(killerId, victimId) {
 				continue
 			}

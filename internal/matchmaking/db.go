@@ -192,3 +192,44 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 	// Среди последних 3 матчей не было этой пары
 	return true
 }
+
+func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
+	defer func() {
+		logger.Debug("ArePaired(killer=%d, victim=%d) returned %t",
+			killerTgId, victimTgId, ok)
+	}()
+
+	killerId, err1 := getUserIdByTgId(killerTgId)
+	victimId, err2 := getUserIdByTgId(victimTgId)
+	if err1 != nil || err2 != nil {
+		// не нашли пользователя ⇒ считаем, что они не спарены
+		return false
+	}
+
+	row := db.QueryRow(`
+		SELECT 1
+		FROM kill_events ke
+		WHERE 
+			ke.killer_user_id = $1 
+			AND ke.victim_user_id = $2 
+			AND ke.status = 'pending'
+		LIMIT 1
+	`, killerId, victimId)
+
+	var dummy int
+	err := row.Scan(&dummy)
+
+	if err == sql.ErrNoRows {
+		// Нет pending event — значит не спарены
+		return false
+	}
+
+	if err != nil {
+		// Ошибка SQL — безопасный return
+		logger.Error("ArePaired SQL error: %v", err)
+		return false
+	}
+
+	// Если нашли хотя бы одну строку — они спарены
+	return true
+}
