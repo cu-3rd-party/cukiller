@@ -8,3 +8,31 @@ servers:
   - url: http://localhost:6544
 
 paths:
+  /health/:
+    get:
+      summary: API health check
+      operationId: health
+      responses:
+        '200':
+          description: Status info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Failed to write response
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - timestamp

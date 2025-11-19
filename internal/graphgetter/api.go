@@ -3,11 +3,20 @@ package graphgetter
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
 func StartupHttp() {
 	http.HandleFunc("/health/", health)
+
+	addr := fmt.Sprintf(":%d", conf.Port)
+	logger.Info("HTTP server starting on %s", addr)
+
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		logger.Error("HTTP server failed: %v", err)
+		os.Exit(1)
+	}
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
