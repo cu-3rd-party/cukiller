@@ -51,7 +51,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
     data = await request.json()
     bot: Bot = request.app["bot"]
 
-    if data.get("secret_key") != request.app["settings"].secret_key:
+    if request.headers.get("secret-key") != request.app["settings"].secret_key:
         return web.StreamResponse(status=403)
 
     match_quality = data.get("quality", 0.0)

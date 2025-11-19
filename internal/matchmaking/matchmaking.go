@@ -10,10 +10,9 @@ import (
 )
 
 type MatchedPair struct {
-	SecretKey string  `json:"secret_key"`
-	Victim    uint64  `json:"victim"`
-	Killer    uint64  `json:"killer"`
-	Quality   float64 `json:"quality"`
+	Victim  uint64  `json:"victim"`
+	Killer  uint64  `json:"killer"`
+	Quality float64 `json:"quality"`
 }
 
 type QueuePlayer struct {
@@ -117,10 +116,9 @@ func matchmaking() {
 		// уведомляем основной процесс
 		for {
 			ok := notifyMainProcess(MatchedPair{
-				SecretKey: conf.SecretKey,
-				Killer:    killerId,
-				Victim:    bestVictimId,
-				Quality:   bestRating,
+				Killer:  killerId,
+				Victim:  bestVictimId,
+				Quality: bestRating,
 			})
 			if !ok {
 				logger.Warn("Failed to notify main process about new pair: %d and %d", killerId, bestVictimId)
@@ -145,6 +143,10 @@ func notifyMainProcess(pair MatchedPair) bool {
 	}
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", conf.BotUrl+"/match", bytes.NewBuffer(body))
+	if err != nil {
+		logger.Error("Failed to create request because of %v", err)
+	}
+	req.Header.Set("secret-key", conf.SecretKey)
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Error("Failed to notify main process because of %v", err)

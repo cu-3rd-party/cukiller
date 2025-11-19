@@ -17,6 +17,7 @@ func StartupHttp() {
 	http.HandleFunc("/get/queues/", getQueues)
 	http.HandleFunc("/get/queues/len/", getQueuesLen)
 	http.HandleFunc("/get/player/{tg_id}", getPlayerByTgId)
+	http.HandleFunc("/queues/update/", reloadQueues)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 	logger.Info("HTTP server starting on %s", addr)
@@ -25,6 +26,17 @@ func StartupHttp() {
 		logger.Error("HTTP server failed: %v", err)
 		os.Exit(1)
 	}
+}
+
+func reloadQueues(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Requested repopulation of queues by %s", r.RemoteAddr)
+	if conf.SecretKey != r.Header.Get("secret-key") {
+		logger.Info("Repopulation request contained invalid secret-key: %q", r.Header.Get("secret-key"))
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	populateQueues()
+	logger.Info("Repopulation request completed")
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
