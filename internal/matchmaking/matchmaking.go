@@ -27,11 +27,8 @@ func TickerMatchmaking() {
 
 	logger.Info("Matchmaking ticker started with interval: %d seconds", conf.Interval)
 
-	for {
-		select {
-		case <-ticker.C:
-			go matchmaking()
-		}
+	for range ticker.C {
+		go matchmaking()
 	}
 }
 

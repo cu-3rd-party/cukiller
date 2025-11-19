@@ -1,7 +1,9 @@
 package matchmaking
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -35,8 +37,22 @@ func reloadQueues(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	populateQueues()
+	ctx, cancel := context.WithTimeout(context.Background(), conf.ReloadTimeout)
+	defer cancel()
+	err := populateQueues(ctx)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			logger.Warn("Repopulation request failed: deadline exceeded")
+			http.Error(w, "timeout while reloading queues", http.StatusGatewayTimeout) // 504
+			return
+		}
+
+		logger.Error("Repopulation failed: %v", err)
+		http.Error(w, "failed to reload queues", http.StatusInternalServerError) // 500
+		return
+	}
 	logger.Info("Repopulation request completed")
+	w.WriteHeader(http.StatusOK)
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {

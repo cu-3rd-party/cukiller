@@ -2,15 +2,17 @@ package matchmaking
 
 import (
 	"cukiller/internal/shared"
+	"time"
 )
 
 var conf = getConfig()
 var logger = shared.GetLogger(conf.LogLevel)
 
 type Config struct {
-	Port      int
-	BotUrl    string
-	SecretKey string
+	Port          int
+	BotUrl        string
+	SecretKey     string
+	ReloadTimeout time.Duration
 	ConfigMatchmaking
 	shared.LogLevel
 	shared.ConfigDatabase
@@ -34,10 +36,11 @@ type ConfigMatchmaking struct {
 
 func getConfig() Config {
 	return Config{
-		Port:      shared.GetEnvInt("PORT", 6543),
-		BotUrl:    shared.GetEnvString("BOT_URL", "http://localhost:8000"),
-		SecretKey: shared.GetEnvString("SECRET_KEY", ""),
-		LogLevel:  shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
+		Port:          shared.GetEnvInt("PORT", 6543),
+		BotUrl:        shared.GetEnvString("BOT_URL", "http://localhost:8000"),
+		SecretKey:     shared.GetEnvString("SECRET_KEY", ""),
+		LogLevel:      shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
+		ReloadTimeout: time.Duration(shared.GetEnvFloat64("RELOAD_TIMEOUT", 2.0)) * time.Second,
 		ConfigMatchmaking: ConfigMatchmaking{
 			Interval:         shared.GetEnvInt("MATCHMAKING_INTERVAL", 5),
 			QualityThreshold: shared.GetEnvFloat64("QUALITY_THRESHOLD", 0.6),

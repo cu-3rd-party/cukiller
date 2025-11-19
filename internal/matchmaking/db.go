@@ -1,6 +1,7 @@
 package matchmaking
 
 import (
+	"context"
 	"cukiller/internal/shared"
 	"database/sql"
 	"errors"
@@ -20,23 +21,23 @@ var db = conf.ConfigDatabase.MustGetDb()
 // InitDb is called on startup
 func InitDb() {
 	go shared.MonitorDbConnection(db, time.Second*time.Duration(conf.DbPingDelay))
-	populateQueues()
+	_ = populateQueues(context.Background())
 }
 
 // populateQueues finds players who are in game but don't have kill events and puts them into KillerPool and VictimPool
-func populateQueues() {
+func populateQueues(ctx context.Context) error {
 	populationTime := time.Now()
 	var gameId []uint8
-	err := db.QueryRow(`SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
+	err := db.QueryRowContext(ctx, `SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			logger.Error("Error querying active game: %v", err)
 		}
-		return
+		return nil
 	}
 
 	// --- Populate KillerPool ---
-	killerRows, err := db.Query(`
+	killerRows, err := db.QueryContext(ctx, `
         SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
         FROM users u
         LEFT JOIN kill_events k ON u.id = k.killer_user_id AND k.game_id = $1 AND k.status != 'confirmed'
@@ -44,7 +45,7 @@ func populateQueues() {
     `, gameId)
 	if err != nil {
 		logger.Error("Error querying potential killers: %v", err)
-		return
+		return nil
 	}
 	defer func(killerRows *sql.Rows) {
 		err := killerRows.Close()
@@ -81,7 +82,7 @@ func populateQueues() {
 	}
 
 	// --- Populate VictimPool ---
-	victimRows, err := db.Query(`
+	victimRows, err := db.QueryContext(ctx, `
         SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
         FROM users u
         LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = $1 AND k.status != 'confirmed'
@@ -89,7 +90,7 @@ func populateQueues() {
     `, gameId)
 	if err != nil {
 		logger.Error("Error querying potential victims: %v", err)
-		return
+		return nil
 	}
 	defer func(victimRows *sql.Rows) {
 		err := victimRows.Close()
@@ -125,6 +126,14 @@ func populateQueues() {
 	}
 
 	logger.Info("Queue initialization complete: %d killers, %d victims", len(KillerPool), len(VictimPool))
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	return nil
 }
 
 func getUserIdByTgId(tgId uint64) (uuid.UUID, error) {
