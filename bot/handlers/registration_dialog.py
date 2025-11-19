@@ -9,7 +9,6 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Column, Group
 from aiogram_dialog.widgets.text import Const
 
-from bot.filters.admin import AdminFilter
 from bot.filters.confirmed import ProfileNonexistentFilter
 from bot.misc.states import RegisterForm
 from db.models import User
@@ -307,8 +306,8 @@ router.include_router(
 )
 
 
-@router.message(CommandStart(), ProfileNonexistentFilter(), ~AdminFilter())
-async def user_start(
+@router.message(CommandStart(), ProfileNonexistentFilter())
+async def registration_start(
     message: Message,
     dialog_manager: DialogManager,
     bot: Bot,

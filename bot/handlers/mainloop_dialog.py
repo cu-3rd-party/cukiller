@@ -10,6 +10,7 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.user import UserFilter
+from bot.handlers.admin import set_admin_commands
 from bot.handlers.mainloop.button_handlers import (
     on_i_was_killed,
     on_i_killed,
@@ -18,7 +19,7 @@ from bot.handlers.mainloop.button_handlers import (
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from bot.misc.states import MainLoop
-from db.models import Game
+from db.models import Game, User
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +127,14 @@ router.include_router(main_menu_dialog)
 
 
 @router.message(CommandStart(), ConfirmedFilter(), UserFilter())
-async def user_start(
+async def confirmed_start(
     message: Message,
     dialog_manager: DialogManager,
     bot: Bot,
+    user: User,
 ):
+    if user and user.is_admin:
+        await set_admin_commands(bot, message.chat.id)
     await dialog_manager.reset_stack()
     game = await Game().filter(end_date=None).first()
     await dialog_manager.start(

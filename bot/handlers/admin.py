@@ -3,7 +3,7 @@ from datetime import datetime
 
 from aiogram import Router, Bot, types
 from aiogram.enums import ContentType
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import Command
 from aiogram.types import (
     Message,
     BotCommand,
@@ -29,8 +29,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.message(AdminFilter(), CommandStart())
-async def admin_start(message: Message, bot: Bot):
+async def set_admin_commands(bot: Bot, chat_id: int):
     await bot.set_my_commands(
         commands=[
             BotCommand(command="/start", description="Начать работу с ботом"),
@@ -51,13 +50,7 @@ async def admin_start(message: Message, bot: Bot):
                 description="Получить текущее время на сервере",
             ),
         ],
-        scope=BotCommandScopeChat(chat_id=message.chat.id),
-    )
-    await message.reply(
-        text=(
-            "Привет, админ!\n"
-            "Добавил тебе список команд в менюшку, полюбуйся)\n"
-        )
+        scope=BotCommandScopeChat(chat_id=chat_id),
     )
 
 
