@@ -2,10 +2,10 @@ FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates
 WORKDIR /app
-COPY ../graphgetter/go.mod go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-COPY ../graphgetter .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o graphgetter-service ./cmd/
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o graphgetter-service ./cmd/graphgetter
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata
