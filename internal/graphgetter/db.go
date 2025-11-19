@@ -2,6 +2,7 @@ package graphgetter
 
 import (
 	"cukiller/internal/shared"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -34,7 +35,6 @@ func GetKillEventConnections() ([]AnonEdge, error) {
 
 	// Анонимизация: UUID → int
 	anonMap := make(map[uuid.UUID]int)
-	nextId := 1
 	var mutex sync.Mutex
 
 	getAnon := func(id uuid.UUID) int {
@@ -43,8 +43,7 @@ func GetKillEventConnections() ([]AnonEdge, error) {
 		if v, ok := anonMap[id]; ok {
 			return v
 		}
-		anonMap[id] = nextId
-		nextId++
+		anonMap[id] = rand.Int()
 		return anonMap[id]
 	}
 
