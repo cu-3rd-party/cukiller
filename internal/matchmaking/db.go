@@ -155,7 +155,7 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 
 	if err1 != nil || err2 != nil {
 		// не нашли пользователя => считаем что нет истории игр
-		return true
+		return false
 	}
 
 	// Выбираем последние 3 confirmed kill_events
@@ -168,7 +168,7 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 	`)
 	if err != nil {
 		logger.Error("Error querying last kill events: %v", err)
-		return true // безопасная логика
+		return false // безопасная логика
 	}
 	defer rows.Close()
 
@@ -185,12 +185,12 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 		// Проверяем совпадение пары
 		if kId == killerId && vId == victimId {
 			// Они были вместе недавно
-			return false
+			return true
 		}
 	}
 
 	// Среди последних 3 матчей не было этой пары
-	return true
+	return false
 }
 
 func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
