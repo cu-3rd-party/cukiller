@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -19,11 +20,11 @@ var db = conf.ConfigDatabase.MustGetDb()
 // InitDb is called on startup
 func InitDb() {
 	go shared.MonitorDbConnection(db, time.Second*time.Duration(conf.DbPingDelay))
-	populateQueues(db)
+	populateQueues()
 }
 
 // populateQueues finds players who are in game but don't have kill events and puts them into KillerPool and VictimPool
-func populateQueues(db *sql.DB) {
+func populateQueues() {
 	populationTime := time.Now()
 	var gameId []uint8
 	err := db.QueryRow(`SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
@@ -124,4 +125,70 @@ func populateQueues(db *sql.DB) {
 	}
 
 	logger.Info("Queue initialization complete: %d killers, %d victims", len(KillerPool), len(VictimPool))
+}
+
+func getUserIdByTgId(tgId uint64) (uuid.UUID, error) {
+	row := db.QueryRow(`
+		SELECT u.id
+		FROM users u 
+		WHERE u.tg_id = $1
+		LIMIT 1
+	`, tgId)
+
+	var id uuid.UUID
+	err := row.Scan(&id)
+	if err != nil {
+		logger.Error("Error getting user uid by tg_id %d: %v", tgId, err)
+		return uuid.UUID{}, err
+	}
+
+	return id, nil
+}
+
+func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
+	defer func() {
+		logger.Debug("PlayersWerePairedRecently(killer=%d, victim=%d) returned %t",
+			killerTgId, victimTgId, ok)
+	}()
+	killerId, err1 := getUserIdByTgId(killerTgId)
+	victimId, err2 := getUserIdByTgId(victimTgId)
+
+	if err1 != nil || err2 != nil {
+		// не нашли пользователя => считаем что нет истории игр
+		return true
+	}
+
+	// Выбираем последние 3 confirmed kill_events
+	rows, err := db.Query(`
+		SELECT killer_user_id, victim_user_id
+		FROM kill_events
+		WHERE status = 'confirmed'
+		ORDER BY created_at DESC
+		LIMIT 3
+	`)
+	if err != nil {
+		logger.Error("Error querying last kill events: %v", err)
+		return true // безопасная логика
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var kId uuid.UUID
+		var vId uuid.UUID
+
+		err := rows.Scan(&kId, &vId)
+		if err != nil {
+			logger.Error("Error scanning kill event row: %v", err)
+			continue
+		}
+
+		// Проверяем совпадение пары
+		if kId == killerId && vId == victimId {
+			// Они были вместе недавно
+			return false
+		}
+	}
+
+	// Среди последних 3 матчей не было этой пары
+	return true
 }

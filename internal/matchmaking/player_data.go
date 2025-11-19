@@ -224,3 +224,5 @@ func (p *PlayerData) String() string {
 		p.TgId, p.Rating, p.Type.String(), courseInfo, p.GroupName.String(),
 	)
 }
+
+type TgId uint64

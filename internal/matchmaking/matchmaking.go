@@ -22,9 +22,8 @@ type QueuePlayer struct {
 	PlayerData
 }
 
-func MatchmakingTicker() {
+func TickerMatchmaking() {
 	ticker := time.NewTicker(time.Second * time.Duration(conf.ConfigMatchmaking.Interval))
-	chosenVictimTicker := time.NewTicker(time.Second * time.Duration(conf.ConfigMatchmaking.Interval) * 100)
 	defer ticker.Stop()
 
 	logger.Info("Matchmaking ticker started with interval: %d seconds", conf.Interval)
@@ -33,10 +32,6 @@ func MatchmakingTicker() {
 		select {
 		case <-ticker.C:
 			go matchmaking()
-		case <-chosenVictimTicker.C:
-			ChosenVictimMutex.Lock()
-			ChosenVictim = make(map[uint64]uint64) // clearing chosen victims
-			ChosenVictimMutex.Unlock()
 		}
 	}
 }
@@ -45,8 +40,6 @@ var KillerPool = make(map[uint64]QueuePlayer)
 var KillerPoolMutex = sync.Mutex{}
 var VictimPool = make(map[uint64]QueuePlayer)
 var VictimPoolMutex = sync.Mutex{}
-var ChosenVictim = make(map[uint64]uint64) // killer → victim
-var ChosenVictimMutex = sync.Mutex{}
 
 // matchmaking basically does all the heavy lifting needed for this microservice
 func matchmaking() {
@@ -55,9 +48,6 @@ func matchmaking() {
 
 	VictimPoolMutex.Lock()
 	defer VictimPoolMutex.Unlock()
-
-	ChosenVictimMutex.Lock()
-	defer ChosenVictimMutex.Unlock()
 
 	curTime := time.Now()
 	logger.Debug("Running matchmaking cycle at %s", curTime)
@@ -91,9 +81,8 @@ func matchmaking() {
 				continue
 			}
 
-			// анти-цикл: victim уже выбрал killer как цель?
-			if prevVictim, ok := ChosenVictim[victimId]; ok && prevVictim == killerId {
-				continue // взаимный цикл — пропускаем
+			if PlayersWerePairedRecently(killerId, victimId) {
+				continue
 			}
 
 			// считаем рейтинг пары
@@ -116,7 +105,6 @@ func matchmaking() {
 		// помечаем как использованных
 		processedKillers[killerId] = struct{}{}
 		processedVictims[bestVictimId] = struct{}{}
-		ChosenVictim[killerId] = bestVictimId
 
 		// уведомляем основной процесс
 		for {

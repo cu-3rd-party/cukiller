@@ -11,6 +11,6 @@ func main() {
 	logger.Info("Starting service...")
 
 	InitDb()
-	go MatchmakingTicker()
+	go TickerMatchmaking()
 	StartupHttp()
 }
