@@ -1,14 +1,17 @@
 package graphgetter
 
 import (
+	"encoding/csv"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
 func StartupHttp() {
 	http.HandleFunc("/health/", health)
+	http.HandleFunc("/connections.csv", connectionsCSV)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 	logger.Info("HTTP server starting on %s", addr)
@@ -29,4 +32,44 @@ func health(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func connectionsCSV(w http.ResponseWriter, r *http.Request) {
+	logger.Info("CSV request from %s", r.RemoteAddr)
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=connections.csv")
+
+	edges, err := GetKillEventConnections()
+	if err != nil {
+		logger.Error("Failed to get connections: %v", err)
+		http.Error(w, "failed to fetch data", http.StatusInternalServerError)
+		return
+	}
+
+	// CSV writer
+	csvWriter := csv.NewWriter(w)
+	defer csvWriter.Flush()
+
+	// Header row
+	err = csvWriter.Write([]string{"from", "to"})
+	if err != nil {
+		logger.Error("CSV header write failed: %v", err)
+		return
+	}
+
+	// Data rows
+	for _, e := range edges {
+		record := []string{
+			strconv.Itoa(e.From),
+			strconv.Itoa(e.To),
+		}
+		err := csvWriter.Write(record)
+		if err != nil {
+			logger.Error("CSV write failed: %v", err)
+			return
+		}
+	}
+
+	logger.Info("CSV successfully returned (%d rows)", len(edges))
 }
