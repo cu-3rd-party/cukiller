@@ -14,8 +14,8 @@ from aiogram_dialog.widgets.text import Const
 from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from db.models import KillEvent, User, Chat
+from services import settings
 from services.matchmaking import MatchmakingService
-from settings import settings
 
 logger = logging.getLogger(__name__)
 router = Router()

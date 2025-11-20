@@ -25,12 +25,12 @@ from bot.middlewares.private_messages import PrivateMessagesMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
 from bot.middlewares.user import UserMiddleware
 from db.main import close_db, init_db
+from services import settings
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
 from services.matchmaking import MatchmakingService
-from settings import settings
 
 logger = logging.getLogger(__name__)
 

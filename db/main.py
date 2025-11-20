@@ -3,7 +3,7 @@ import logging
 from tortoise import Tortoise
 
 from db.models import Chat, User
-from settings import settings
+from services import settings
 
 logger = logging.getLogger(__name__)
 

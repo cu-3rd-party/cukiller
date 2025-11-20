@@ -7,8 +7,8 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
 from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, User, Player, KillEvent
+from services import settings
 from services.matchmaking import MatchmakingService
-from settings import settings
 
 logger = logging.getLogger(__name__)
 

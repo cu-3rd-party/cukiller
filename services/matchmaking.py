@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from settings import settings
+from services import settings
 
 
 # ---------- SERVICE ----------

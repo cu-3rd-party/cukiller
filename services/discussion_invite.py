@@ -1,6 +1,6 @@
 from aiogram import Bot
 
-from settings import settings
+from services import settings
 
 
 async def generate_discussion_invite_link(bot: Bot):

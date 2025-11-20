@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 from aiogram import Bot, Router, F
@@ -13,8 +12,6 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from bot.handlers import mainloop_dialog
 from bot.misc.states import MainLoop
 from db.models import User, Game
-from services.matchmaking import MatchmakingService
-from settings import settings
 
 router = Router(name="profile_moderation")
 
