@@ -36,7 +36,6 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infra/sql:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
 
   redis:

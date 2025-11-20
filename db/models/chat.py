@@ -10,8 +10,8 @@ class Chat(TimestampedModel):
     class Meta:
         table = "chats"
         table_description = "Админ-чаты Telegram"
-        unique_together = (("chat_id", "thread"),)
-        indexes = (("chat_id",),)
+        unique_together = (("chat_id", "key"),)
+        indexes = (("chat_id",),("key",))
 
     def __str__(self) -> str:
         return f"<Chat {self.chat_id}:{self.key}>"
