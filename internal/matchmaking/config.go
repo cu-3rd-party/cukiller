@@ -30,7 +30,8 @@ type ConfigRatePlayerPair struct {
 type ConfigMatchmaking struct {
 	Interval int
 
-	QualityThreshold float64
+	QualityThreshold       float64
+	MatchHistoryCheckDepth int
 	ConfigRatePlayerPair
 }
 
@@ -42,8 +43,9 @@ func getConfig() Config {
 		LogLevel:      shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
 		ReloadTimeout: time.Duration(shared.GetEnvFloat64("RELOAD_TIMEOUT", 2.0)) * time.Second,
 		ConfigMatchmaking: ConfigMatchmaking{
-			Interval:         shared.GetEnvInt("MATCHMAKING_INTERVAL", 5),
-			QualityThreshold: shared.GetEnvFloat64("QUALITY_THRESHOLD", 0.6),
+			Interval:               shared.GetEnvInt("MATCHMAKING_INTERVAL", 5),
+			QualityThreshold:       shared.GetEnvFloat64("QUALITY_THRESHOLD", 0.6),
+			MatchHistoryCheckDepth: shared.GetEnvInt("MATCH_HISTORY_CHECK_DEPTH", 3),
 			ConfigRatePlayerPair: ConfigRatePlayerPair{
 				MaxRatingDiff:     shared.GetEnvFloat64("MAX_RATING_DIFF", 1000),
 				CourseCoefficient: shared.GetEnvFloat64("COURSE_COEFFICIENT", 0.3),
