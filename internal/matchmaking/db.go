@@ -167,19 +167,24 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 		return false
 	}
 
-	// Выбираем последние 3 confirmed kill_events
+	// Выбираем последние N confirmed kill_events
 	rows, err := db.Query(`
 		SELECT killer_user_id, victim_user_id
 		FROM kill_events
 		WHERE status = 'confirmed'
 		ORDER BY created_at DESC
-		LIMIT 3
-	`)
+		LIMIT $1
+	`, conf.MatchHistoryCheckDepth)
 	if err != nil {
 		logger.Error("Error querying last kill events: %v", err)
 		return false // безопасная логика
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			logger.Error("Failed to close rows")
+		}
+	}(rows)
 
 	for rows.Next() {
 		var kId uuid.UUID
@@ -228,7 +233,7 @@ func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
 	var dummy int
 	err := row.Scan(&dummy)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		// Нет pending event — значит не спарены
 		return false
 	}
