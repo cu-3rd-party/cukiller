@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     # ^ Tortoise ORM
     tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
     tortoise_models: tuple[str, ...] = Field(
-        default=("db.models",), alias="TORTOISE_MODELS"
+        default=("db.models", "aerich.models"), alias="TORTOISE_MODELS"
     )
     tortoise_generate_schemas: bool = Field(
         default=False, alias="TORTOISE_GENERATE_SCHEMAS"

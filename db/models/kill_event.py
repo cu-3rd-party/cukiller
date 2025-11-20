@@ -52,7 +52,7 @@ class KillEvent(TimestampedModel):
         table = "kill_events"
         table_description = "События «киллов»"
         indexes = (
-            ("game", "occurred_at"),
+            ("game",),
             ("killer",),
             ("victim",),
             ("status",),
