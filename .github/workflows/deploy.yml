@@ -1,5 +1,6 @@
 name: Deploy
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -19,4 +20,11 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /root/dev/cukiller
+            source .venv/bin/activate
+            set -o allexport && source .env
             ./scripts/upstream-preserve-compose.sh
+            echo "./scripts/upstream-preserve-compose.sh done"
+            export POSTGRES_HOST=localhost
+            echo "POSTGRES_HOST=$POSTGRES_HOST"
+            uv sync
+            uv run -m aerich upgrade
