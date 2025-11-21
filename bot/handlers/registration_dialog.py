@@ -15,6 +15,7 @@ from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
+from services.strings import is_safe
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,8 @@ def group_required(course_type: str) -> bool:
 
 @log_dialog_action("REG_NAME_INPUT")
 async def on_name_input(m: Message, _, manager: DialogManager):
+    if not is_safe(m.text):
+        return
     manager.dialog_data["name"] = m.text.strip()
     await manager.next()
 
@@ -96,6 +99,8 @@ async def on_group_selected(
 
 @log_dialog_action("REG_ABOUT_INPUT")
 async def on_about_input(m: Message, _, manager: DialogManager):
+    if not is_safe(m.text):
+        return
     manager.dialog_data["about"] = m.text.strip()
     await manager.next()
 

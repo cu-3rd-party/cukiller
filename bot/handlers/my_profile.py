@@ -2,9 +2,10 @@ import logging
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Cancel, Button
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
@@ -24,6 +25,7 @@ from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
+from services.strings import is_safe
 
 logger = logging.getLogger(__name__)
 
@@ -91,11 +93,39 @@ async def on_course_number_selected(
         await manager.switch_to(EditProfile.confirm)
 
 
-@log_dialog_action("REG_GROUP_SELECTED")
+@log_dialog_action("EDIT_GROUP_SELECTED")
 async def on_group_selected(
     c: CallbackQuery, _, manager: DialogManager, group: str
 ):
     manager.dialog_data["group_name"] = group
+    await manager.switch_to(EditProfile.confirm)
+
+
+@log_dialog_action("EDIT_NAME")
+async def on_name(
+        message: Message, message_input: MessageInput, manager: DialogManager
+):
+    if not is_safe(message.text):
+        return
+    manager.dialog_data["name"] = message.text
+    await manager.switch_to(EditProfile.confirm)
+
+
+@log_dialog_action("EDIT_ABOUT")
+async def on_about(
+        message: Message, message_input: MessageInput, manager: DialogManager
+):
+    if not is_safe(message.text):
+        return
+    manager.dialog_data["about"] = message.text
+    await manager.switch_to(EditProfile.confirm)
+
+
+@log_dialog_action("EDIT_PHOTO_INPUT")
+async def on_photo(m: Message, _, manager: DialogManager):
+    if not m.photo:
+        return
+    manager.dialog_data["photo"] = m.photo[-1].file_id
     await manager.switch_to(EditProfile.confirm)
 
 
@@ -192,9 +222,23 @@ router.include_router(
             Cancel(Const("Назад")),
             state=EditProfile.group,
         ),
-        Window(Cancel(Const("Назад")), state=EditProfile.name),
-        Window(Cancel(Const("Назад")), state=EditProfile.description),
-        Window(Cancel(Const("Назад")), state=EditProfile.photo),
+        # одиночные изменения
+        Window(
+            Const("Введите измененное имя:"),
+            MessageInput(content_types=ContentType.TEXT),
+            Cancel(Const("Назад")),
+            state=EditProfile.name,
+        ),
+        Window(
+            Const("Введите измененное описание:"),
+            Cancel(Const("Назад")),
+            state=EditProfile.description,
+        ),
+        Window(
+            Const("Отправь мне новое фото:"),
+            Cancel(Const("Назад")),
+            state=EditProfile.photo,
+        ),
         Window(
             Const("Подтверждаешь корректность изменений?"),
             Button(
