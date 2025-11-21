@@ -194,9 +194,7 @@ def course_buttons(callback=on_course_number_selected):
             Const(num),
             id=f"course_bachelor_{num}",
             when="is_bachelor",
-            on_click=lambda c, b, m, x=num: callback(
-                c, b, m, x
-            ),
+            on_click=lambda c, b, m, x=num: callback(c, b, m, x),
         )
         for num in ["1", "2", "3", "4"]
     ]
@@ -207,9 +205,7 @@ def course_buttons(callback=on_course_number_selected):
             Const(num),
             id=f"course_master_{num}",
             when="is_master",
-            on_click=lambda c, b, m, x=num: callback(
-                c, b, m, x
-            ),
+            on_click=lambda c, b, m, x=num: callback(c, b, m, x),
         )
         for num in ["1", "2"]
     ]

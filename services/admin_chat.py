@@ -61,7 +61,9 @@ class AdminChatService:
             parse_mode="HTML",
         )
 
-    async def send_message_photo(self, photo, tg_id: int, key: str, text: str, tag: str | None = None):
+    async def send_message_photo(
+        self, photo, tg_id: int, key: str, text: str, tag: str | None = None
+    ):
         chat = await self._get_chat(key)
         body = _build_body(text, tag)
 
@@ -70,7 +72,13 @@ class AdminChatService:
             photo=photo,
             caption=body,
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="inspect", url=f"tg://user?id={tg_id}"
+                        )
+                    ]
+                ]
             ),
             parse_mode="HTML",
         )

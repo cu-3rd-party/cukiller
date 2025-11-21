@@ -10,8 +10,15 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.handlers.mainloop.getters import get_advanced_info, get_user
-from bot.handlers.registration_dialog import btns_course_types, course_buttons, btns_groups, reg_getter, \
-    course_number_required, group_required, COURSE_TYPES
+from bot.handlers.registration_dialog import (
+    btns_course_types,
+    course_buttons,
+    btns_groups,
+    reg_getter,
+    course_number_required,
+    group_required,
+    COURSE_TYPES,
+)
 from bot.misc.states.my_profile import MyProfile, EditProfile
 from db.models import User
 from services import settings
@@ -36,8 +43,12 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
 
 
 @log_dialog_action("EDIT_PROFILE")
-async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManager):
-    await manager.start(EditProfile.main, data={"user_tg_id": callback.from_user.id})
+async def on_edit(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    await manager.start(
+        EditProfile.main, data={"user_tg_id": callback.from_user.id}
+    )
 
 
 router.include_router(
@@ -57,7 +68,7 @@ router.include_router(
 
 @log_dialog_action("EDIT_TYPE_SELECTED")
 async def on_type_selected(
-        c: CallbackQuery, _, manager: DialogManager, course_type: str
+    c: CallbackQuery, _, manager: DialogManager, course_type: str
 ):
     manager.dialog_data["academics_edited"] = True
     manager.dialog_data["course_type"] = course_type
@@ -70,7 +81,7 @@ async def on_type_selected(
 
 @log_dialog_action("EDIT_COURSE_NUMBER_SELECTED")
 async def on_course_number_selected(
-        c: CallbackQuery, _, manager: DialogManager, num: str
+    c: CallbackQuery, _, manager: DialogManager, num: str
 ):
     manager.dialog_data["course_number"] = int(num)
 
@@ -82,7 +93,7 @@ async def on_course_number_selected(
 
 @log_dialog_action("REG_GROUP_SELECTED")
 async def on_group_selected(
-        c: CallbackQuery, _, manager: DialogManager, group: str
+    c: CallbackQuery, _, manager: DialogManager, group: str
 ):
     manager.dialog_data["group_name"] = group
     await manager.switch_to(EditProfile.confirm)
@@ -90,7 +101,7 @@ async def on_group_selected(
 
 @log_dialog_action("EDIT_FINAL_CONFIRMATION")
 async def on_final_confirmation(
-        c: CallbackQuery, b: Button, manager: DialogManager
+    c: CallbackQuery, b: Button, manager: DialogManager
 ):
     bot: Bot = c.bot
     d = manager.dialog_data
@@ -139,10 +150,26 @@ router.include_router(
     Dialog(
         Window(
             Const("Что хотите изменить?"),
-            Button(Const("Имя"), id="name", on_click=lambda c, b, m: m.switch_to(EditProfile.name)),
-            Button(Const("Обучение"), id="academic", on_click=lambda c, b, m: m.switch_to(EditProfile.type)),
-            Button(Const("Описание"), id="description", on_click=lambda c, b, m: m.switch_to(EditProfile.type)),
-            Button(Const("Фото профиля"), id="profile_photo", on_click=lambda c, b, m: m.switch_to(EditProfile.type)),
+            Button(
+                Const("Имя"),
+                id="name",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.name),
+            ),
+            Button(
+                Const("Обучение"),
+                id="academic",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.type),
+            ),
+            Button(
+                Const("Описание"),
+                id="description",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.type),
+            ),
+            Button(
+                Const("Фото профиля"),
+                id="profile_photo",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.type),
+            ),
             Cancel(Const("Назад")),
             state=EditProfile.main,
         ),
@@ -165,23 +192,18 @@ router.include_router(
             Cancel(Const("Назад")),
             state=EditProfile.group,
         ),
-        Window(
-            Cancel(Const("Назад")),
-            state=EditProfile.name
-        ),
-        Window(
-            Cancel(Const("Назад")),
-            state=EditProfile.description
-        ),
-        Window(
-            Cancel(Const("Назад")),
-            state=EditProfile.photo
-        ),
+        Window(Cancel(Const("Назад")), state=EditProfile.name),
+        Window(Cancel(Const("Назад")), state=EditProfile.description),
+        Window(Cancel(Const("Назад")), state=EditProfile.photo),
         Window(
             Const("Подтверждаешь корректность изменений?"),
-            Button(Const("Да, отправляй"), id="confirmed", on_click=on_final_confirmation),
+            Button(
+                Const("Да, отправляй"),
+                id="confirmed",
+                on_click=on_final_confirmation,
+            ),
             Cancel(Const("Отмена")),
-            state=EditProfile.confirm
+            state=EditProfile.confirm,
         ),
     )
 )
