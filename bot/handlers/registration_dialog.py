@@ -161,40 +161,40 @@ async def on_final_confirmation(
 # ---------------------------------------------
 
 
-def btns_course_types():
+def btns_course_types(callback=on_type_selected):
     return Column(
         *[
             Button(
                 Const(title),
                 id=f"type_{t}",
-                on_click=lambda c, b, m, x=t: on_type_selected(c, b, m, x),
+                on_click=lambda c, b, m, x=t: callback(c, b, m, x),
             )
             for t, title in COURSE_TYPES.items()
         ]
     )
 
 
-def btns_groups():
+def btns_groups(callback=on_group_selected):
     return Column(
         *[
             Button(
                 Const(name),
                 id=f"group_{i}",
-                on_click=lambda c, b, m, x=name: on_group_selected(c, b, m, x),
+                on_click=lambda c, b, m, x=name: callback(c, b, m, x),
             )
             for i, name in enumerate(GROUP_NAMES)
         ]
     )
 
 
-def course_buttons():
+def course_buttons(callback=on_course_number_selected):
     # bachelor: 1–4
     bachelor_btns = [
         Button(
             Const(num),
             id=f"course_bachelor_{num}",
             when="is_bachelor",
-            on_click=lambda c, b, m, x=num: on_course_number_selected(
+            on_click=lambda c, b, m, x=num: callback(
                 c, b, m, x
             ),
         )
@@ -207,7 +207,7 @@ def course_buttons():
             Const(num),
             id=f"course_master_{num}",
             when="is_master",
-            on_click=lambda c, b, m, x=num: on_course_number_selected(
+            on_click=lambda c, b, m, x=num: callback(
                 c, b, m, x
             ),
         )
