@@ -103,7 +103,7 @@ async def on_group_selected(
 
 @log_dialog_action("EDIT_NAME")
 async def on_name(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     if not is_safe(message.text):
         return
@@ -113,7 +113,7 @@ async def on_name(
 
 @log_dialog_action("EDIT_ABOUT")
 async def on_about(
-        message: Message, message_input: MessageInput, manager: DialogManager
+    message: Message, message_input: MessageInput, manager: DialogManager
 ):
     if not is_safe(message.text):
         return

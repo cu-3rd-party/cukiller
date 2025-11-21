@@ -1,4 +1,4 @@
-﻿import re
+import re
 from html import unescape
 
 SAFE_PATTERN = re.compile(r"^[\w\s\-\.,!()]+$", re.UNICODE)
