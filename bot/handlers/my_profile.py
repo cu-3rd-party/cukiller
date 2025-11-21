@@ -193,12 +193,12 @@ router.include_router(
             Button(
                 Const("Описание"),
                 id="description",
-                on_click=lambda c, b, m: m.switch_to(EditProfile.type),
+                on_click=lambda c, b, m: m.switch_to(EditProfile.about),
             ),
             Button(
                 Const("Фото профиля"),
                 id="profile_photo",
-                on_click=lambda c, b, m: m.switch_to(EditProfile.type),
+                on_click=lambda c, b, m: m.switch_to(EditProfile.photo),
             ),
             Cancel(Const("Назад")),
             state=EditProfile.main,
