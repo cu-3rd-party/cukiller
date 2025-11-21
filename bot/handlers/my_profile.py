@@ -225,17 +225,19 @@ router.include_router(
         # одиночные изменения
         Window(
             Const("Введите измененное имя:"),
-            MessageInput(content_types=ContentType.TEXT),
+            MessageInput(on_name, content_types=ContentType.TEXT),
             Cancel(Const("Назад")),
             state=EditProfile.name,
         ),
         Window(
             Const("Введите измененное описание:"),
+            MessageInput(on_about, content_types=ContentType.TEXT),
             Cancel(Const("Назад")),
-            state=EditProfile.description,
+            state=EditProfile.about,
         ),
         Window(
             Const("Отправь мне новое фото:"),
+            MessageInput(on_photo, content_types=ContentType.PHOTO),
             Cancel(Const("Назад")),
             state=EditProfile.photo,
         ),

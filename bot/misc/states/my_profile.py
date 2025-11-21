@@ -11,6 +11,6 @@ class EditProfile(StatesGroup):
     type = State()
     course = State()
     group = State()
-    description = State()
+    about = State()
     photo = State()
     confirm = State()
