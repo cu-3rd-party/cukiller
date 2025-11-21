@@ -16,9 +16,11 @@ from bot.handlers.mainloop.button_handlers import (
     on_i_killed,
     on_get_target,
     confirm_participation,
+    open_profile,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from bot.misc.states import MainLoop
+from bot.misc.states.my_profile import MyProfile
 from db.models import Game, User
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,12 @@ main_menu_dialog = Dialog(
                 on_click=confirm_participation,
                 when="user_not_participating",
             ),
+            Button(
+                Const("Мой профиль"),
+                id="profile",
+                when="user_participating",
+                on_click=open_profile,
+            ),
             # Game-related buttons
             Button(
                 Const("Получить цель"),
@@ -101,12 +109,12 @@ main_menu_dialog = Dialog(
                 id="write_report",
                 url=Format("{report_link}"),
             ),
-            # Url(
-            #     Const("Открыть профиль (DEBUG)"),
-            #     id="profile",
-            #     url=Format("{target_profile_link}"),
-            #     when="target_profile_link",
-            # ),
+            Url(
+                Const("Открыть профиль"),
+                id="profile",
+                url=Format("{target_profile_link}"),
+                when="target_profile_link",
+            ),
             Button(
                 Const("Я убил"),
                 id="i_killed",

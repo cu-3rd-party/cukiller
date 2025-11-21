@@ -10,6 +10,7 @@ from bot.handlers.kills_confirmation import (
     ConfirmKillVictim,
     ConfirmKillKiller,
 )
+from bot.misc.states.my_profile import MyProfile
 from bot.misc.states.participation import ParticipationForm
 from db.models import User, Game, KillEvent
 from services.logging import log_dialog_action
@@ -109,4 +110,13 @@ async def confirm_participation(
     await dialog.start(
         ParticipationForm.confirm,
         data={"game_id": game.id, "user_tg_id": user.tg_id},
+    )
+
+
+@log_dialog_action("OPEN_PROFILE")
+async def open_profile(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    await manager.start(
+        MyProfile.profile, data={"user_tg_id": callback.from_user.id}
     )

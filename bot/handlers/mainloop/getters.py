@@ -13,12 +13,15 @@ from services.matchmaking import MatchmakingService
 logger = logging.getLogger(__name__)
 
 
+async def get_user(manager: DialogManager):
+    return await User.get(tg_id=manager.start_data.get("user_tg_id"))
+
+
 async def get_user_and_game(manager: DialogManager):
     """Load user and game from dialog start data."""
-    user = await User.get(tg_id=manager.start_data.get("user_tg_id"))
     game_id = manager.start_data.get("game_id")
     game = await Game.get(id=game_id) if game_id is not None else None
-    return user, game
+    return await get_user(manager), game
 
 
 async def get_pending_events(game: Game, user: User):
