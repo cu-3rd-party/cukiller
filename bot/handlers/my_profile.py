@@ -21,7 +21,6 @@ from bot.handlers.registration_dialog import (
     COURSE_TYPES,
 )
 from db.models import User
-from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
 from services.states.my_profile import MyProfile, EditProfile
@@ -151,7 +150,6 @@ async def on_final_confirmation(
     user.about_user = d.get("about") or user.about_user
     user.photo = d.get("photo") or user.photo
     user.status = "pending"
-    user.rating = settings.DEFAULT_RATING
 
     await user.save()
 
