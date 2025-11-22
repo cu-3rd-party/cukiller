@@ -4,8 +4,9 @@ RUN apk add --no-cache git ca-certificates
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o matchmaking-service ./cmd/matchmaking
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+RUN CGO_ENABLED=0 GOOS=linux go build -o matchmaking-service ./cmd/matchmaking
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata

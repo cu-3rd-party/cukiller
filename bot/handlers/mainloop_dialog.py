@@ -19,9 +19,8 @@ from bot.handlers.mainloop.button_handlers import (
     open_profile,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
-from bot.misc.states import MainLoop
-from bot.misc.states.my_profile import MyProfile
 from db.models import Game, User
+from services.states import MainLoop
 
 logger = logging.getLogger(__name__)
 

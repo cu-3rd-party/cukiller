@@ -10,8 +10,8 @@ from aiogram.types import (
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
 from bot.handlers import mainloop_dialog
-from bot.misc.states import MainLoop
 from db.models import User, Game
+from services.states import MainLoop
 
 router = Router(name="profile_moderation")
 

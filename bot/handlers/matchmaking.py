@@ -6,10 +6,10 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiohttp import web
 
 from bot.handlers import mainloop_dialog
-from bot.misc.states import MainLoop
 from db.models import KillEvent, Game, User
 from services import settings
 from services.admin_chat import AdminChatService
+from services.states import MainLoop
 
 router = Router()
 logger = logging.getLogger(__name__)

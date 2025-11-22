@@ -20,11 +20,11 @@ from bot.handlers.registration_dialog import (
     group_required,
     COURSE_TYPES,
 )
-from bot.misc.states.my_profile import MyProfile, EditProfile
 from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
+from services.states.my_profile import MyProfile, EditProfile
 from services.strings import is_safe, SafeStringConfig
 
 logger = logging.getLogger(__name__)

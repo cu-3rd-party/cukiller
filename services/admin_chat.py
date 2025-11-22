@@ -44,7 +44,8 @@ class AdminChatService:
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-    async def _get_chat(self, key: str) -> Chat:
+    @staticmethod
+    async def _get_chat(key: str) -> Chat:
         chat = await Chat.get_or_none(key=key)
         if chat is None:
             raise ChatNotFoundError(key)

@@ -18,11 +18,11 @@ from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
-from bot.misc.states.editgame import EditGame
-from bot.misc.states.participation import ParticipationForm
-from bot.misc.states.startgame import StartGame
 from db.models import User, Game, Player
 from services.logging import log_dialog_action
+from services.states import EditGame
+from services.states import StartGame
+from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
 

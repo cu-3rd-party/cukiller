@@ -10,11 +10,11 @@ from bot.handlers.kills_confirmation import (
     ConfirmKillVictim,
     ConfirmKillKiller,
 )
-from bot.misc.states.my_profile import MyProfile
-from bot.misc.states.participation import ParticipationForm
 from db.models import User, Game, KillEvent
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
+from services.states.my_profile import MyProfile
+from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
 

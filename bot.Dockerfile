@@ -17,7 +17,6 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-COPY assets/ ./assets/
 COPY bot/ ./bot/
 COPY db/ ./db/
 COPY services/ ./services/

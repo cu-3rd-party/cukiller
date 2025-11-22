@@ -10,11 +10,11 @@ from aiogram_dialog.widgets.kbd import Button, Column, Group
 from aiogram_dialog.widgets.text import Const
 
 from bot.filters.confirmed import ProfileNonexistentFilter
-from bot.misc.states import RegisterForm
 from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
+from services.states import RegisterForm
 from services.strings import is_safe, SafeStringConfig
 
 logger = logging.getLogger(__name__)

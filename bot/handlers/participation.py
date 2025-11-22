@@ -9,11 +9,11 @@ from aiogram_dialog.widgets.kbd import Column, Button
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from bot.misc.states import MainLoop
-from bot.misc.states.participation import ParticipationForm
 from db.models import Player, Game, User
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
+from services.states import MainLoop
+from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
 
