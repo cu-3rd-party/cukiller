@@ -17,6 +17,7 @@ from bot.handlers.mainloop.button_handlers import (
     on_get_target,
     confirm_participation,
     open_profile,
+    open_rules,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from db.models import Game, User
@@ -73,6 +74,11 @@ main_menu_dialog = Dialog(
                 id="profile",
                 when="user_participating",
                 on_click=open_profile,
+            ),
+            Button(
+                Const("Правила"),
+                id="rules",
+                on_click=open_rules,
             ),
             # Game-related buttons
             Button(

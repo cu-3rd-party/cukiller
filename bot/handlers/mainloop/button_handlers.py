@@ -15,6 +15,7 @@ from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
+from services.states.rules import RulesStates
 
 logger = logging.getLogger(__name__)
 
@@ -120,3 +121,10 @@ async def open_profile(
     await manager.start(
         MyProfile.profile, data={"user_tg_id": callback.from_user.id}
     )
+
+
+@log_dialog_action("OPEN_RULES")
+async def open_rules(
+    callback: CallbackQuery, button: Button, manager: DialogManager
+):
+    await manager.start(RulesStates.rules)
