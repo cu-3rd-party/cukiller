@@ -149,7 +149,6 @@ async def on_final_confirmation(
         user.group_name = d.get("group_name")
     user.about_user = d.get("about") or user.about_user
     user.photo = d.get("photo") or user.photo
-    user.status = "pending"
 
     await user.save()
 
