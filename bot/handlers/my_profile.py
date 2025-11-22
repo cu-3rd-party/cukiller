@@ -25,7 +25,7 @@ from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
-from services.strings import is_safe
+from services.strings import is_safe, SafeStringConfig
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,9 @@ async def on_name(
 async def on_about(
     message: Message, message_input: MessageInput, manager: DialogManager
 ):
-    if not is_safe(message.text):
+    if not is_safe(
+        message.text, SafeStringConfig(allow_newline=True, max_len=500)
+    ):
         return
     manager.dialog_data["about"] = message.text
     await manager.switch_to(EditProfile.confirm)

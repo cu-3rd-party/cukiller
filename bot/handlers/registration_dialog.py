@@ -15,7 +15,7 @@ from db.models import User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
-from services.strings import is_safe
+from services.strings import is_safe, SafeStringConfig
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ async def on_group_selected(
 
 @log_dialog_action("REG_ABOUT_INPUT")
 async def on_about_input(m: Message, _, manager: DialogManager):
-    if not is_safe(m.text):
+    if not is_safe(m.text, SafeStringConfig(allow_newline=True, max_len=500)):
         return
     manager.dialog_data["about"] = m.text.strip()
     await manager.next()
