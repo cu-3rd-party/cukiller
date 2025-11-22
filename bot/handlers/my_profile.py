@@ -147,7 +147,7 @@ async def on_final_confirmation(
     if d.get("academics_edited"):
         user.type = d.get("course_type")
         user.course_number = d.get("course_number")
-        user.group_name = d.get("course_type")
+        user.group_name = d.get("group_name")
     user.about_user = d.get("about") or user.about_user
     user.photo = d.get("photo") or user.photo
     user.status = "pending"
