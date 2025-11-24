@@ -189,7 +189,7 @@ async def creategame(
             )
         )
         return
-    await dialog_manager.start(StartGame.confirm)
+    await dialog_manager.start(StartGame.name)
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
