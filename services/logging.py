@@ -41,3 +41,20 @@ def log_dialog_action(action_name: str):
         return wrapper
 
     return decorator
+
+
+def log_filter(call_name: str):
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            ret = await func(*args, **kwargs)
+            logger.debug(
+                "FILTER: %s called on user=%s and returned %s",
+                call_name,
+                args[1].from_user.id,
+                ret,
+            )
+            return ret
+
+        return wrapper
+
+    return decorator

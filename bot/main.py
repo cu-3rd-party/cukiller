@@ -48,7 +48,7 @@ def register_all_middlewares(dp: Dispatcher) -> None:
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:
-    for module in HANDLERS_PATH.rglob("*.py"):
+    for module in sorted(HANDLERS_PATH.rglob("*.py")):
         if module.name == "__init__.py":
             continue
         relative = module.relative_to(HANDLERS_PATH).with_suffix("")
