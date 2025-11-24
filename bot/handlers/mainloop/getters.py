@@ -114,6 +114,17 @@ async def parse_target_info(
     }
 
 
+async def get_user_rating(user: User, game: Game):
+    if not game:
+        return {}
+    player = await Player.filter(user_id=user.id).first()
+    if not player:
+        return {}
+    return {
+        "user_rating": player.rating,
+    }
+
+
 async def get_main_menu_info(
     dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
 ):
@@ -127,7 +138,7 @@ async def get_main_menu_info(
         "game_not_running": game is None,
         "user_not_participating": game is not None and not user.is_in_game,
         "user_participating": game is not None and user.is_in_game,
-        "user_rating": user.rating,
+        **await get_user_rating(user, game),
         **await parse_target_info(game, user, matchmaking),
     }
 

@@ -33,7 +33,7 @@ class MatchmakingService:
                 async with session.request(
                     method, url, json=json_data, timeout=10
                 ) as resp:
-                    if resp.status != 200:
+                    if resp.status not in (200, 201):
                         text = await resp.text()
                         self.logger.error(
                             f"HTTP {resp.status} {method} {url}: {text}"
@@ -58,18 +58,10 @@ class MatchmakingService:
             self.logger.error(f"Invalid queue type: {queue_type}")
             return False
 
-        endpoint = f"/add/{queue_type}/"
-        res = await self._request("POST", endpoint, json_data=player_data)
-
-        if res is not None:
-            self.logger.debug(
-                f"Added player {player_id} to {queue_type} queue via REST"
-            )
-            return True
-        self.logger.error(
-            f"Failed to add {player_id} to {queue_type} via REST"
+        await self._request(
+            "POST", f"/add/{queue_type}/", json_data=player_data
         )
-        return False
+        return True
 
     async def add_player_to_queues(
         self, player_id: int, player_data: Dict[str, Any]

@@ -10,7 +10,7 @@ from bot.handlers.kills_confirmation import (
     ConfirmKillVictim,
     ConfirmKillKiller,
 )
-from db.models import User, Game, KillEvent
+from db.models import User, Game, KillEvent, Player
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
@@ -83,10 +83,11 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     user: User = manager.middleware_data["user"]
+    player: Player = await Player.get(user_id=user.id)
 
     data = {
         "tg_id": user.tg_id,
-        "rating": user.rating,
+        "rating": player.rating,
         "type": user.type,
         "course_number": user.course_number,
         "group_name": user.group_name,

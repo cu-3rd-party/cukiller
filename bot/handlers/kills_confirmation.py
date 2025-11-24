@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import KillEvent, User, Chat
+from db.models import KillEvent, User, Chat, Player
 from services import settings
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop
@@ -45,27 +45,32 @@ async def send_double_confirm_dialog(
     )
 
 
-async def add_back_to_queues(killer: User, victim: User):
+async def add_back_to_queues(
+    killer: User, victim: User, killer_player: Player, victim_player: Player
+):
     """Return both players to matchmaking queues."""
     matchmaking = MatchmakingService()
-    for player, qtype in ((killer, "killer"), (victim, "victim")):
+    for user, player, qtype in (
+        (killer, killer_player, "killer"),
+        (victim, victim_player, "victim"),
+    ):
         await matchmaking.add_player_to_queue(
-            player.tg_id,
+            user.tg_id,
             {
-                "tg_id": player.tg_id,
+                "tg_id": user.tg_id,
                 "rating": player.rating,
-                "type": player.type,
-                "course_number": player.course_number,
-                "group_name": player.group_name,
+                "type": user.type,
+                "course_number": user.course_number,
+                "group_name": user.group_name,
             },
             queue_type=qtype,
         )
 
 
-async def modify_rating(killer: User, victim: User):
+async def modify_rating(killer_player: Player, victim_player: Player):
     """After successful kill, update ELO ratings of killer and victim."""
-    killer_rating = killer.rating
-    victim_rating = victim.rating
+    killer_rating = killer_player.rating
+    victim_rating = victim_player.rating
 
     expected_killer = 1 / (
         1 + 10 ** ((victim_rating - killer_rating) / settings.ELO_SCALE)
@@ -80,11 +85,11 @@ async def modify_rating(killer: User, victim: User):
     killer_new = killer_rating + killer_delta
     victim_new = victim_rating + victim_delta
 
-    killer.rating = round(killer_new)
-    victim.rating = round(victim_new)
+    killer_player.rating = round(killer_new)
+    victim_player.rating = round(victim_new)
 
-    await killer.save()
-    await victim.save()
+    await killer_player.save()
+    await victim_player.save()
 
     return killer_delta, victim_delta
 
@@ -113,14 +118,20 @@ async def notify_player(
 
 
 async def notify_chat(
-    bot: Bot, killer: User, victim: User, killer_delta: int, victim_delta: int
+    bot: Bot,
+    killer: User,
+    victim: User,
+    killer_player: Player,
+    victim_player: Player,
+    killer_delta: int,
+    victim_delta: int,
 ):
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
-            f"<b>{killer.name}</b> убил <b>{victim.name}</b>\n\n"
-            f"Новый MMR {killer.name}: {killer.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
-            f"Новый MMR {victim.name}: {victim.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+            f'<b><a href="tg://user?id={killer.tg_id}">{killer.name}</a></b> убил <b><a href="tg://user?id={victim.tg_id}">{victim.name}</a></b>\n\n'
+            f"Новый MMR {killer.name}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
+            f"Новый MMR {victim.name}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
         ),
     )
 
@@ -153,8 +164,10 @@ async def handle_confirm(
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
+        killer_player = await Player.get(user_id=kill_event.killer.id)
+        victim_player = await Player.get(user_id=kill_event.victim.id)
         killer_delta, victim_delta = await modify_rating(
-            kill_event.killer, kill_event.victim
+            killer_player, victim_player
         )
         await notify_player(kill_event.killer, bot, manager, killer_delta)
         await notify_player(kill_event.victim, bot, manager, victim_delta)
@@ -162,10 +175,14 @@ async def handle_confirm(
             bot,
             kill_event.killer,
             kill_event.victim,
+            killer_player,
+            victim_player,
             killer_delta,
             victim_delta,
         )
-        await add_back_to_queues(kill_event.killer, kill_event.victim)
+        await add_back_to_queues(
+            kill_event.killer, kill_event.victim, killer_player, victim_player
+        )
 
     await kill_event.save()
     await manager.start(

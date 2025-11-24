@@ -26,6 +26,8 @@ def setup_matchmaking_routers(app: web.Application, bot: Bot) -> None:
 async def get_queue_info(request: web.Request) -> web.StreamResponse:
     # по сути все игроки которые is_in_game, но у которых нету цели/нет убийцы подлежат помещению в очередь на матчмейкинг
     # можно сделать уебищную логику через все кто не в KillEvent, но надо TODO: добавить схему очереди в дб
+    if request.headers.get("secret-key") != request.app["settings"].secret_key:
+        return web.StreamResponse(status=403)
     game = await Game.filter(end_date=None).first()
     found_victims = set()
     found_killers = set()

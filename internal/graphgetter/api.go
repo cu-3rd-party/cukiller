@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func StartupHttp() {
@@ -34,8 +36,16 @@ func health(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var connectionsLimiter = rate.NewLimiter(rate.Every(time.Second/2), 4)
+
 func connectionsCSV(w http.ResponseWriter, r *http.Request) {
 	logger.Info("CSV request from %s", r.RemoteAddr)
+
+	err := connectionsLimiter.Wait(nil)
+	if err != nil {
+		logger.Warn("Failed to wait for limiter for request from %s", r.RemoteAddr)
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename=connections.csv")

@@ -25,10 +25,11 @@ def _build_body(text: str, tag: str | None) -> str:
 def _buttons(tg_id: int, with_inspect: bool) -> InlineKeyboardMarkup:
     rows = []
     if with_inspect:
-        logger.warning(f"User {tg_id} has forced us to disable inspect")
         rows.append(
             [InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")]
         )
+    else:
+        logger.warning(f"User {tg_id} has forced us to disable inspect")
     rows.append(
         [
             InlineKeyboardButton(
