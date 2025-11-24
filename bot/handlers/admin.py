@@ -68,7 +68,7 @@ async def stats(message: Message, bot: Bot):
         text=(
             "Держи краткую статистику по боту\n\n"
             f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
-            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count / user_count * 100}%\n"
+            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {round(user_confirmed_count / user_count * 100)}%\n"
             f"{game_status}\n"
             "\nДругие статистики будут добавляться по ходу дела, хозяин"
         )
