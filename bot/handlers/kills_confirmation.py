@@ -149,7 +149,9 @@ async def handle_confirm(
         id=manager.start_data["kill_event_id"]
     )
     setattr(kill_event, f"{role}_confirmed", True)
-    setattr(kill_event, f"{role}_confirmed_at", datetime.now())
+    setattr(
+        kill_event, f"{role}_confirmed_at", datetime.now(settings.timezone)
+    )
 
     await kill_event.fetch_related("killer")
     await kill_event.fetch_related("victim")

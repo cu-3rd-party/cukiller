@@ -72,7 +72,6 @@ main_menu_dialog = Dialog(
             Button(
                 Const("Мой профиль"),
                 id="profile",
-                when="user_participating",
                 on_click=open_profile,
             ),
             Button(

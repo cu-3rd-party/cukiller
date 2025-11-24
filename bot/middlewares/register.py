@@ -7,6 +7,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message
 
 from db.models import User
+from services import settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,9 @@ class RegisterUserMiddleware(BaseMiddleware):
         cache_key = user.id
         cached_data = self._user_cache.get(cache_key)
 
-        if cached_data and cached_data[
-            "timestamp"
-        ] > datetime.now() - timedelta(seconds=self.cache_ttl):
+        if cached_data and cached_data["timestamp"] > datetime.now(
+            settings.timezone
+        ) - timedelta(seconds=self.cache_ttl):
             data["user_tg_id"] = cached_data["user"].tg_id
             return await handler(event, data)
 
@@ -50,7 +51,7 @@ class RegisterUserMiddleware(BaseMiddleware):
             if db_user.status == "confirmed":
                 self._user_cache[cache_key] = {
                     "user": db_user,
-                    "timestamp": datetime.now(),
+                    "timestamp": datetime.now(settings.timezone),
                 }
                 data["user_tg_id"] = db_user.tg_id
                 return await handler(event, data)
@@ -75,7 +76,7 @@ class RegisterUserMiddleware(BaseMiddleware):
 
             self._user_cache[cache_key] = {
                 "user": db_user,
-                "timestamp": datetime.now(),
+                "timestamp": datetime.now(settings.timezone),
             }
             data["user_tg_id"] = db_user.tg_id
 
@@ -94,7 +95,7 @@ class RegisterUserMiddleware(BaseMiddleware):
 
             self._user_cache[cache_key] = {
                 "user": db_user,
-                "timestamp": datetime.now(),
+                "timestamp": datetime.now(settings.timezone),
             }
             data["user_tg_id"] = db_user.tg_id
             logger.info(f"New user with telegram id: {user.id}")
@@ -104,7 +105,7 @@ class RegisterUserMiddleware(BaseMiddleware):
 
     def _clean_cache(self):
         """Remove expired cache entries"""
-        now = datetime.now()
+        now = datetime.now(settings.timezone)
         expired_keys = [
             key
             for key, value in self._user_cache.items()

@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 
 from aiogram import Router, Bot, types
@@ -19,10 +21,12 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from db.models import User, Game, Player
+from services import settings
 from services.logging import log_dialog_action
 from services.states import EditGame
 from services.states import StartGame
 from services.states.participation import ParticipationForm
+from services.strings import trim_name, format_timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +105,7 @@ async def on_final_confirmation(
     bot = manager.event.bot
     manager.dialog_data["confirm"] = True
 
-    creation_date = datetime.now()
+    creation_date = datetime.now(settings.timezone)
     game = await Game().create(
         name=manager.dialog_data.get("name") or "test",
         start_date=creation_date,
@@ -181,7 +185,7 @@ async def creategame(
                 "Ты уверен, что хочешь начать новую игру, не закончив старую?\n\n"
                 "Даже если уверен, то ты меня не научил так делать, так "
                 "что начала закончи текущую активную игру\n"
-                "Для этого можешь воспользоваться /endgame\n"
+                "Для этого можешь воспользоваться /editgame\n"
             )
         )
         return
@@ -190,7 +194,9 @@ async def creategame(
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
 async def getservertime(message: Message):
-    await message.reply(f"Сейчас на сервере: {datetime.now()}")
+    await message.reply(
+        f"Сейчас на сервере: {datetime.now(settings.timezone)}"
+    )
 
 
 def parse_game_stage(game: Game) -> str:
@@ -244,14 +250,93 @@ async def on_action_clicked(
     game = await Game.get(id=manager.dialog_data["game_id"])
     logger.info(action)
     if action == "start_game":
-        game.start_date = datetime.now()
+        await handle_start_game(callback, game)
     elif action == "end_game":
-        game.end_date = datetime.now()
-        await User().all().update(is_in_game=False)
-    await game.save()
+        await handle_end_game(callback, game)
     logger.info(game.start_date)
     await callback.message.delete()
     await manager.switch_to(EditGame.edit)
+
+
+async def handle_start_game(callback: CallbackQuery, game: Game):
+    game.start_date = datetime.now(settings.timezone)
+    await game.save()
+
+
+async def handle_end_game(callback: CallbackQuery, game: Game):
+    """Handle game ending and send credits to all participants."""
+    game.end_date = datetime.now(settings.timezone)
+    await game.save()
+
+    participants, general_info = await asyncio.gather(
+        User().filter(is_in_game=True).all(), CreditsInfo.from_game(game)
+    )
+
+    send_tasks = [
+        send_game_credits(callback.bot, user.tg_id, general_info)
+        for user in participants
+    ]
+
+    results = await asyncio.gather(*send_tasks, return_exceptions=True)
+
+    for user, result in zip(participants, results):
+        if isinstance(result, Exception):
+            print(f"Failed to send credits to user {user.id}: {result}")
+
+    await User().filter(is_in_game=True).update(is_in_game=False)
+
+
+@dataclass
+class CreditsInfo:
+    name: str
+    duration: str
+    rating_top: str
+    top_players_count: int = 3
+
+    @classmethod
+    async def from_game(cls, game: Game, top_count: int = 3) -> "CreditsInfo":
+        """Create CreditsInfo from Game with top players."""
+        players: list[Player] = (
+            await Player.filter(game_id=game.id)
+            .order_by("-rating")
+            .limit(top_count)
+        )
+
+        rating_top = []
+        for n, player in enumerate(players, 1):
+            await player.fetch_related("user")
+            rating_top.append(
+                f"{n}: {trim_name(player.user.name, 20)} - {player.rating}"
+            )
+
+        duration = format_timedelta(game.end_date - game.start_date)
+
+        return cls(
+            name=game.name,
+            duration=duration,
+            rating_top="\n".join(rating_top)
+            if rating_top
+            else "Нет участников",
+            top_players_count=top_count,
+        )
+
+
+async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
+    """Send game credits message to a specific user."""
+    try:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"Игра <b>{info.name}</b> закончилась!\n"
+                f"Она продлилась {info.duration}\n"
+                "\n"
+                "Топ по рейтингу:\n"
+                f"{info.rating_top}"
+            ),
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        raise Exception(f"Failed to send message to chat {chat_id}") from e
 
 
 async def game_info_getter(dialog_manager: DialogManager, **kwargs):
@@ -328,3 +413,8 @@ router.include_router(game_edit_dialog)
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(EditGame.game_id)
+
+
+@router.message(Command(commands=["cancel"]))
+async def cancel(message: Message, dialog_manager: DialogManager):
+    await dialog_manager.done()

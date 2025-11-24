@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 from aiogram.types import ChatInviteLink
 from pydantic import Field, computed_field
@@ -87,6 +88,15 @@ class Settings(BaseSettings):
                 }
             },
         }
+
+    _timezone: Optional[ZoneInfo] = None
+
+    @computed_field
+    @property
+    def timezone(self) -> ZoneInfo:
+        if self._timezone is None:
+            self._timezone = ZoneInfo(self.tz)
+        return self._timezone
 
     model_config: SettingsConfigDict = SettingsConfigDict(
         env_file=".env",

@@ -2,14 +2,14 @@
 Metrics endpoint handler for Prometheus scraping.
 """
 
-import logging
 import asyncio
+import logging
 from datetime import datetime
-from typing import Dict, Any
 
 from aiohttp import web
 from aiohttp.web import Request, Response
 
+from services import settings
 from services.metrics import metrics
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ async def health_check(request: Request) -> Response:
 
         health_data = {
             "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(settings.timezone).isoformat(),
             "service": "cukiller-bot",
         }
 
@@ -60,7 +60,7 @@ async def health_check(request: Request) -> Response:
         return web.json_response(
             {
                 "status": "unhealthy",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(settings.timezone).isoformat(),
                 "error": str(e),
                 "service": "cukiller-bot",
             },
