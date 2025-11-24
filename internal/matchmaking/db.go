@@ -27,19 +27,16 @@ func InitDb() {
 // populateQueues finds players who are in game but don't have kill events and puts them into KillerPool and VictimPool
 func populateQueues(ctx context.Context) error {
 	populationTime := time.Now()
-	var gameId []uint8
-	err := db.QueryRowContext(ctx, `SELECT id FROM games WHERE end_date ISNULL`).Scan(&gameId)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			logger.Error("Error querying active game: %v", err)
-		}
+	ok, gameId := GetActiveGame()
+	if !ok {
 		return nil
 	}
 
 	// --- Populate KillerPool ---
 	killerRows, err := db.QueryContext(ctx, `
-        SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
+        SELECT u.tg_id, p.rating, u.type, u.course_number, u.group_name 
         FROM users u
+        LEFT JOIN players p ON u.id = p.user_id AND p.game_id = $1
         LEFT JOIN kill_events k ON u.id = k.killer_user_id AND k.game_id = $1 AND k.status != 'confirmed'
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
@@ -83,8 +80,9 @@ func populateQueues(ctx context.Context) error {
 
 	// --- Populate VictimPool ---
 	victimRows, err := db.QueryContext(ctx, `
-        SELECT u.tg_id, u.rating, u.type, u.course_number, u.group_name 
+        SELECT u.tg_id, p.rating, u.type, u.course_number, u.group_name 
         FROM users u
+        LEFT JOIN players p ON u.id = p.user_id AND p.game_id = $1
         LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = $1 AND k.status != 'confirmed'
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
@@ -251,7 +249,7 @@ func ArePaired(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 
 func GetActiveGame() (bool, uuid.UUID) {
 	row := db.QueryRow(`
-	SELECT * FROM games WHERE end_date IS NULL LIMIT 1
+	SELECT g.id FROM games g WHERE g.end_date IS NULL LIMIT 1
 	`)
 	var id uuid.UUID
 	err := row.Scan(&id)
