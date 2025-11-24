@@ -20,6 +20,7 @@ from redis.asyncio import Redis
 from bot.handlers.matchmaking import setup_matchmaking_routers
 from bot.handlers.metrics import metrics_updater, setup_metrics_routes
 from bot.middlewares.environment import EnvironmentMiddleware
+from bot.middlewares.game import GameMiddleware
 from bot.middlewares.logging import VerboseLoggingMiddleware
 from bot.middlewares.private_messages import PrivateMessagesMiddleware
 from bot.middlewares.register import RegisterUserMiddleware
@@ -42,6 +43,7 @@ def register_all_middlewares(dp: Dispatcher) -> None:
     dp.update.middleware(UserMiddleware())
     dp.update.middleware(VerboseLoggingMiddleware())
     dp.callback_query.middleware(UserMiddleware())
+    dp.callback_query.middleware(GameMiddleware())
     dp.update.middleware(EnvironmentMiddleware(dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
     dp.message.middleware(PrivateMessagesMiddleware())

@@ -117,7 +117,7 @@ async def parse_target_info(
 async def get_user_rating(user: User, game: Game):
     if not game:
         return {}
-    player = await Player.filter(user_id=user.id).first()
+    player = await Player.filter(game_id=game.id, user_id=user.id).first()
     if not player:
         return {}
     return {

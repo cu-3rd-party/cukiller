@@ -154,7 +154,7 @@ func getUserIdByTgId(tgId uint64) (uuid.UUID, error) {
 	return id, nil
 }
 
-func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
+func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 	defer func() {
 		logger.Debug("PlayersWerePairedRecently(killer=%d, victim=%d) returned %t",
 			killerTgId, victimTgId, ok)
@@ -171,10 +171,10 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 	rows, err := db.Query(`
 		SELECT killer_user_id, victim_user_id
 		FROM kill_events
-		WHERE status = 'confirmed'
+		WHERE status = 'confirmed' AND game_id = $1
 		ORDER BY created_at DESC
-		LIMIT $1
-	`, conf.MatchHistoryCheckDepth)
+		LIMIT $2
+	`, gameId, conf.MatchHistoryCheckDepth)
 	if err != nil {
 		logger.Error("Error querying last kill events: %v", err)
 		return false // безопасная логика
@@ -207,7 +207,7 @@ func PlayersWerePairedRecently(killerTgId, victimTgId uint64) (ok bool) {
 	return false
 }
 
-func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
+func ArePaired(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 	defer func() {
 		logger.Debug("ArePaired(killer=%d, victim=%d) returned %t",
 			killerTgId, victimTgId, ok)
@@ -227,8 +227,9 @@ func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
 			ke.killer_user_id = $1 
 			AND ke.victim_user_id = $2 
 			AND ke.status = 'pending'
+			AND ke.game_id = $3
 		LIMIT 1
-	`, killerId, victimId)
+	`, killerId, victimId, gameId)
 
 	var dummy int
 	err := row.Scan(&dummy)
@@ -246,4 +247,25 @@ func ArePaired(killerTgId, victimTgId uint64) (ok bool) {
 
 	// Если нашли хотя бы одну строку — они спарены
 	return true
+}
+
+func GetActiveGame() (bool, uuid.UUID) {
+	row := db.QueryRow(`
+	SELECT * FROM games WHERE end_date IS NULL LIMIT 1
+	`)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Нет активной игры
+		return false, id
+	}
+
+	if err != nil {
+		// Ошибка SQL — безопасный return
+		logger.Error("GetActiveGame SQL error: %v", err)
+		return false, id
+	}
+
+	// Если нашли хотя бы одну строку — игра идет и возвращаем ее айди
+	return true, id
 }

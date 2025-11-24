@@ -83,7 +83,8 @@ async def on_get_target(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     user: User = manager.middleware_data["user"]
-    player: Player = await Player.get(user_id=user.id)
+    game: Game = manager.middleware_data["game"]
+    player: Player = await Player.get(game_id=game.id, user_id=user.id)
 
     data = {
         "tg_id": user.tg_id,

@@ -166,8 +166,14 @@ async def handle_confirm(
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
-        killer_player = await Player.get(user_id=kill_event.killer.id)
-        victim_player = await Player.get(user_id=kill_event.victim.id)
+        killer_player = await Player.get(
+            game_id=manager.middleware_data["game"],
+            user_id=kill_event.killer.id,
+        )
+        victim_player = await Player.get(
+            game_id=manager.middleware_data["game"],
+            user_id=kill_event.victim.id,
+        )
         killer_delta, victim_delta = await modify_rating(
             killer_player, victim_player
         )

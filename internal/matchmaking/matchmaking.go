@@ -48,6 +48,11 @@ func matchmaking() {
 	curTime := time.Now()
 	logger.Debug("Running matchmaking cycle at %s", curTime)
 
+	gameActive, gameId := GetActiveGame()
+	if !gameActive {
+		return
+	}
+
 	if len(KillerPool)+len(VictimPool) < 2 {
 		return
 	}
@@ -81,11 +86,11 @@ func matchmaking() {
 			}
 
 			// обрабатываем чтоб не было одиночных циклов
-			if ArePaired(victimId, killerId) {
+			if ArePaired(gameId, victimId, killerId) {
 				continue
 			}
 
-			if PlayersWerePairedRecently(killerId, victimId) {
+			if PlayersWerePairedRecently(gameId, killerId, victimId) {
 				continue
 			}
 
