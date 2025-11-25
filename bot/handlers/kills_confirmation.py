@@ -111,6 +111,7 @@ async def notify_player(
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
+    await dialog_manager.done()
     await dialog_manager.start(
         MainLoop.title,
         data={**manager.start_data, "user_tg_id": user.tg_id},
@@ -153,6 +154,7 @@ async def handle_confirm(
     setattr(
         kill_event, f"{role}_confirmed_at", datetime.now(settings.timezone)
     )
+    await kill_event.save()
 
     await kill_event.fetch_related("killer")
     await kill_event.fetch_related("victim")
@@ -167,6 +169,7 @@ async def handle_confirm(
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
+        await kill_event.save()
         killer_player = await Player.get(
             game_id=manager.middleware_data["game"].id,
             user_id=kill_event.killer.id,
@@ -177,6 +180,9 @@ async def handle_confirm(
         )
         killer_delta, victim_delta = await modify_rating(
             killer_player, victim_player
+        )
+        await add_back_to_queues(
+            kill_event.killer, kill_event.victim, killer_player, victim_player
         )
         await notify_player(kill_event.killer, bot, manager, killer_delta)
         await notify_player(kill_event.victim, bot, manager, victim_delta)
@@ -189,11 +195,7 @@ async def handle_confirm(
             killer_delta,
             victim_delta,
         )
-        await add_back_to_queues(
-            kill_event.killer, kill_event.victim, killer_player, victim_player
-        )
 
-    await kill_event.save()
     await manager.start(
         MainLoop.title,
         data={

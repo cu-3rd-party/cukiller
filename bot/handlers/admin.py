@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime
+from uuid import UUID
 
 from aiogram import Router, Bot, Dispatcher
 from aiogram.enums import ContentType
@@ -20,7 +21,7 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
-from db.models import User, Game, Player
+from db.models import User, Game, Player, Chat
 from services import settings
 from services.credits import CreditsInfo
 from services.logging import log_dialog_action
@@ -102,8 +103,15 @@ async def send_notification(bot: Bot, user: User, text: str):
         text=text,
         parse_mode="HTML",
     )
+    asyncio.create_task(delete_later(bot, msg.chat.id, msg.message_id))
+
+
+async def delete_later(bot: Bot, chat_id: int, msg_id: int):
     await asyncio.sleep(10)
-    await msg.delete()
+    try:
+        await bot.delete_message(chat_id, msg_id)
+    except Exception as e:
+        logger.warning(f"Failed to delete message {msg_id}: {e}")
 
 
 @log_dialog_action("ADMIN_CAMPAIGN_FINAL_CONFIRMATION")
@@ -307,13 +315,13 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
     await game.save()
     await MatchmakingService().reset_queues()
 
-    participants, general_info = await asyncio.gather(
-        User().all(), CreditsInfo.from_game(game)
+    participants, info, discussion = await asyncio.gather(
+        User().all(), CreditsInfo.from_game(game), Chat.get(key="discussion")
     )
 
     send_tasks = [
-        user_endgame(bot, dp, user.tg_id, general_info)
-        for user in participants
+        *[user_endgame(bot, dp, user, info) for user in participants],
+        send_game_credits(bot, info, discussion.chat_id),
     ]
 
     results = await asyncio.gather(*send_tasks, return_exceptions=True)
@@ -326,13 +334,18 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
 
 
 async def user_endgame(
-    bot: Bot, dp: Dispatcher, user_id: int, info: CreditsInfo
+    bot: Bot, dp: Dispatcher, user: User, info: CreditsInfo
 ):
-    await send_game_credits(bot, user_id, info)
-    await reset_dialog(bot, dp, user_id)
+    await send_game_credits(bot, info, user.tg_id, user.id)
+    await reset_dialog(bot, dp, user.tg_id)
 
 
-async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
+async def send_game_credits(
+    bot: Bot,
+    info: CreditsInfo,
+    chat_id: int,
+    user_id: UUID | None = None,
+) -> None:
     """Send game credits message to a specific user."""
     try:
         await bot.send_message(
@@ -341,19 +354,34 @@ async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
                 f"Игра <b>{info.name}</b> закончилась!\n"
                 f"Она продлилась {info.duration}\n"
                 "\n"
-                "Топ по рейтингу:\n"
+                "<b>Топ по рейтингу:</b>\n"
                 f"{info.rating_top}\n"
                 "\n"
-                "Топ по убийствам:\n"
+                "<b>Топ по убийствам:</b>\n"
                 f"{info.killers_top}\n"
                 "\n"
-                "Топ по смертям:\n"
+                "<b>Топ по смертям:</b>\n"
                 f"{info.victims_top}\n"
+                "\n"
+                f"{get_personal_stats(user_id, info) if user_id else ''}"
             ),
             parse_mode="HTML",
         )
     except Exception as e:
         raise Exception(f"Failed to send message to chat {chat_id}") from e
+
+
+def get_personal_stats(user_id: UUID, info: CreditsInfo):
+    player_info = info.per_player.get(user_id)
+    if not player_info:
+        return "Нет данных"
+    return (
+        "<b>Ваша статистика:</b>\n"
+        f"Ваш рейтинг к концу игры: <b>{player_info.rating}</b>\n"
+        f"Ваш К/Д: <b>{player_info.kills}/{player_info.deaths}</b>\n"
+        "Логи убийств:\n"
+        f"{'\n'.join(player_info.log)}"
+    )
 
 
 async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
@@ -472,7 +500,7 @@ async def endgame(
         await msg.delete()
         return
     await handle_end_game(bot, dispatcher, active_game)
-    msg = await message.answer("Игра успешно завершена")
+    msg = await message.answer("Игра успешно завершена\nБот уходит на перезагрузку")
     await asyncio.sleep(1)
     await msg.delete()
 

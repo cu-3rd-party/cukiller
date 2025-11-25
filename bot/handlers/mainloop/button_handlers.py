@@ -85,6 +85,8 @@ async def on_get_target(
 ):
     user: User = manager.middleware_data["user"]
     game: Game = manager.middleware_data["game"]
+    if not game:
+        return
     player: Player = await Player.get(game_id=game.id, user_id=user.id)
 
     data = {
