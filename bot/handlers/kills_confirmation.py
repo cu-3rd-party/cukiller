@@ -16,6 +16,7 @@ from db.models import KillEvent, User, Chat, Player
 from services import settings
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop
+from services.strings import trim_name
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -129,9 +130,9 @@ async def notify_chat(
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
-            f'<b><a href="tg://user?id={killer.tg_id}">{killer.name}</a></b> убил <b><a href="tg://user?id={victim.tg_id}">{victim.name}</a></b>\n\n'
-            f"Новый MMR {killer.name}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
-            f"Новый MMR {victim.name}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+            f'<b><a href="tg://user?id={killer.tg_id}">{trim_name(killer.name, 25)}</a></b> убил <b><a href="tg://user?id={victim.tg_id}">{trim_name(victim.name, 25)}</a></b>\n\n'
+            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
+            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
         ),
     )
 
@@ -167,11 +168,11 @@ async def handle_confirm(
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
         killer_player = await Player.get(
-            game_id=manager.middleware_data["game"],
+            game_id=manager.middleware_data["game"].id,
             user_id=kill_event.killer.id,
         )
         victim_player = await Player.get(
-            game_id=manager.middleware_data["game"],
+            game_id=manager.middleware_data["game"].id,
             user_id=kill_event.victim.id,
         )
         killer_delta, victim_delta = await modify_rating(
@@ -199,6 +200,7 @@ async def handle_confirm(
             "user_tg_id": from_user.id,
             "game_id": manager.start_data["game_id"],
         },
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 

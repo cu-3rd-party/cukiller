@@ -7,6 +7,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
+from aiogram_dialog import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
 from bot.handlers import mainloop_dialog
@@ -121,6 +122,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
                 "user_tg_id": user.tg_id,
                 "game_id": (game and game.id) or None,
             },
+            show_mode=ShowMode.DELETE_AND_SEND,
         )
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it

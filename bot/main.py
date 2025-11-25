@@ -113,6 +113,7 @@ async def on_startup(bot: Bot) -> None:
     await metrics_updater.start()
     await start_web_server(bot)
     await MatchmakingService().healthcheck()
+    await MatchmakingService().reset_queues()
 
 
 async def on_shutdown(bot: Bot) -> None:

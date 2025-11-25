@@ -3,7 +3,7 @@ import logging
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Cancel, Button
@@ -48,7 +48,9 @@ async def on_edit(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     await manager.start(
-        EditProfile.main, data={"user_tg_id": callback.from_user.id}
+        EditProfile.main,
+        data={"user_tg_id": callback.from_user.id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 

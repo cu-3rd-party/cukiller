@@ -4,7 +4,7 @@ from aiogram import Bot, Router
 from aiogram.enums import ContentType
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
-from aiogram_dialog import Window, Dialog, DialogManager
+from aiogram_dialog import Window, Dialog, DialogManager, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Column, Group
 from aiogram_dialog.widgets.text import Const
@@ -312,4 +312,6 @@ async def registration_start(
     bot: Bot,
 ):
     await dialog_manager.reset_stack()
-    await dialog_manager.start(RegisterForm.name)
+    await dialog_manager.start(
+        RegisterForm.name, show_mode=ShowMode.DELETE_AND_SEND
+    )

@@ -30,6 +30,16 @@ func StartupHttp() {
 	}
 }
 
+func cleanQueues() {
+	KillerPoolMutex.Lock()
+	defer KillerPoolMutex.Unlock()
+	VictimPoolMutex.Lock()
+	defer VictimPoolMutex.Unlock()
+
+	KillerPool = make(map[uint64]QueuePlayer)
+	VictimPool = make(map[uint64]QueuePlayer)
+}
+
 func reloadQueues(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Requested repopulation of queues by %s", r.RemoteAddr)
 	if conf.SecretKey != r.Header.Get("secret-key") {
@@ -39,6 +49,7 @@ func reloadQueues(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), conf.ReloadTimeout)
 	defer cancel()
+	cleanQueues()
 	err := populateQueues(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

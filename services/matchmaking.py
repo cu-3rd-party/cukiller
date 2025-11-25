@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
 
@@ -25,28 +25,27 @@ class MatchmakingService:
 
     async def _request(
         self, method: str, path: str, json_data: Optional[dict] = None
-    ) -> Optional[dict]:
+    ) -> Tuple[Optional[int], Optional[dict]]:
         """Unified helper to call the Go microservice via REST"""
         url = f"{self.base_url}{path}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.request(
-                    method, url, json=json_data, timeout=10
+                    method,
+                    url,
+                    json=json_data,
+                    timeout=10,
+                    headers={"secret-key": settings.secret_key},
                 ) as resp:
-                    if resp.status not in (200, 201):
-                        text = await resp.text()
-                        self.logger.error(
-                            f"HTTP {resp.status} {method} {url}: {text}"
-                        )
-                        return None
+                    resp.raise_for_status()
                     if "application/json" in resp.headers.get(
                         "Content-Type", ""
                     ):
-                        return await resp.json()
-                    return None
+                        return resp.status, await resp.json()
+                    return resp.status, None
         except Exception as e:
             self.logger.error(f"Failed {method} {url}: {e}")
-            return None
+            return None, None
 
     # -------------------- QUEUE OPS --------------------
 
@@ -76,10 +75,13 @@ class MatchmakingService:
         return added_killer and added_victim
 
     async def get_queues_length(self):
-        data = await self._request("GET", "/get/queues/len/")
+        _, data = await self._request("GET", "/get/queues/len/")
         return data["Killers"], data["Victims"]
 
     async def get_player_by_id(self, player_id: int):
         self.logger.debug("Getting player by id %d", player_id)
-        data = await self._request("GET", f"/get/player/{player_id}")
+        _, data = await self._request("GET", f"/get/player/{player_id}")
         return data["QueuedKiller"], data["QueuedVictim"]
+
+    async def reset_queues(self):
+        await self._request("POST", "/queues/update/")

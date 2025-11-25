@@ -1,9 +1,10 @@
 import logging
 
+from aiogram import F
 from aiogram import Router, Bot
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
 from aiogram_dialog.widgets.kbd import Button, Column, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
@@ -33,7 +34,7 @@ main_menu_dialog = Dialog(
         Const("Главное меню\n"),
         Format(
             "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
-            when="user_participating",
+            when="user_rating",
         ),
         Format(
             "Вы запросили подтверждение убийства вас у вашего убийцы, ожидайте",
@@ -61,13 +62,13 @@ main_menu_dialog = Dialog(
                 Const("Когда следующая игра?"),
                 id="next_game_link",
                 url=Format("{next_game_link}"),
-                when="game_not_running",
+                when=~F["game_running"],
             ),
             Button(
                 Const("Присоединиться к игре"),
                 id="join_game",
                 on_click=confirm_participation,
-                when="user_not_participating",
+                when="join_game_button",
             ),
             Button(
                 Const("Мой профиль"),
@@ -93,7 +94,7 @@ main_menu_dialog = Dialog(
                 when="is_hunted",
             ),
             Button(
-                Format("Ваша цель: {target_name}"),
+                Format("Ваша цель: {target_name_trimmed}"),
                 id="target_info",
                 on_click=lambda c, b, m: m.switch_to(MainLoop.target_info),
                 when="has_target",
@@ -155,4 +156,5 @@ async def confirmed_start(
             "user_tg_id": message.from_user.id,
             "game_id": (game and game.id) or None,
         },
+        show_mode=ShowMode.DELETE_AND_SEND,
     )

@@ -58,3 +58,19 @@ def log_filter(call_name: str):
         return wrapper
 
     return decorator
+
+
+def log_getter(call_name: str):
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            ret = await func(*args, **kwargs)
+            logger.debug(
+                "GETTER: %s called and returned %s",
+                call_name,
+                ret,
+            )
+            return ret
+
+        return wrapper
+
+    return decorator

@@ -1,7 +1,7 @@
 import logging
 
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button
 
@@ -35,6 +35,7 @@ async def _start_kill_confirmation(
     await manager.start(
         state,
         data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 
@@ -110,9 +111,12 @@ async def confirm_participation(
         chat_id=user.tg_id,
     )
 
+    await dialog.done()
+
     await dialog.start(
         ParticipationForm.confirm,
         data={"game_id": game.id, "user_tg_id": user.tg_id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 
@@ -121,7 +125,9 @@ async def open_profile(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     await manager.start(
-        MyProfile.profile, data={"user_tg_id": callback.from_user.id}
+        MyProfile.profile,
+        data={"user_tg_id": callback.from_user.id},
+        show_mode=ShowMode.DELETE_AND_SEND,
     )
 
 

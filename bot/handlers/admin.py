@@ -1,9 +1,10 @@
 import asyncio
+import html
 import logging
 from dataclasses import dataclass
 from datetime import datetime
 
-from aiogram import Router, Bot, types
+from aiogram import Router, Bot, Dispatcher
 from aiogram.enums import ContentType
 from aiogram.filters import Command
 from aiogram.types import (
@@ -12,18 +13,20 @@ from aiogram.types import (
     BotCommandScopeChat,
     CallbackQuery,
 )
-from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.api.entities import StartMode, ShowMode
+from aiogram_dialog import Dialog, Window, DialogManager, BaseDialogManager
+from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Column, Button, Select, Row
+from aiogram_dialog.widgets.kbd import Column, Button, Select, Row, Cancel
 from aiogram_dialog.widgets.text import Format, Const
 
 from bot.filters.admin import AdminFilter
+from bot.handlers import mainloop_dialog
 from db.models import User, Game, Player
 from services import settings
 from services.logging import log_dialog_action
-from services.states import EditGame
+from services.matchmaking import MatchmakingService
+from services.states import EditGame, EndGame, MainLoop
 from services.states import StartGame
 from services.states.participation import ParticipationForm
 from services.strings import trim_name, format_timedelta
@@ -110,33 +113,57 @@ async def on_final_confirmation(
         name=manager.dialog_data.get("name") or "test",
         start_date=creation_date,
     )
+    users = (
+        await User()
+        .filter(is_in_game=False, status="confirmed")
+        .only("tg_id", "name")
+        .all()
+    )
 
-    users = await User().filter(is_in_game=False, status="confirmed").all()
     logger.debug(f"Notifying {len(users)} about new game {game.id}")
+
+    tasks = []
+    factory = BgManagerFactoryImpl(router=router)
+
     for user in users:
-        await bot.send_message(
+        user_mention = (
+            f'<a href="tg://user?id={user.tg_id}">{html.escape(user.name)}</a>'
+        )
+
+        # Send notification message
+        message_task = bot.send_message(
             user.tg_id,
-            text=f"Внимание, {types.User(id=user.tg_id, is_bot=False, first_name=user.name).mention_html()}!!",
+            text=f"Внимание, {user_mention}!!",
             parse_mode="HTML",
         )
-        user_dialog_manager = BgManagerFactoryImpl(router=router).bg(
+        tasks.append(message_task)
+
+        user_dialog_manager = factory.bg(
             bot=bot,
             user_id=user.tg_id,
             chat_id=user.tg_id,
         )
-        await user_dialog_manager.start(
+        tasks.append(user_dialog_manager.done())
+        dialog_task = user_dialog_manager.start(
             ParticipationForm.confirm,
             data={
-                "game_id": (game and game.id) or None,
+                "game_id": game.id,
                 "user_tg_id": user.tg_id,
             },
-            mode=StartMode.NEW_STACK,
             show_mode=ShowMode.DELETE_AND_SEND,
         )
+        tasks.append(dialog_task)
+
+    if tasks:
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Task {i} failed: {result}")
 
     await manager.done()
-    await callback.message.reply(
-        f"Новая игра создана. Дата создания: {creation_date}"
+    await callback.answer(
+        f"Новая игра создана. Дата создания: {creation_date}",
+        show_alert=True,
     )
 
 
@@ -149,30 +176,31 @@ async def on_reset_game_creation(
     await manager.switch_to(StartGame.name)
 
 
-create_game_dialog = Dialog(
-    Window(
-        Const("Ну вот ты хочешь начать новую игру, как назовем ее?"),
-        MessageInput(on_name_input, content_types=ContentType.TEXT),
-        state=StartGame.name,
-    ),
-    Window(
-        Const("Ну в принципе я получил все что мне надо было, стартуем?"),
-        Column(
-            Button(
-                Const("Да, погнали"),
-                on_click=on_final_confirmation,
-                id="startgame_confirm",
-            ),
-            Button(
-                Const("Нет, назад"),
-                on_click=on_reset_game_creation,
-                id="startgame_reject",
-            ),
+router.include_router(
+    Dialog(
+        Window(
+            Const("Ну вот ты хочешь начать новую игру, как назовем ее?"),
+            MessageInput(on_name_input, content_types=ContentType.TEXT),
+            state=StartGame.name,
         ),
-        state=StartGame.confirm,
-    ),
+        Window(
+            Const("Ну в принципе я получил все что мне надо было, стартуем?"),
+            Column(
+                Button(
+                    Const("Да, погнали"),
+                    on_click=on_final_confirmation,
+                    id="startgame_confirm",
+                ),
+                Button(
+                    Const("Нет, назад"),
+                    on_click=on_reset_game_creation,
+                    id="startgame_reject",
+                ),
+            ),
+            state=StartGame.confirm,
+        ),
+    )
 )
-router.include_router(create_game_dialog)
 
 
 @router.message(AdminFilter(), Command(commands=["creategame"]))
@@ -180,7 +208,7 @@ async def creategame(
     message: Message, bot: Bot, dialog_manager: DialogManager
 ):
     if await Game().filter(end_date=None).exists():
-        await message.reply(
+        msg = await message.reply(
             text=(
                 "Ты уверен, что хочешь начать новую игру, не закончив старую?\n\n"
                 "Даже если уверен, то ты меня не научил так делать, так "
@@ -188,15 +216,21 @@ async def creategame(
                 "Для этого можешь воспользоваться /editgame\n"
             )
         )
+        await asyncio.sleep(10)
+        await msg.delete()
         return
-    await dialog_manager.start(StartGame.name)
+    await dialog_manager.start(
+        StartGame.name, show_mode=ShowMode.DELETE_AND_SEND
+    )
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
 async def getservertime(message: Message):
-    await message.reply(
+    msg = await message.reply(
         f"Сейчас на сервере: {datetime.now(settings.timezone)}"
     )
+    await asyncio.sleep(10)
+    await msg.delete()
 
 
 def parse_game_stage(game: Game) -> str:
@@ -205,7 +239,7 @@ def parse_game_stage(game: Game) -> str:
     elif game.start_date:
         return "Начата"
     else:
-        logger.warn("start: %s; end: %s", game.start_date, game.end_date)
+        logger.warning("start: %s; end: %s", game.start_date, game.end_date)
         return "err"
 
 
@@ -252,7 +286,9 @@ async def on_action_clicked(
     if action == "start_game":
         await handle_start_game(callback, game)
     elif action == "end_game":
-        await handle_end_game(callback, game)
+        await handle_end_game(
+            callback.bot, manager.middleware_data["dispatcher"], game
+        )
     logger.info(game.start_date)
     await callback.message.delete()
     await manager.switch_to(EditGame.edit)
@@ -261,19 +297,21 @@ async def on_action_clicked(
 async def handle_start_game(callback: CallbackQuery, game: Game):
     game.start_date = datetime.now(settings.timezone)
     await game.save()
+    await MatchmakingService().reset_queues()
 
 
-async def handle_end_game(callback: CallbackQuery, game: Game):
+async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
     """Handle game ending and send credits to all participants."""
     game.end_date = datetime.now(settings.timezone)
     await game.save()
+    await MatchmakingService().reset_queues()
 
     participants, general_info = await asyncio.gather(
-        User().filter(is_in_game=True).all(), CreditsInfo.from_game(game)
+        User().all(), CreditsInfo.from_game(game)
     )
 
     send_tasks = [
-        send_game_credits(callback.bot, user.tg_id, general_info)
+        user_endgame(bot, dp, user.tg_id, general_info)
         for user in participants
     ]
 
@@ -281,7 +319,7 @@ async def handle_end_game(callback: CallbackQuery, game: Game):
 
     for user, result in zip(participants, results):
         if isinstance(result, Exception):
-            print(f"Failed to send credits to user {user.id}: {result}")
+            logger.error(f"Failed to send credits to user {user.id}: {result}")
 
     await User().filter(is_in_game=True).update(is_in_game=False)
 
@@ -321,6 +359,13 @@ class CreditsInfo:
         )
 
 
+async def user_endgame(
+    bot: Bot, dp: Dispatcher, user_id: int, info: CreditsInfo
+):
+    await send_game_credits(bot, user_id, info)
+    await reset_dialog(bot, dp, user_id)
+
+
 async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
     """Send game credits message to a specific user."""
     try:
@@ -339,6 +384,18 @@ async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
         raise Exception(f"Failed to send message to chat {chat_id}") from e
 
 
+async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
+    user_manager: BaseDialogManager = BgManagerFactoryImpl(
+        mainloop_dialog.router
+    ).bg(bot, user_id, user_id)
+    await user_manager.done()
+    await user_manager.start(
+        MainLoop.title,
+        data={"user_tg_id": user_id, "game_id": None},
+        show_mode=ShowMode.DELETE_AND_SEND,
+    )
+
+
 async def game_info_getter(dialog_manager: DialogManager, **kwargs):
     game_id = dialog_manager.dialog_data["game_id"]
     game = await Game().get(id=game_id)
@@ -353,66 +410,99 @@ async def game_info_getter(dialog_manager: DialogManager, **kwargs):
     }
 
 
-game_edit_dialog = Dialog(
-    Window(
-        Const("Выбери, какую игру хочешь изменить:"),
-        Column(
-            Select(
-                Format("{item[name]}"),
-                id="select_game",
-                items="games",
-                item_id_getter=lambda x: x["id"],
-                on_click=on_game_selected,
-            )
-        ),
-        state=EditGame.game_id,
-        getter=get_games_data,
-    ),
-    Window(
-        Format("Ну и что с ней делать будем?"),
-        Format("Игра {game_name}", when="game_name"),
-        Row(
-            Button(
-                Const("Закончить игру"),
-                id="end_game",
-                on_click=on_action_clicked,
-                when="show_end_game",
+router.include_router(
+    Dialog(
+        Window(
+            Const("Выбери, какую игру хочешь изменить:"),
+            Column(
+                Select(
+                    Format("{item[name]}"),
+                    id="select_game",
+                    items="games",
+                    item_id_getter=lambda x: x["id"],
+                    on_click=on_game_selected,
+                )
             ),
+            Cancel(Const("Отмена")),
+            state=EditGame.game_id,
+            getter=get_games_data,
         ),
-        Row(
-            Button(
-                Const("Посмотреть информацию"),
-                id="info",
-                on_click=lambda c, b, m: m.switch_to(EditGame.info),
-            )
+        Window(
+            Format("Ну и что с ней делать будем?"),
+            Format("Игра {game_name}", when="game_name"),
+            Row(
+                Button(
+                    Const("Закончить игру"),
+                    id="end_game",
+                    on_click=on_action_clicked,
+                    when="show_end_game",
+                ),
+            ),
+            Row(
+                Button(
+                    Const("Посмотреть информацию"),
+                    id="info",
+                    on_click=lambda c, b, m: m.switch_to(EditGame.info),
+                )
+            ),
+            Row(
+                Button(
+                    Const("Назад"),
+                    id="back",
+                    on_click=lambda c, w, m: m.switch_to(EditGame.game_id),
+                )
+            ),
+            state=EditGame.edit,
+            getter=get_selected_game_data,
         ),
-        Row(
+        Window(
+            Format("{game_info}"),
             Button(
                 Const("Назад"),
                 id="back",
-                on_click=lambda c, w, m: m.switch_to(EditGame.game_id),
-            )
+                on_click=lambda c, b, m: m.switch_to(EditGame.edit),
+            ),
+            state=EditGame.info,
+            getter=game_info_getter,
         ),
-        state=EditGame.edit,
-        getter=get_selected_game_data,
-    ),
-    Window(
-        Format("{game_info}"),
-        Button(
-            Const("Назад"),
-            id="back",
-            on_click=lambda c, b, m: m.switch_to(EditGame.edit),
-        ),
-        state=EditGame.info,
-        getter=game_info_getter,
-    ),
+    )
 )
-router.include_router(game_edit_dialog)
 
 
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
-    await dialog_manager.start(EditGame.game_id)
+    await dialog_manager.start(
+        EditGame.game_id, show_mode=ShowMode.DELETE_AND_SEND
+    )
+
+
+router.include_router(
+    Dialog(
+        Window(
+            Const("Вы уверены что хотите завершить активную игру?"),
+            state=EndGame.confirm,
+        )
+    )
+)
+
+
+@router.message(AdminFilter(), Command(commands=["endgame"]))
+async def endgame(
+    message: Message,
+    bot: Bot,
+    dispatcher: Dispatcher,
+    dialog_manager: DialogManager,
+):
+    active_game = await Game().filter(end_date=None).first()
+    if not active_game:
+        msg = await message.answer("Сейчас нет активных игр чтобы завершать")
+        await asyncio.sleep(1)
+        await msg.delete()
+        return
+    await handle_end_game(bot, dispatcher, active_game)
+    msg = await message.answer("Игра успешно завершена")
+    await asyncio.sleep(1)
+    await msg.delete()
 
 
 @router.message(Command(commands=["cancel"]))

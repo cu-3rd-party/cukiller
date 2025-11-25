@@ -8,7 +8,9 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, User, Player, KillEvent
 from services import settings
+from services.logging import log_getter
 from services.matchmaking import MatchmakingService
+from services.strings import trim_name
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +109,7 @@ async def parse_target_info(
         and not victim_event.victim_confirmed,
         "pending_victim_confirmed": victim_event is not None
         and victim_event.victim_confirmed,
+        "target_name_trimmed": trim_name(target_name, 25),
         "target_name": target_name,
         "target_photo": target_photo,
         "target_advanced_info": target_advanced_info,
@@ -125,6 +128,7 @@ async def get_user_rating(user: User, game: Game):
     }
 
 
+@log_getter("GET_MAIN_MENU_INFO")
 async def get_main_menu_info(
     dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
 ):
@@ -135,9 +139,8 @@ async def get_main_menu_info(
         "discussion_link": settings.discussion_chat_invite_link.invite_link,
         "next_game_link": settings.game_info_link,
         "game_running": game is not None,
-        "game_not_running": game is None,
-        "user_not_participating": game is not None and not user.is_in_game,
-        "user_participating": game is not None and user.is_in_game,
+        "user_is_in_game": user.is_in_game,
+        "join_game_button": game is not None and not user.is_in_game,
         **await get_user_rating(user, game),
         **await parse_target_info(game, user, matchmaking),
     }

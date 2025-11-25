@@ -45,13 +45,13 @@ func matchmaking() {
 	VictimPoolMutex.Lock()
 	defer VictimPoolMutex.Unlock()
 
-	curTime := time.Now()
-	logger.Debug("Running matchmaking cycle at %s", curTime)
-
 	gameActive, gameId := GetActiveGame()
 	if !gameActive {
 		return
 	}
+
+	curTime := time.Now()
+	logger.Debug("Running matchmaking cycle at %s", curTime)
 
 	if len(KillerPool)+len(VictimPool) < 2 {
 		return
