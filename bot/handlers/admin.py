@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 
 from aiogram import Router, Bot, Dispatcher
@@ -23,12 +22,12 @@ from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
 from db.models import User, Game, Player
 from services import settings
+from services.credits import CreditsInfo
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import EditGame, EndGame, MainLoop
 from services.states import StartGame
 from services.states.participation import ParticipationForm
-from services.strings import trim_name, format_timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -326,41 +325,6 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
     await User().filter(is_in_game=True).update(is_in_game=False)
 
 
-@dataclass
-class CreditsInfo:
-    name: str
-    duration: str
-    rating_top: str
-    top_players_count: int = 3
-
-    @classmethod
-    async def from_game(cls, game: Game, top_count: int = 3) -> "CreditsInfo":
-        """Create CreditsInfo from Game with top players."""
-        players: list[Player] = (
-            await Player.filter(game_id=game.id)
-            .order_by("-rating")
-            .limit(top_count)
-        )
-
-        rating_top = []
-        for n, player in enumerate(players, 1):
-            await player.fetch_related("user")
-            rating_top.append(
-                f"{n}: {trim_name(player.user.name, 20)} - {player.rating}"
-            )
-
-        duration = format_timedelta(game.end_date - game.start_date)
-
-        return cls(
-            name=game.name,
-            duration=duration,
-            rating_top="\n".join(rating_top)
-            if rating_top
-            else "Нет участников",
-            top_players_count=top_count,
-        )
-
-
 async def user_endgame(
     bot: Bot, dp: Dispatcher, user_id: int, info: CreditsInfo
 ):
@@ -378,7 +342,13 @@ async def send_game_credits(bot: Bot, chat_id: int, info: CreditsInfo) -> None:
                 f"Она продлилась {info.duration}\n"
                 "\n"
                 "Топ по рейтингу:\n"
-                f"{info.rating_top}"
+                f"{info.rating_top}\n"
+                "\n"
+                "Топ по убийствам:\n"
+                f"{info.killers_top}\n"
+                "\n"
+                "Топ по смертям:\n"
+                f"{info.victims_top}\n"
             ),
             parse_mode="HTML",
         )
