@@ -73,7 +73,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
 
     await request.app["admin_chat"].send_message(
         key="logs",
-        text=f"Match found: {killer_user.tg_id} vs {victim_user.tg_id} (quality: {match_quality:.2f}), created KillEvent id={ke.id}",
+        text=f"Match found: {killer_user.profile_link()} vs {victim_user.profile_link()} (quality: {match_quality:.2f}), created KillEvent id={ke.id}",
     )
 
     await bot.send_message(

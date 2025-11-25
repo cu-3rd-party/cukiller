@@ -130,7 +130,7 @@ async def notify_chat(
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
-            f'<b><a href="tg://user?id={killer.tg_id}">{trim_name(killer.name, 25)}</a></b> убил <b><a href="tg://user?id={victim.tg_id}">{trim_name(victim.name, 25)}</a></b>\n\n'
+            f"<b>{killer.mention_html()}</b> убил <b>{victim.mention_html()}</b>\n\n"
             f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
             f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
         ),

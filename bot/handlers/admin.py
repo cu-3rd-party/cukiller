@@ -1,5 +1,4 @@
 import asyncio
-import html
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -75,7 +74,7 @@ async def stats(message: Message, bot: Bot):
         text=(
             "Держи краткую статистику по боту\n\n"
             f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
-            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {round(user_confirmed_count / user_count * 100)}%\n"
+            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count / user_count * 100:.1f}%\n"
             f"{game_status}\n"
             "\nДругие статистики будут добавляться по ходу дела, хозяин"
         )
@@ -96,6 +95,16 @@ async def on_description_input(
 ):
     manager.dialog_data["description"] = message.text.strip()
     await manager.next()
+
+
+async def send_notification(bot: Bot, user: User, text: str):
+    msg = await bot.send_message(
+        user.tg_id,
+        text=text,
+        parse_mode="HTML",
+    )
+    await asyncio.sleep(10)
+    await msg.delete()
 
 
 @log_dialog_action("ADMIN_CAMPAIGN_FINAL_CONFIRMATION")
@@ -126,15 +135,8 @@ async def on_final_confirmation(
     factory = BgManagerFactoryImpl(router=router)
 
     for user in users:
-        user_mention = (
-            f'<a href="tg://user?id={user.tg_id}">{html.escape(user.name)}</a>'
-        )
-
-        # Send notification message
-        message_task = bot.send_message(
-            user.tg_id,
-            text=f"Внимание, {user_mention}!!",
-            parse_mode="HTML",
+        message_task = send_notification(
+            bot, user, f"Внимание, {user.mention_html()}!!"
         )
         tasks.append(message_task)
 

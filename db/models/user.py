@@ -1,5 +1,8 @@
+import html
+
 from tortoise import fields
 
+from services.strings import trim_name
 from .base import TimestampedModel, ProfileBase
 from .constants import PLAYER_STATUS
 
@@ -29,3 +32,9 @@ class User(TimestampedModel, ProfileBase):
     def __str__(self) -> str:
         base = self.tg_username or f"user:{self.tg_id}"
         return f"<User {base}>"
+
+    def profile_link(self):
+        return f"tg://user?id={self.tg_id}"
+
+    def mention_html(self, max_len=25) -> str:
+        return f'<a href="{self.profile_link()}">{trim_name(html.escape(self.name), max_len)}</a>'
