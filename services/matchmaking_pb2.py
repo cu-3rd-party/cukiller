@@ -4,18 +4,15 @@
 # source: matchmaking.proto
 # Protobuf Python Version: 5.27.2
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    5,
-    27,
-    2,
-    '',
-    'matchmaking.proto'
+    _runtime_version.Domain.PUBLIC, 5, 27, 2, "", "matchmaking.proto"
 )
 # @@protoc_insertion_point(imports)
 
@@ -25,36 +22,42 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11matchmaking.proto\x12\x0bmatchmaking\x1a\x1bgoogle/protobuf/empty.proto\"\r\n\x0bPingRequest\"\x1f\n\x0cPingResponse\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x0f\n\rHealthRequest\"8\n\x0eHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x16\n\x0etimestamp_unix\x18\x02 \x01(\x03\"{\n\nPlayerData\x12\r\n\x05tg_id\x18\x01 \x01(\x04\x12\x0e\n\x06rating\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1a\n\rcourse_number\x18\x04 \x01(\x05H\x00\x88\x01\x01\x12\x12\n\ngroup_name\x18\x05 \x01(\tB\x10\n\x0e_course_number\"b\n\x10\x41\x64\x64PlayerRequest\x12%\n\x05queue\x18\x01 \x01(\x0e\x32\x16.matchmaking.QueueType\x12\'\n\x06player\x18\x02 \x01(\x0b\x32\x17.matchmaking.PlayerData\"C\n\x18\x41\x64\x64PlayerToQueuesRequest\x12\'\n\x06player\x18\x01 \x01(\x0b\x32\x17.matchmaking.PlayerData\";\n\x17GetQueuesLengthResponse\x12\x0f\n\x07killers\x18\x01 \x01(\x05\x12\x0f\n\x07victims\x18\x02 \x01(\x05\"!\n\x10GetPlayerRequest\x12\r\n\x05tg_id\x18\x01 \x01(\x04\"\x93\x01\n\x11GetPlayerResponse\x12\x15\n\rqueued_killer\x18\x01 \x01(\x08\x12\'\n\x06killer\x18\x02 \x01(\x0b\x32\x17.matchmaking.PlayerData\x12\x15\n\rqueued_victim\x18\x03 \x01(\x08\x12\'\n\x06victim\x18\x04 \x01(\x0b\x32\x17.matchmaking.PlayerData*U\n\tQueueType\x12\x1a\n\x16QUEUE_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11QUEUE_TYPE_KILLER\x10\x01\x12\x15\n\x11QUEUE_TYPE_VICTIM\x10\x02\x32\x88\x04\n\x12MatchmakingService\x12;\n\x04Ping\x12\x18.matchmaking.PingRequest\x1a\x19.matchmaking.PingResponse\x12\x41\n\x06Health\x12\x1a.matchmaking.HealthRequest\x1a\x1b.matchmaking.HealthResponse\x12\x42\n\tAddPlayer\x12\x1d.matchmaking.AddPlayerRequest\x1a\x16.google.protobuf.Empty\x12R\n\x11\x41\x64\x64PlayerToQueues\x12%.matchmaking.AddPlayerToQueuesRequest\x1a\x16.google.protobuf.Empty\x12O\n\x0fGetQueuesLength\x12\x16.google.protobuf.Empty\x1a$.matchmaking.GetQueuesLengthResponse\x12J\n\tGetPlayer\x12\x1d.matchmaking.GetPlayerRequest\x1a\x1e.matchmaking.GetPlayerResponse\x12=\n\x0bResetQueues\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB\"Z cukiller/internal/matchmaking/pbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x11matchmaking.proto\x12\x0bmatchmaking\x1a\x1bgoogle/protobuf/empty.proto"\r\n\x0bPingRequest"\x1f\n\x0cPingResponse\x12\x0f\n\x07message\x18\x01 \x01(\t"\x0f\n\rHealthRequest"8\n\x0eHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x16\n\x0etimestamp_unix\x18\x02 \x01(\x03"{\n\nPlayerData\x12\r\n\x05tg_id\x18\x01 \x01(\x04\x12\x0e\n\x06rating\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1a\n\rcourse_number\x18\x04 \x01(\x05H\x00\x88\x01\x01\x12\x12\n\ngroup_name\x18\x05 \x01(\tB\x10\n\x0e_course_number"b\n\x10\x41\x64\x64PlayerRequest\x12%\n\x05queue\x18\x01 \x01(\x0e\x32\x16.matchmaking.QueueType\x12\'\n\x06player\x18\x02 \x01(\x0b\x32\x17.matchmaking.PlayerData"C\n\x18\x41\x64\x64PlayerToQueuesRequest\x12\'\n\x06player\x18\x01 \x01(\x0b\x32\x17.matchmaking.PlayerData";\n\x17GetQueuesLengthResponse\x12\x0f\n\x07killers\x18\x01 \x01(\x05\x12\x0f\n\x07victims\x18\x02 \x01(\x05"!\n\x10GetPlayerRequest\x12\r\n\x05tg_id\x18\x01 \x01(\x04"\x93\x01\n\x11GetPlayerResponse\x12\x15\n\rqueued_killer\x18\x01 \x01(\x08\x12\'\n\x06killer\x18\x02 \x01(\x0b\x32\x17.matchmaking.PlayerData\x12\x15\n\rqueued_victim\x18\x03 \x01(\x08\x12\'\n\x06victim\x18\x04 \x01(\x0b\x32\x17.matchmaking.PlayerData*U\n\tQueueType\x12\x1a\n\x16QUEUE_TYPE_UNSPECIFIED\x10\x00\x12\x15\n\x11QUEUE_TYPE_KILLER\x10\x01\x12\x15\n\x11QUEUE_TYPE_VICTIM\x10\x02\x32\x88\x04\n\x12MatchmakingService\x12;\n\x04Ping\x12\x18.matchmaking.PingRequest\x1a\x19.matchmaking.PingResponse\x12\x41\n\x06Health\x12\x1a.matchmaking.HealthRequest\x1a\x1b.matchmaking.HealthResponse\x12\x42\n\tAddPlayer\x12\x1d.matchmaking.AddPlayerRequest\x1a\x16.google.protobuf.Empty\x12R\n\x11\x41\x64\x64PlayerToQueues\x12%.matchmaking.AddPlayerToQueuesRequest\x1a\x16.google.protobuf.Empty\x12O\n\x0fGetQueuesLength\x12\x16.google.protobuf.Empty\x1a$.matchmaking.GetQueuesLengthResponse\x12J\n\tGetPlayer\x12\x1d.matchmaking.GetPlayerRequest\x1a\x1e.matchmaking.GetPlayerResponse\x12=\n\x0bResetQueues\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB"Z cukiller/internal/matchmaking/pbb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'matchmaking_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(
+    DESCRIPTOR, "matchmaking_pb2", _globals
+)
 if not _descriptor._USE_C_DESCRIPTORS:
-  _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z cukiller/internal/matchmaking/pb'
-  _globals['_QUEUETYPE']._serialized_start=726
-  _globals['_QUEUETYPE']._serialized_end=811
-  _globals['_PINGREQUEST']._serialized_start=63
-  _globals['_PINGREQUEST']._serialized_end=76
-  _globals['_PINGRESPONSE']._serialized_start=78
-  _globals['_PINGRESPONSE']._serialized_end=109
-  _globals['_HEALTHREQUEST']._serialized_start=111
-  _globals['_HEALTHREQUEST']._serialized_end=126
-  _globals['_HEALTHRESPONSE']._serialized_start=128
-  _globals['_HEALTHRESPONSE']._serialized_end=184
-  _globals['_PLAYERDATA']._serialized_start=186
-  _globals['_PLAYERDATA']._serialized_end=309
-  _globals['_ADDPLAYERREQUEST']._serialized_start=311
-  _globals['_ADDPLAYERREQUEST']._serialized_end=409
-  _globals['_ADDPLAYERTOQUEUESREQUEST']._serialized_start=411
-  _globals['_ADDPLAYERTOQUEUESREQUEST']._serialized_end=478
-  _globals['_GETQUEUESLENGTHRESPONSE']._serialized_start=480
-  _globals['_GETQUEUESLENGTHRESPONSE']._serialized_end=539
-  _globals['_GETPLAYERREQUEST']._serialized_start=541
-  _globals['_GETPLAYERREQUEST']._serialized_end=574
-  _globals['_GETPLAYERRESPONSE']._serialized_start=577
-  _globals['_GETPLAYERRESPONSE']._serialized_end=724
-  _globals['_MATCHMAKINGSERVICE']._serialized_start=814
-  _globals['_MATCHMAKINGSERVICE']._serialized_end=1334
+    _globals["DESCRIPTOR"]._loaded_options = None
+    _globals[
+        "DESCRIPTOR"
+    ]._serialized_options = b"Z cukiller/internal/matchmaking/pb"
+    _globals["_QUEUETYPE"]._serialized_start = 726
+    _globals["_QUEUETYPE"]._serialized_end = 811
+    _globals["_PINGREQUEST"]._serialized_start = 63
+    _globals["_PINGREQUEST"]._serialized_end = 76
+    _globals["_PINGRESPONSE"]._serialized_start = 78
+    _globals["_PINGRESPONSE"]._serialized_end = 109
+    _globals["_HEALTHREQUEST"]._serialized_start = 111
+    _globals["_HEALTHREQUEST"]._serialized_end = 126
+    _globals["_HEALTHRESPONSE"]._serialized_start = 128
+    _globals["_HEALTHRESPONSE"]._serialized_end = 184
+    _globals["_PLAYERDATA"]._serialized_start = 186
+    _globals["_PLAYERDATA"]._serialized_end = 309
+    _globals["_ADDPLAYERREQUEST"]._serialized_start = 311
+    _globals["_ADDPLAYERREQUEST"]._serialized_end = 409
+    _globals["_ADDPLAYERTOQUEUESREQUEST"]._serialized_start = 411
+    _globals["_ADDPLAYERTOQUEUESREQUEST"]._serialized_end = 478
+    _globals["_GETQUEUESLENGTHRESPONSE"]._serialized_start = 480
+    _globals["_GETQUEUESLENGTHRESPONSE"]._serialized_end = 539
+    _globals["_GETPLAYERREQUEST"]._serialized_start = 541
+    _globals["_GETPLAYERREQUEST"]._serialized_end = 574
+    _globals["_GETPLAYERRESPONSE"]._serialized_start = 577
+    _globals["_GETPLAYERRESPONSE"]._serialized_end = 724
+    _globals["_MATCHMAKINGSERVICE"]._serialized_start = 814
+    _globals["_MATCHMAKINGSERVICE"]._serialized_end = 1334
 # @@protoc_insertion_point(module_scope)

@@ -26,7 +26,9 @@ class MatchmakingService:
                 normalized = normalized[len(prefix) :]
         return normalized.rstrip("/")
 
-    async def _stub_client(self) -> matchmaking_pb2_grpc.MatchmakingServiceStub:
+    async def _stub_client(
+        self,
+    ) -> matchmaking_pb2_grpc.MatchmakingServiceStub:
         if self._stub is None or self._channel is None:
             self._channel = grpc.aio.insecure_channel(self._target)
             self._stub = matchmaking_pb2_grpc.MatchmakingServiceStub(
