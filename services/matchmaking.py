@@ -112,9 +112,22 @@ class MatchmakingService:
         kwargs: Dict[str, Any] = {
             "tg_id": int(data["tg_id"]),
             "rating": int(data.get("rating", 0)),
-            "type": str(data.get("type", "")),
+            "type": MatchmakingService._normalize_type(data.get("type")),
             "group_name": str(data.get("group_name", "")),
         }
         if data.get("course_number") is not None:
             kwargs["course_number"] = int(data["course_number"])
         return matchmaking_pb2.PlayerData(**kwargs)
+
+    @staticmethod
+    def _normalize_type(raw: Any) -> str:
+        value = str(raw or "").strip().lower()
+        mapping = {
+            "bachelor": "bachelor",
+            "master": "master",
+            "specialist": "specialist",
+            "worker": "other",
+            "staff": "other",
+            "other": "other",
+        }
+        return mapping.get(value, "other")
