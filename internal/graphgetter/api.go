@@ -41,7 +41,8 @@ var connectionsLimiter = rate.NewLimiter(rate.Every(time.Second/2), 4)
 func connectionsCSV(w http.ResponseWriter, r *http.Request) {
 	logger.Info("CSV request from %s", r.RemoteAddr)
 
-	err := connectionsLimiter.Wait(nil)
+	// Respect request context to avoid nil panics in limiter and honor cancellations.
+	err := connectionsLimiter.Wait(r.Context())
 	if err != nil {
 		logger.Warn("Failed to wait for limiter for request from %s", r.RemoteAddr)
 		return
