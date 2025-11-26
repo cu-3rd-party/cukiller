@@ -500,7 +500,9 @@ async def endgame(
         await msg.delete()
         return
     await handle_end_game(bot, dispatcher, active_game)
-    msg = await message.answer("Игра успешно завершена\nБот уходит на перезагрузку")
+    msg = await message.answer(
+        "Игра успешно завершена\nБот уходит на перезагрузку"
+    )
     await asyncio.sleep(1)
     await msg.delete()
 
