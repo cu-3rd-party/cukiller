@@ -170,10 +170,12 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 	rows, err := db.Query(`
 		SELECT killer_user_id, victim_user_id
 		FROM kill_events
-		WHERE status != 'pending' AND game_id = $1
+		WHERE status != 'pending' 
+			AND game_id = $1
+			AND killer_user_id = $2
 		ORDER BY created_at DESC
-		LIMIT $2
-	`, gameId, conf.MatchHistoryCheckDepth)
+		LIMIT $3
+	`, gameId, killerId, conf.MatchHistoryCheckDepth)
 	if err != nil {
 		logger.Error("Error querying last kill events: %v", err)
 		return false // безопасная логика
@@ -197,7 +199,7 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 		logger.Debug("Success scanning kill event row: %s -> %s", kId, vId)
 
 		// Проверяем совпадение пары
-		if kId == killerId && vId == victimId {
+		if vId == victimId {
 			// Они были вместе недавно
 			return true
 		}
