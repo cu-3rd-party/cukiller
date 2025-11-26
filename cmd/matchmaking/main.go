@@ -12,5 +12,5 @@ func main() {
 
 	InitDb()
 	go TickerMatchmaking()
-	StartupHttp()
+	StartupGrpc()
 }
