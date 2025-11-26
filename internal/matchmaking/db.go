@@ -154,11 +154,12 @@ func getUserIdByTgId(tgId uint64) (uuid.UUID, error) {
 
 func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 	defer func() {
-		logger.Debug("PlayersWerePairedRecently(killer=%d, victim=%d) returned %t",
-			killerTgId, victimTgId, ok)
+		logger.Debug("PlayersWerePairedRecently(gameId=%s, killer=%d, victim=%d) returned %t",
+			gameId, killerTgId, victimTgId, ok)
 	}()
 	killerId, err1 := getUserIdByTgId(killerTgId)
 	victimId, err2 := getUserIdByTgId(victimTgId)
+	logger.Debug("PlayersWerePairedRecently: killerId: %s, victimId: %s", killerId, victimId)
 
 	if err1 != nil || err2 != nil {
 		// не нашли пользователя => считаем что нет истории игр
@@ -169,7 +170,7 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 	rows, err := db.Query(`
 		SELECT killer_user_id, victim_user_id
 		FROM kill_events
-		WHERE status = 'confirmed' AND game_id = $1
+		WHERE status != 'pending' AND game_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2
 	`, gameId, conf.MatchHistoryCheckDepth)
@@ -193,6 +194,7 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 			logger.Error("Error scanning kill event row: %v", err)
 			continue
 		}
+		logger.Debug("Success scanning kill event row: %s -> %s", kId, vId)
 
 		// Проверяем совпадение пары
 		if kId == killerId && vId == victimId {
