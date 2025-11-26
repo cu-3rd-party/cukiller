@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package matchmaking;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "cukiller/internal/matchmaking/pb";
+
+message PingRequest {}
+message PingResponse {
+  string message = 1;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string status = 1;
+  int64 timestamp_unix = 2;
+}
+
+enum QueueType {
+  QUEUE_TYPE_UNSPECIFIED = 0;
+  QUEUE_TYPE_KILLER = 1;
+  QUEUE_TYPE_VICTIM = 2;
+}
+
+message PlayerData {
+  uint64 tg_id = 1;
+  int32 rating = 2;
+  string type = 3;
+  optional int32 course_number = 4;
+  string group_name = 5;
+}
+
+message AddPlayerRequest {
+  QueueType queue = 1;
+  PlayerData player = 2;
+}
+
+message AddPlayerToQueuesRequest {
+  PlayerData player = 1;
+}
+
+message GetQueuesLengthResponse {
+  int32 killers = 1;
+  int32 victims = 2;
+}
+
+message GetPlayerRequest {
+  uint64 tg_id = 1;
+}
+
+message GetPlayerResponse {
+  bool queued_killer = 1;
+  PlayerData killer = 2;
+  bool queued_victim = 3;
+  PlayerData victim = 4;
+}
+
+service MatchmakingService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc AddPlayer(AddPlayerRequest) returns (google.protobuf.Empty);
+  rpc AddPlayerToQueues(AddPlayerToQueuesRequest) returns (google.protobuf.Empty);
+  rpc GetQueuesLength(google.protobuf.Empty) returns (GetQueuesLengthResponse);
+  rpc GetPlayer(GetPlayerRequest) returns (GetPlayerResponse);
+  rpc ResetQueues(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
