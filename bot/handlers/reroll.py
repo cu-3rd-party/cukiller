@@ -82,7 +82,7 @@ async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
 
     logger.debug(kill_event)
     killer_delta, victim_delta = await modify_rating(
-        killer_player, victim_player, 0.5, 0.5
+        killer_player, victim_player, 0, 1
     )
     await add_back_to_queues(
         kill_event.killer, kill_event.victim, killer_player, victim_player
