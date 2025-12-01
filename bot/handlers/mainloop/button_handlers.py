@@ -15,6 +15,7 @@ from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
+from services.states.reroll import Reroll
 from services.states.rules import RulesStates
 
 logger = logging.getLogger(__name__)
@@ -138,3 +139,13 @@ async def open_rules(
     callback: CallbackQuery, button: Button, manager: DialogManager
 ):
     await manager.start(RulesStates.rules)
+
+
+@log_dialog_action("REROLL")
+async def on_reroll(c: CallbackQuery, b: Button, m: DialogManager):
+    user, game = await _get_user_and_game(m)
+    await m.start(
+        Reroll.confirm,
+        data={"user_tg_id": user.tg_id, "game_id": game.id},
+        show_mode=ShowMode.DELETE_AND_SEND,
+    )

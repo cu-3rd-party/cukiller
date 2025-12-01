@@ -20,7 +20,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY bot/ ./bot/
 COPY db/ ./db/
 COPY services/ ./services/
-COPY settings/ ./settings/
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl --fail --silent http://localhost:8000/health || exit 1
