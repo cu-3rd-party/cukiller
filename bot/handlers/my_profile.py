@@ -102,7 +102,7 @@ async def on_name(message: Message, message_input: MessageInput, manager: Dialog
 
 @log_dialog_action("EDIT_ABOUT")
 async def on_about(message: Message, message_input: MessageInput, manager: DialogManager):
-    if not is_safe(message.text, SafeStringConfig(allow_newline=True, max_len=500)):
+    if not is_safe(message.text, SafeStringConfig(allow_newline=True, max_len=0)):
         return
     manager.dialog_data["about"] = message.text
     await manager.switch_to(EditProfile.confirm)

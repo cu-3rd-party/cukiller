@@ -39,7 +39,7 @@ def is_safe(string: str, config: SafeStringConfig = SafeStringConfig()) -> bool:
     if not config.allow_newline and ("\n" in raw or "\r" in raw):
         return False
 
-    if len(raw) > config.max_len:
+    if config.max_len and len(raw) > config.max_len:
         return False
 
     if not config.allow_html and ("<" in raw or ">" in raw):
