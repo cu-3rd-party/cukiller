@@ -20,9 +20,7 @@ router = Router()
 
 
 @log_dialog_action("CONFIRM_PARTICIPATION")
-async def confirm_participation(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def confirm_participation(callback: CallbackQuery, button: Button, manager: DialogManager):
     game: Game = await Game.get(id=manager.start_data["game_id"])
     user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService()
@@ -41,9 +39,7 @@ async def confirm_participation(
     await callback.message.delete()
     await manager.done()
     await manager.reset_stack()
-    user_dialog_manager = BgManagerFactoryImpl(
-        router=mainloop_dialog.router
-    ).bg(
+    user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
         bot=manager.event.bot,
         user_id=user.tg_id,
         chat_id=user.tg_id,
@@ -55,13 +51,11 @@ async def confirm_participation(
         "course_number": user.course_number,
         "group_name": user.group_name,
     }
-    await matchmaking.add_player_to_queues(
-        player_id=user.tg_id, player_data=player_data
-    )
+    await matchmaking.add_player_to_queues(player_id=user.tg_id, player_data=player_data)
     await user_dialog_manager.start(
         MainLoop.title,
         data={"user_tg_id": user.tg_id, "game_id": (game and game.id) or None},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 

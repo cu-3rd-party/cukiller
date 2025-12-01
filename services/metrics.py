@@ -3,9 +3,9 @@ Prometheus metrics collection for the bot.
 """
 
 import logging
-from typing import Optional
 
 from prometheus_client import Counter, Gauge, Histogram, Info, generate_latest
+
 from db.models import User, Game, Player
 
 logger = logging.getLogger(__name__)
@@ -27,12 +27,8 @@ class BotMetrics:
         )
 
         # Game metrics
-        self.games_total = Gauge(
-            "cukiller_games_total", "Total number of games", ["status"]
-        )
-        self.games_created = Counter(
-            "cukiller_games_created_total", "Total number of games created"
-        )
+        self.games_total = Gauge("cukiller_games_total", "Total number of games", ["status"])
+        self.games_created = Counter("cukiller_games_created_total", "Total number of games created")
 
         # Player metrics
         self.players_total = Gauge(
@@ -115,13 +111,9 @@ class BotMetrics:
             games = await Game().all()
             for game in games:
                 players_count = await Player().filter(game=game.id).count()
-                game_status = (
-                    "active" if game.end_date is None else "completed"
-                )
+                game_status = "active" if game.end_date is None else "completed"
 
-                self.players_total.labels(
-                    game_id=str(game.id), game_status=game_status
-                ).set(players_count)
+                self.players_total.labels(game_id=str(game.id), game_status=game_status).set(players_count)
 
             logger.debug(f"Updated player metrics for {len(games)} games")
         except Exception as e:
@@ -151,9 +143,7 @@ class BotMetrics:
     def increment_message_processed(self, handler_type: str):
         """Increment the message processed counter."""
         self.messages_processed.labels(handler_type=handler_type).inc()
-        logger.debug(
-            f"Incremented message processed counter for {handler_type}"
-        )
+        logger.debug(f"Incremented message processed counter for {handler_type}")
 
     def increment_command_executed(self, command: str):
         """Increment the command executed counter."""
@@ -167,12 +157,8 @@ class BotMetrics:
 
     def record_response_time(self, operation_type: str, duration: float):
         """Record response time for an operation."""
-        self.response_time.labels(operation_type=operation_type).observe(
-            duration
-        )
-        logger.debug(
-            f"Recorded response time for {operation_type}: {duration}s"
-        )
+        self.response_time.labels(operation_type=operation_type).observe(duration)
+        logger.debug(f"Recorded response time for {operation_type}: {duration}s")
 
     @staticmethod
     def get_metrics() -> bytes:

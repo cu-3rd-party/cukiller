@@ -1,9 +1,9 @@
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery, Update
+from aiogram.types import TelegramObject
 
-from db.models import User, Game
+from db.models import Game
 
 
 class GameMiddleware(BaseMiddleware):
@@ -13,6 +13,4 @@ class GameMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        return await handler(
-            event, {**data, "game": await Game.filter(end_date=None).first()}
-        )
+        return await handler(event, {**data, "game": await Game.filter(end_date=None).first()})

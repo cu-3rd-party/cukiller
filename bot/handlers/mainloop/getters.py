@@ -28,13 +28,9 @@ async def get_user_and_game(manager: DialogManager):
 
 async def get_pending_events(game: Game, user: User):
     """Return killer_event and victim_event for a user."""
-    victim_event = await KillEvent.filter(
-        game=game, victim_id=user.id, status="pending"
-    ).first()
+    victim_event = await KillEvent.filter(game=game, victim_id=user.id, status="pending").first()
 
-    killer_event = await KillEvent.filter(
-        game=game, killer_id=user.id, status="pending"
-    ).first()
+    killer_event = await KillEvent.filter(game=game, killer_id=user.id, status="pending").first()
 
     logger.debug(f"Found killer event {killer_event} and {victim_event}")
     return killer_event, victim_event
@@ -61,18 +57,14 @@ async def extract_target(killer_event: KillEvent | None):
     return (
         victim.name,
         victim.tg_id,
-        MediaAttachment(
-            type=ContentType.PHOTO, file_id=MediaId(file_id=victim.photo)
-        )
+        MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=victim.photo))
         if victim.photo != "fastreg"
         else None,
         get_advanced_info(victim),
     )
 
 
-async def parse_target_info(
-    game: Game | None, user: User, matchmaking: MatchmakingService
-):
+async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
     """Compute target-related info for the main menu or target window."""
     player = await Player.filter(user=user, game=game).first()
     if not player:
@@ -90,25 +82,19 @@ async def parse_target_info(
         killers_queue_len,
         victims_queue_len,
     ) = await matchmaking.get_queues_length()
-    killer_queued, victim_queued = await matchmaking.get_player_by_id(
-        user.tg_id
-    )
+    killer_queued, victim_queued = await matchmaking.get_player_by_id(user.tg_id)
 
     return {
-        "has_target": killer_event is not None
-        and not killer_event.killer_confirmed,
-        "pending_kill_confirmed": killer_event is not None
-        and killer_event.killer_confirmed,
+        "has_target": killer_event is not None and not killer_event.killer_confirmed,
+        "pending_kill_confirmed": killer_event is not None and killer_event.killer_confirmed,
         "no_target": killer_event is None,
         "should_get_target": killer_event is None and not killer_queued,
         "enqueued": killer_queued,
         "not_enqueued": not killer_queued,
         "killers_queue_length": killers_queue_len,
         "victims_queue_length": victims_queue_len,
-        "is_hunted": victim_event is not None
-        and not victim_event.victim_confirmed,
-        "pending_victim_confirmed": victim_event is not None
-        and victim_event.victim_confirmed,
+        "is_hunted": victim_event is not None and not victim_event.victim_confirmed,
+        "pending_victim_confirmed": victim_event is not None and victim_event.victim_confirmed,
         "target_name_trimmed": trim_name(target_name, 25),
         "target_name": target_name,
         "target_photo": target_photo,
@@ -129,9 +115,7 @@ async def get_user_rating(user: User, game: Game):
 
 
 @log_getter("GET_MAIN_MENU_INFO")
-async def get_main_menu_info(
-    dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
-):
+async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
 
@@ -146,9 +130,7 @@ async def get_main_menu_info(
     }
 
 
-async def get_target_info(
-    dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs
-):
+async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
     """Getter for target info window."""
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()

@@ -30,25 +30,18 @@ class CreditsInfo(BaseModel):
 
     @classmethod
     async def from_game(cls, game: Game, top_count: int = 3) -> "CreditsInfo":
-        players = (
-            await Player.filter(game_id=game.id)
-            .order_by("-rating")
-            .limit(top_count)
-            .prefetch_related("user")
-        )
+        players = await Player.filter(game_id=game.id).order_by("-rating").limit(top_count).prefetch_related("user")
 
         # Rating TOP
-        rating_top = cls._format_top(
-            [(p.user.name, p.rating) for p in players], empty="Нет участников"
-        )
+        rating_top = cls._format_top([(p.user.name, p.rating) for p in players], empty="Нет участников")
 
         # Game duration
         duration = format_timedelta(game.end_date - game.start_date)
 
         # --- Load all confirmed kill events ---
-        kills = await KillEvent.filter(
-            game_id=game.id, status="confirmed"
-        ).values("killer_id", "victim_id", "updated_at")
+        kills = await KillEvent.filter(game_id=game.id, status="confirmed").values(
+            "killer_id", "victim_id", "updated_at"
+        )
 
         # Build counters
         killer_counts = Counter(k["killer_id"] for k in kills)
@@ -60,17 +53,11 @@ class CreditsInfo(BaseModel):
 
         # Killers top / victims top
         killers_top = cls._format_top(
-            [
-                (users[uid].name, killer_counts[uid])
-                for uid, _ in killer_counts.most_common(top_count)
-            ],
+            [(users[uid].name, killer_counts[uid]) for uid, _ in killer_counts.most_common(top_count)],
             empty="Нет данных",
         )
         victims_top = cls._format_top(
-            [
-                (users[uid].name, victim_counts[uid])
-                for uid, _ in victim_counts.most_common(top_count)
-            ],
+            [(users[uid].name, victim_counts[uid]) for uid, _ in victim_counts.most_common(top_count)],
             empty="Нет данных",
         )
 
@@ -92,19 +79,12 @@ class CreditsInfo(BaseModel):
         """Formats a list of (username, value) pairs into a numbered list."""
         if not items:
             return empty
-        return "\n".join(
-            f"{i}: {trim_name(name, 20)} — {value}"
-            for i, (name, value) in enumerate(items, 1)
-        )
+        return "\n".join(f"{i}: {trim_name(name, 20)} — {value}" for i, (name, value) in enumerate(items, 1))
 
     @staticmethod
-    async def _build_player_stats(
-        game: Game, users: Dict[int, User], kills: List[dict]
-    ) -> Dict[UUID, PlayerStats]:
+    async def _build_player_stats(game: Game, users: Dict[int, User], kills: List[dict]) -> Dict[UUID, PlayerStats]:
         # preload all players
-        all_players = (
-            await Player.filter(game_id=game.id).prefetch_related("user").all()
-        )
+        all_players = await Player.filter(game_id=game.id).prefetch_related("user").all()
         stats = {p.user.id: PlayerStats(rating=p.rating) for p in all_players}
 
         for k in kills:
@@ -117,11 +97,7 @@ class CreditsInfo(BaseModel):
             stats[victim_id].deaths += 1
 
             # logs
-            stats[killer_id].log.append(
-                f"Вы убили {trim_name(users[victim_id].name, 25)} в {ts}"
-            )
-            stats[victim_id].log.append(
-                f"Вас убил {trim_name(users[killer_id].name, 25)} в {ts}"
-            )
+            stats[killer_id].log.append(f"Вы убили {trim_name(users[victim_id].name, 25)} в {ts}")
+            stats[victim_id].log.append(f"Вас убил {trim_name(users[killer_id].name, 25)} в {ts}")
 
         return stats

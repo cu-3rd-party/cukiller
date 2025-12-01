@@ -94,9 +94,7 @@ class MetricsUpdater:
 
         self._running = True
         self._task = asyncio.create_task(self._update_loop())
-        logger.info(
-            f"Metrics updater started with {self.update_interval}s interval"
-        )
+        logger.info(f"Metrics updater started with {self.update_interval}s interval")
 
     async def stop(self):
         """Stop the metrics updater task."""

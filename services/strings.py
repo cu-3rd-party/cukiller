@@ -14,9 +14,7 @@ class SafeStringConfig:
     safe_pattern: bool = True
 
 
-def is_safe(
-    string: str, config: SafeStringConfig = SafeStringConfig()
-) -> bool:
+def is_safe(string: str, config: SafeStringConfig = SafeStringConfig()) -> bool:
     raw = unescape(string)
     if not config.allow_newline and ("\n" in raw or "\r" in raw):
         return False
@@ -51,9 +49,7 @@ def format_timedelta(delta: timedelta) -> str:
         parts.append(f"{hours}ч")
     if minutes > 0:
         parts.append(f"{minutes}м")
-    if (
-        seconds > 0 or not parts
-    ):  # Always show at least seconds if nothing else
+    if seconds > 0 or not parts:  # Always show at least seconds if nothing else
         parts.append(f"{seconds}с")
 
     return " ".join(parts)

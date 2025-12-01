@@ -42,39 +42,25 @@ class Settings(BaseSettings):
     # ^ Redis
     redis_host: str = Field(default="redis", alias="REDIS_HOST")
     redis_port: int = Field(default=6379, alias="REDIS_PORT")
-    redis_password: str = Field(
-        default="secure_password", alias="REDIS_PASSWORD"
-    )
+    redis_password: str = Field(default="secure_password", alias="REDIS_PASSWORD")
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     # ^ Tortoise ORM
     tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
-    tortoise_models: tuple[str, ...] = Field(
-        default=("db.models", "aerich.models"), alias="TORTOISE_MODELS"
-    )
-    tortoise_generate_schemas: bool = Field(
-        default=False, alias="TORTOISE_GENERATE_SCHEMAS"
-    )
+    tortoise_models: tuple[str, ...] = Field(default=("db.models", "aerich.models"), alias="TORTOISE_MODELS")
+    tortoise_generate_schemas: bool = Field(default=False, alias="TORTOISE_GENERATE_SCHEMAS")
 
-    matchmaking_service_url: str = Field(
-        default="http://matchmaking:6543", alias="MATCHMAKING_URL"
-    )
+    matchmaking_service_url: str = Field(default="http://matchmaking:6543", alias="MATCHMAKING_URL")
 
     @computed_field
     @property
     def postgres_dsn(self) -> str:
-        return (
-            f"postgresql://{self.pg_user}:{self.pg_password}@"
-            f"{self.pg_host}:{self.pg_port}/{self.pg_db}"
-        )
+        return f"postgresql://{self.pg_user}:{self.pg_password}@{self.pg_host}:{self.pg_port}/{self.pg_db}"
 
     @computed_field
     @property
     def tortoise_db_url(self) -> str:
-        return (
-            f"postgres://{self.pg_user}:{self.pg_password}@"
-            f"{self.pg_host}:{self.pg_port}/{self.pg_db}"
-        )
+        return f"postgres://{self.pg_user}:{self.pg_password}@{self.pg_host}:{self.pg_port}/{self.pg_db}"
 
     @computed_field
     @property

@@ -158,5 +158,5 @@ async def confirmed_start(
             "user_tg_id": message.from_user.id,
             "game_id": (game and game.id) or None,
         },
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )

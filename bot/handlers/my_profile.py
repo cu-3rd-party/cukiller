@@ -35,22 +35,18 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
     user = await get_user(dialog_manager)
     return {
         "name": user.name,
-        "photo": MediaAttachment(
-            type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)
-        ),
+        "photo": MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)),
         "advanced_info": get_advanced_info(user),
         "profile_link": user.tg_id and f"tg://user?id={user.tg_id}",
     }
 
 
 @log_dialog_action("EDIT_PROFILE")
-async def on_edit(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManager):
     await manager.start(
         EditProfile.main,
         data={"user_tg_id": callback.from_user.id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
@@ -70,9 +66,7 @@ router.include_router(
 
 
 @log_dialog_action("EDIT_TYPE_SELECTED")
-async def on_type_selected(
-    c: CallbackQuery, _, manager: DialogManager, course_type: str
-):
+async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_type: str):
     manager.dialog_data["academics_edited"] = True
     manager.dialog_data["course_type"] = course_type
 
@@ -83,9 +77,7 @@ async def on_type_selected(
 
 
 @log_dialog_action("EDIT_COURSE_NUMBER_SELECTED")
-async def on_course_number_selected(
-    c: CallbackQuery, _, manager: DialogManager, num: str
-):
+async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager, num: str):
     manager.dialog_data["course_number"] = int(num)
 
     if group_required(manager.dialog_data["course_type"]):
@@ -95,17 +87,13 @@ async def on_course_number_selected(
 
 
 @log_dialog_action("EDIT_GROUP_SELECTED")
-async def on_group_selected(
-    c: CallbackQuery, _, manager: DialogManager, group: str
-):
+async def on_group_selected(c: CallbackQuery, _, manager: DialogManager, group: str):
     manager.dialog_data["group_name"] = group
     await manager.switch_to(EditProfile.confirm)
 
 
 @log_dialog_action("EDIT_NAME")
-async def on_name(
-    message: Message, message_input: MessageInput, manager: DialogManager
-):
+async def on_name(message: Message, message_input: MessageInput, manager: DialogManager):
     if not is_safe(message.text):
         return
     manager.dialog_data["name"] = message.text
@@ -113,12 +101,8 @@ async def on_name(
 
 
 @log_dialog_action("EDIT_ABOUT")
-async def on_about(
-    message: Message, message_input: MessageInput, manager: DialogManager
-):
-    if not is_safe(
-        message.text, SafeStringConfig(allow_newline=True, max_len=500)
-    ):
+async def on_about(message: Message, message_input: MessageInput, manager: DialogManager):
+    if not is_safe(message.text, SafeStringConfig(allow_newline=True, max_len=500)):
         return
     manager.dialog_data["about"] = message.text
     await manager.switch_to(EditProfile.confirm)
@@ -133,9 +117,7 @@ async def on_photo(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("EDIT_FINAL_CONFIRMATION")
-async def on_final_confirmation(
-    c: CallbackQuery, b: Button, manager: DialogManager
-):
+async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogManager):
     bot: Bot = c.bot
     d = manager.dialog_data
     tg_user = c.from_user

@@ -1,19 +1,19 @@
 import logging
+import math
+from datetime import datetime, timedelta
 
 from aiogram import Router, Bot
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
-from aiogram_dialog.widgets.kbd import Column, Button, Cancel
+from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import Player, Game, User, KillEvent, Chat
+from db.models import Player, User, KillEvent, Chat
+from services import settings
 from services.kills_confirmation import modify_rating, add_back_to_queues
-from services.logging import log_dialog_action
-from services.matchmaking import MatchmakingService
 from services.states import MainLoop
-from services.states.participation import ParticipationForm
 from services.states.reroll import Reroll
 from services.strings import trim_name
 
@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def notify_player(
-    user: User, bot: Bot, manager: DialogManager, delta: int
-):
+async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
     await bot.send_message(
         chat_id=user.tg_id,
         text=(
@@ -42,7 +40,7 @@ async def notify_player(
     await dialog_manager.start(
         MainLoop.title,
         data={**manager.start_data, "user_tg_id": user.tg_id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
@@ -65,11 +63,27 @@ async def notify_chat(
     )
 
 
+def calculate_penalty(creation: datetime) -> float:
+    now = datetime.now(settings.timezone)
+
+    # конечная точка (creation + 7 дней)
+    end = creation + timedelta(days=7)
+
+    # уже прошло 7+ дней → штраф 0
+    if now >= end:
+        return 0.0
+
+    # сколько секунд осталось до конца окна
+    remaining = (end - now).total_seconds()
+    total = (end - creation).total_seconds()
+
+    # итоговая формула: sqrt(remaining / total)
+    return math.sqrt(remaining / total)
+
+
 async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     requester_user: User = m.middleware_data["user"]
-    killer_player: Player = await Player.get_or_none(
-        user_id=requester_user.id, game_id=m.start_data["game_id"]
-    )
+    killer_player: Player = await Player.get_or_none(user_id=requester_user.id, game_id=m.start_data["game_id"])
     kill_event: KillEvent = await KillEvent.get_or_none(
         game_id=m.start_data["game_id"],
         killer_id=requester_user.id,
@@ -78,17 +92,13 @@ async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     kill_event.status = "rejected"
     await kill_event.save()
 
-    victim_player: Player = await Player.get_or_none(
-        game_id=m.start_data["game_id"], user_id=kill_event.victim.id
-    )
+    victim_player: Player = await Player.get_or_none(game_id=m.start_data["game_id"], user_id=kill_event.victim.id)
 
     logger.debug(kill_event)
     killer_delta, victim_delta = await modify_rating(
-        killer_player, victim_player, 0, 1
+        killer_player, victim_player, 0, 1, calculate_penalty(kill_event.created_at)
     )
-    await add_back_to_queues(
-        kill_event.killer, kill_event.victim, killer_player, victim_player
-    )
+    await add_back_to_queues(kill_event.killer, kill_event.victim, killer_player, victim_player)
     await notify_chat(
         c.bot,
         kill_event.killer,

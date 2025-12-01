@@ -20,9 +20,7 @@ _CONFIRM_PREFIX = "confirm "
 _DENY_PREFIX = "deny "
 
 
-def _disabled_keyboard(
-    label_left: str, label_right: str
-) -> InlineKeyboardMarkup:
+def _disabled_keyboard(label_left: str, label_right: str) -> InlineKeyboardMarkup:
     """Return a non-interactive keyboard to indicate final state."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -60,9 +58,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
     user_id = callback.from_user.id
     user_obj = await User().get(tg_id=user_id)
     if not user_obj.is_admin:
-        await callback.answer(
-            "У вас нет прав для модерации профилей.", show_alert=True
-        )
+        await callback.answer("У вас нет прав для модерации профилей.", show_alert=True)
         return True
     return False
 
@@ -84,9 +80,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
     # Update admin message UI (disable buttons)
     try:
         if callback.message:
-            await callback.message.edit_reply_markup(
-                reply_markup=_disabled_keyboard("confirmed", "—")
-            )
+            await callback.message.edit_reply_markup(reply_markup=_disabled_keyboard("confirmed", "—"))
     except TelegramBadRequest:
         # Message could be already edited/deleted; ignore
         pass
@@ -103,14 +97,10 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
         )
         user, created = await User.get_or_create(tg_id=target_user_id)
         if created:
-            await callback.message.reply(
-                f"Пользователь {target_user_id} еще даже в базе данных не появился"
-            )
+            await callback.message.reply(f"Пользователь {target_user_id} еще даже в базе данных не появился")
         user.status = "confirmed"
         await user.save()
-        user_dialog_manager = BgManagerFactoryImpl(
-            router=mainloop_dialog.router
-        ).bg(
+        user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
             bot=bot,
             user_id=user.tg_id,
             chat_id=user.tg_id,
@@ -122,14 +112,12 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot):
                 "user_tg_id": user.tg_id,
                 "game_id": (game and game.id) or None,
             },
-            show_mode=ShowMode.DELETE_AND_SEND,
+            show_mode=ShowMode.SEND,
         )
     except TelegramForbiddenError as e:
         # The user might have blocked the bot or never started it
         if callback.message:
-            await callback.message.reply(
-                f"Не удалось отправить уведомление пользователю {target_user_id}: {e}"
-            )
+            await callback.message.reply(f"Не удалось отправить уведомление пользователю {target_user_id}: {e}")
 
 
 @router.callback_query(F.data.startswith(_DENY_PREFIX))
@@ -149,9 +137,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot):
     # Update admin message UI (disable buttons)
     try:
         if callback.message:
-            await callback.message.edit_reply_markup(
-                reply_markup=_disabled_keyboard("—", "denied")
-            )
+            await callback.message.edit_reply_markup(reply_markup=_disabled_keyboard("—", "denied"))
     except TelegramBadRequest:
         pass
 
@@ -170,13 +156,9 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot):
         )
         user, created = await User.get_or_create(tg_id=target_user_id)
         if created:
-            await callback.message.reply(
-                f"Пользователь {target_user_id} еще даже в базе данных не появился"
-            )
+            await callback.message.reply(f"Пользователь {target_user_id} еще даже в базе данных не появился")
         user.status = "rejected"
         await user.save()
     except TelegramForbiddenError as e:
         if callback.message:
-            await callback.message.reply(
-                f"Не удалось отправить уведомление пользователю {target_user_id}: {e}"
-            )
+            await callback.message.reply(f"Не удалось отправить уведомление пользователю {target_user_id}: {e}")
