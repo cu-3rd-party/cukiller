@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 from datetime import datetime, timedelta
 
 from aiogram import Router, Bot
@@ -44,6 +45,14 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
     )
 
 
+FAILED_MESSAGE = [
+    "отказался убивать",
+    "не осилил убийство",
+    "признал, что имеет недостаточно квалификации, чтоб убить",
+    "сдался убивать",
+]
+
+
 async def notify_chat(
     bot: Bot,
     killer: User,
@@ -56,7 +65,7 @@ async def notify_chat(
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
-            f"<b>{killer.mention_html()}</b> отказался убивать <b>{victim.mention_html()}</b>\n\n"
+            f"<b>{killer.mention_html()}</b> {random.choice(FAILED_MESSAGE)} <b>{victim.mention_html()}</b>\n\n"
             f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
             f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
         ),
