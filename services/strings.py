@@ -3,7 +3,20 @@ from dataclasses import dataclass
 from datetime import timedelta
 from html import unescape
 
-SAFE_PATTERN = re.compile(r"^[\w\s\-\.,!()]+$", re.UNICODE)
+# Разрешаем:
+# - буквы/цифры/подчёркивание
+# - пробелы
+# - стандартные знаки .,!()-
+# - любые Unicode-символы категории Symbol (в т.ч. emoji)
+# - переносы строки (\n, \r) — если allow_newline=True (проверяется отдельно)
+SAFE_PATTERN = re.compile(
+    r"^[\w\s\-\.,!()"
+    r"\u200d"  # zero-width joiner (используется в сложных emoji)
+    r"\uFE0F"  # variation selector (emoji)
+    r"\p{So}\p{Sk}"  # символы/пиктограммы/emoji
+    r"]+$",
+    re.UNICODE,
+)
 
 
 @dataclass
@@ -16,14 +29,21 @@ class SafeStringConfig:
 
 def is_safe(string: str, config: SafeStringConfig = SafeStringConfig()) -> bool:
     raw = unescape(string)
+
+    # Проверка перевода строк
     if not config.allow_newline and ("\n" in raw or "\r" in raw):
         return False
+
     if len(raw) > config.max_len:
         return False
+
     if not config.allow_html and ("<" in raw or ">" in raw):
         return False
-    if config.safe_pattern and not SAFE_PATTERN.match(raw):
-        return False
+
+    if config.safe_pattern:
+        test_raw = raw if not config.allow_newline else raw.replace("\n", " ").replace("\r", " ")
+        if not SAFE_PATTERN.match(test_raw):
+            return False
 
     return True
 
