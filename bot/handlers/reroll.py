@@ -71,7 +71,9 @@ async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
         user_id=requester_user.id, game_id=m.start_data["game_id"]
     )
     kill_event: KillEvent = await KillEvent.get_or_none(
-        killer_id=requester_user.id, status="pending"
+        game_id=m.start_data["game_id"],
+        killer_id=requester_user.id,
+        status="pending",
     ).prefetch_related("killer", "victim")
     kill_event.status = "rejected"
     await kill_event.save()
