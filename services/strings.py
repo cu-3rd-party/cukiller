@@ -11,16 +11,16 @@ from html import unescape
 # - переносы строки (\n, \r) — если allow_newline=True (проверяется отдельно)
 SAFE_PATTERN = re.compile(
     r"^[\w\s\-\.,!()"
-    r"\u200d"                      # zero-width joiner
-    r"\uFE0F"                      # variation selector
-    r"\U0001F300-\U0001F5FF"       # emoji block
+    r"\u200d"  # zero-width joiner
+    r"\uFE0F"  # variation selector
+    r"\U0001F300-\U0001F5FF"  # emoji block
     r"\U0001F600-\U0001F64F"
     r"\U0001F680-\U0001F6FF"
     r"\U0001F700-\U0001F77F"
     r"\U0001F900-\U0001F9FF"
     r"\U0001FA70-\U0001FAFF"
     r"]+$",
-    re.UNICODE
+    re.UNICODE,
 )
 
 
