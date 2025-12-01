@@ -29,7 +29,7 @@ class SafeStringConfig:
     allow_newline: bool = False
     max_len: int = 200
     allow_html: bool = False
-    safe_pattern: bool = True
+    safe_pattern: bool = False
 
 
 def is_safe(string: str, config: SafeStringConfig = SafeStringConfig()) -> bool:
