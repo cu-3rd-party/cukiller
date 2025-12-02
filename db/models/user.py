@@ -8,11 +8,11 @@ from .constants import PLAYER_STATUS
 
 
 class User(TimestampedModel, ProfileBase):
-    tg_id = fields.BigIntField(unique=True)
+    tg_id = fields.BigIntField(unique=True, index=True)
     tg_username = fields.CharField(max_length=32, null=True, unique=True)
 
-    is_in_game = fields.BooleanField(default=False)
-    is_admin = fields.BooleanField(default=False)
+    is_in_game = fields.BooleanField(default=False, index=True)
+    is_admin = fields.BooleanField(default=False, index=True)
 
     status = fields.CharField(
         max_length=32,

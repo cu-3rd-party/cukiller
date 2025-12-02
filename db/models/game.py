@@ -6,8 +6,8 @@ from .base import TimestampedModel
 class Game(TimestampedModel):
     name = fields.CharField(max_length=255)
 
-    start_date = fields.DatetimeField(null=True)
-    end_date = fields.DatetimeField(null=True)
+    start_date = fields.DatetimeField(null=True, index=True)
+    end_date = fields.DatetimeField(null=True, index=True)
 
     class Meta:
         table = "games"
