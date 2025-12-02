@@ -172,10 +172,10 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 		FROM kill_events
 		WHERE status != 'pending' 
 			AND game_id = $1
-			AND killer_user_id = $2
+			AND (killer_user_id = $2 OR victim_user_id = $3)
 		ORDER BY created_at DESC
-		LIMIT $3
-	`, gameId, killerId, conf.MatchHistoryCheckDepth)
+		LIMIT $4
+	`, gameId, killerId, victimId, conf.MatchHistoryCheckDepth)
 	if err != nil {
 		logger.Error("Error querying last kill events: %v", err)
 		return false // безопасная логика
