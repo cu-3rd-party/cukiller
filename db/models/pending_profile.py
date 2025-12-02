@@ -30,4 +30,3 @@ class PendingProfile(TimestampedModel, ProfileBase):
         table = "pending_profiles"
         table_description = "Профили, ожидающие модерации"
         indexes = (("status",), ("user_id",))
-

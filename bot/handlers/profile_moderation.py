@@ -121,9 +121,7 @@ def _build_new_profile_body(pending: PendingProfile) -> str:
     )
 
 
-def _build_changes_body(
-    pending: PendingProfile, current_user: User
-) -> str:
+def _build_changes_body(pending: PendingProfile, current_user: User) -> str:
     lines = [
         "<b>Изменение профиля:</b>",
         f"<b>ID заявки:</b> {pending.id}",
@@ -150,13 +148,14 @@ def _build_admin_body(pending: PendingProfile, user: User) -> str:
     return _build_changes_body(pending, user)
 
 
-def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
+def _build_user_denied_text(
+    pending: PendingProfile, reason: str | None
+) -> str:
     if pending.is_new_profile:
         base = "К сожалению, нам пришлось отклонить вашу заявку"
     else:
         base = (
-            "Изменения не подходят под наши правила, "
-            "нам пришлось их отклонить"
+            "Изменения не подходят под наши правила, нам пришлось их отклонить"
         )
     if reason:
         return f"{base}, причина: {reason}"
@@ -229,7 +228,7 @@ def _disabled_keyboard(
                 InlineKeyboardButton(text=label_right, callback_data="noop"),
             ]
         ]
-)
+    )
 
 
 async def _process_rejection(
@@ -432,8 +431,7 @@ async def on_deny_profile(
     await pending.save()
 
     status_line = (
-        f"❌ Отклонено {_moderator_name(callback.from_user)} "
-        "(ожидаем причину)"
+        f"❌ Отклонено {_moderator_name(callback.from_user)} (ожидаем причину)"
     )
     body = _build_admin_body(pending, pending.user)
     await _edit_admin_message(

@@ -105,9 +105,7 @@ class AdminChatService:
         await User.get_or_create(tg_id=tg_id)
 
         body = _build_body(text, tag)
-        reply_markup = _pending_buttons(
-            pending_id, tg_id, with_inspect=True
-        )
+        reply_markup = _pending_buttons(pending_id, tg_id, with_inspect=True)
 
         try:
             if photo:
@@ -126,8 +124,7 @@ class AdminChatService:
             )
         except TelegramBadRequest as e:
             logger.warning(
-                "Ошибка %s: %s. "
-                "Пробуем отправить еще раз",
+                "Ошибка %s: %s. Пробуем отправить еще раз",
                 chat.chat_id,
                 e,
             )
@@ -142,12 +139,8 @@ class AdminChatService:
                     parse_mode="HTML",
                 )
             except TelegramBadRequest as e2:
-                logger.error(
-                    "Ошибка при отправке профиля: %s", e2
-                )
+                logger.error("Ошибка при отправке профиля: %s", e2)
                 return None
         except Exception as e:
-            logger.error(
-                "Произошла ошибка: %s", e
-            )
+            logger.error("Произошла ошибка: %s", e)
             return None
