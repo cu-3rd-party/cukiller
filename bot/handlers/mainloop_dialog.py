@@ -1,22 +1,21 @@
 import logging
 
-from aiogram import F
-from aiogram import Router, Bot
+from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-from aiogram_dialog import Dialog, DialogManager, Window, ShowMode
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.kbd import Button, Column, Url
 from aiogram_dialog.widgets.media import DynamicMedia
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.text import Const, Format
 
 from bot.filters.confirmed import ConfirmedFilter
 from bot.filters.user import UserFilter
 from bot.handlers.admin import set_admin_commands
 from bot.handlers.mainloop.button_handlers import (
-    on_i_was_killed,
-    on_i_killed,
-    on_get_target,
     confirm_participation,
+    on_get_target,
+    on_i_killed,
+    on_i_was_killed,
     open_profile,
     open_rules,
 )
@@ -57,12 +56,13 @@ main_menu_dialog = Dialog(
                 Const("Перейти в чат обсуждения"),
                 id="discussion_group_link",
                 url=Format("{discussion_link}"),
+                when="discussion_link",
             ),
             Url(
                 Const("Когда следующая игра?"),
                 id="next_game_link",
                 url=Format("{next_game_link}"),
-                when=~F["game_running"],
+                when=F["next_game_link"] & ~F["game_running"],
             ),
             Button(
                 Const("Присоединиться к игре"),
@@ -113,12 +113,13 @@ main_menu_dialog = Dialog(
                 Const("Написать репорт"),
                 id="write_report",
                 url=Format("{report_link}"),
+                when=F["report_link"],
             ),
             Url(
                 Const("Открыть профиль"),
                 id="profile",
                 url=Format("{target_profile_link}"),
-                when="target_profile_link",
+                when=F["target_profile_link"],
             ),
             Button(
                 Const("Я убил"),

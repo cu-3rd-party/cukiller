@@ -3,18 +3,18 @@ import logging
 from aiogram import Bot, Router
 from aiogram.enums import ContentType
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
-from aiogram_dialog import Window, Dialog, DialogManager, ShowMode
+from aiogram.types import CallbackQuery, Message
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Column, Group
-from aiogram_dialog.widgets.text import Const
+from aiogram_dialog.widgets.text import Const, Format
 
-from bot.filters.confirmed import ProfileNonexistentFilter
-from db.models import User
+from bot.filters.confirmed import PendingFilter, ProfileNonexistentFilter
+from db.models import PendingProfile, User
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
 from services.states import RegisterForm
-from services.strings import is_safe, SafeStringConfig
+from services.strings import SafeStringConfig, is_safe
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +113,19 @@ async def on_photo_input(m: Message, _, manager: DialogManager):
     return None
 
 
+async def reg_confirm_getter(dialog_manager: DialogManager, **_):
+    d = dialog_manager.dialog_data
+    return {
+        "name": d.get("name"),
+        "course_type_label": COURSE_TYPES.get(d.get("course_type"), "-"),
+        "course_number": d.get("course_number") or "-",
+        "group_name": d.get("group_name") or "-",
+        "about": d.get("about") or "-",
+        "photo": d.get("photo"),
+        "has_photo": bool(d.get("photo")),
+    }
+
+
 @log_dialog_action("REG_FINAL_CONFIRM")
 async def on_final_confirmation(
     c: CallbackQuery, b: Button, manager: DialogManager
@@ -121,39 +134,58 @@ async def on_final_confirmation(
     d = manager.dialog_data
     tg_user = c.from_user
 
-    # DB save
-    user = await User.get_or_none(tg_id=tg_user.id) or User(tg_id=tg_user.id)
+    user_obj, _ = await User.get_or_create(tg_id=tg_user.id)
+    user_obj.tg_username = tg_user.username
+    user_obj.status = "pending"
+    await user_obj.save()
 
-    user.name = d["name"]
-    user.tg_username = tg_user.username
-    user.type = d["course_type"]
-    user.course_number = d.get("course_number")
-    user.group_name = d.get("group_name")
-    user.about_user = d["about"]
-    user.photo = d["photo"]
-    user.status = "pending"
-
-    await user.save()
+    pending = await PendingProfile.create(
+        user=user_obj,
+        status="pending",
+        is_new_profile=True,
+        name=d["name"],
+        type=d["course_type"],
+        course_number=d.get("course_number"),
+        group_name=d.get("group_name"),
+        about_user=d["about"],
+        photo=d["photo"],
+        changed_fields=[
+            "name",
+            "type",
+            "course_number",
+            "group_name",
+            "about_user",
+            "photo",
+        ],
+        submitted_username=tg_user.username,
+    )
 
     # Notify admin
     text = (
         f"<b>Новый профиль:</b>\n\n"
-        f"<b>Имя:</b> {user.name}\n"
-        f"<b>Тип:</b> {COURSE_TYPES[user.type]}\n"
-        f"<b>Курс:</b> {user.course_number or '-'}\n"
-        f"<b>Поток:</b> {user.group_name or '-'}\n"
-        f"<b>О себе:</b> {user.about_user}\n"
+        f"<b>Имя:</b> {d['name']}\n"
+        f"<b>Тип:</b> {COURSE_TYPES[d['course_type']]}\n"
+        f"<b>Курс:</b> {d.get('course_number') or '-'}\n"
+        f"<b>Поток:</b> {d.get('group_name') or '-'}\n"
+        f"<b>О себе:</b> {d['about']}\n"
         f"<b>Username:</b> @{tg_user.username or 'не указан'}\n"
-        f"<b>ID:</b> {tg_user.id}"
+        f"<b>ID:</b> {tg_user.id}\n"
+        f"<b>ID заявки:</b> {pending.id}"
     )
 
-    await AdminChatService(bot).send_profile_confirmation_request(
-        key="logs",
-        photo=user.photo,
+    admin_service = AdminChatService(bot)
+    admin_message = await admin_service.send_pending_profile_request(
+        chat_key="logs",
+        pending_id=str(pending.id),
         tg_id=tg_user.id,
         text=text,
+        photo=d["photo"],
         tag="profile_confirm",
     )
+    if admin_message:
+        pending.chat_id = admin_message.chat.id
+        pending.message_id = admin_message.message_id
+        await pending.save()
 
     await c.message.answer("Твой профиль отправлен на проверку!")
     await manager.done()
@@ -289,6 +321,12 @@ router.include_router(
         ),
         Window(
             Const("Проверь данные и отправь на проверку:"),
+            Format("<b>Имя:</b> {name}", when="name"),
+            Format("<b>Тип:</b> {course_type_label}"),
+            Format("<b>Курс:</b> {course_number}"),
+            Format("<b>Поток:</b> {group_name}"),
+            Format("<b>О себе:</b>\n{about}"),
+            Format("Фото прикреплено", when="has_photo"),
             Column(
                 Button(
                     Const("Отправить"), id="go", on_click=on_final_confirmation
@@ -299,6 +337,7 @@ router.include_router(
                     on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
                 ),
             ),
+            getter=reg_confirm_getter,
             state=RegisterForm.confirm,
         ),
     )
@@ -314,4 +353,11 @@ async def registration_start(
     await dialog_manager.reset_stack()
     await dialog_manager.start(
         RegisterForm.name, show_mode=ShowMode.DELETE_AND_SEND
+    )
+
+
+@router.message(CommandStart(), PendingFilter())
+async def registration_pending(message: Message):
+    await message.answer(
+        "Твой профиль на модерации. Мы сообщим, как только его проверят"
     )
