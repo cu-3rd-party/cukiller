@@ -153,14 +153,14 @@ def _build_admin_body(pending: PendingProfile, user: User) -> str:
 def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
     if pending.is_new_profile:
         base = "К сожалению, нам пришлось отклонить вашу заявку"
+        if reason:
+            return f"{base}, причина: {html.escape(reason)}"
+        return base + "."
     else:
-        base = (
-            "Изменения не подходят под наши правила, "
-            "нам пришлось их отклонить"
-        )
-    if reason:
-        return f"{base}, причина: {reason}"
-    return base + "."
+        base = "Ваши изменения не соответствуют нашим правилам"
+        if reason:
+            return f"{base} по причине {html.escape(reason)}."
+        return base + "."
 
 
 async def _apply_pending_profile(pending: PendingProfile) -> User:
