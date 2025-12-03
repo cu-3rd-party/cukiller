@@ -9,19 +9,20 @@ class KillEvent(TimestampedModel):
         "models.Game",
         related_name="kill_events",
         on_delete=fields.CASCADE,
+        index=True,
     )
 
     killer = fields.ForeignKeyField(
         "models.User",
         related_name="kills_as_killer",
         on_delete=fields.RESTRICT,
-        source_field="killer_user_id",
+        index=True,
     )
     victim = fields.ForeignKeyField(
         "models.User",
         related_name="kills_as_victim",
         on_delete=fields.RESTRICT,
-        source_field="victim_user_id",
+        index=True,
     )
 
     killer_confirmed = fields.BooleanField(default=False)
@@ -51,12 +52,6 @@ class KillEvent(TimestampedModel):
     class Meta:
         table = "kill_events"
         table_description = "События «киллов»"
-        indexes = (
-            ("game",),
-            ("killer",),
-            ("victim",),
-            ("status",),
-        )
 
     def __str__(self) -> str:
         return f"<KillEvent with id={self.id}>"

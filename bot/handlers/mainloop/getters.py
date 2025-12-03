@@ -1,4 +1,6 @@
 import logging
+import re
+from urllib.parse import urlparse
 
 from aiogram import Dispatcher
 from aiogram.enums import ContentType
@@ -6,13 +8,32 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
 from bot.handlers.registration_dialog import COURSE_TYPES
-from db.models import Game, User, Player, KillEvent
+from db.models import Game, KillEvent, Player, User
 from services import settings
 from services.logging import log_getter
 from services.matchmaking import MatchmakingService
 from services.strings import trim_name
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_url(value: str | None, allow_tg: bool = False) -> str | None:
+    if not value:
+        return None
+    parsed = urlparse(value)
+    allowed = {"http", "https"}
+    if allow_tg:
+        allowed.add("tg")
+    if parsed.scheme not in allowed:
+        return None
+    if parsed.scheme in {"http", "https"} and not parsed.netloc:
+        return None
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        if not re.match(r"^[A-Za-z0-9.-]+(:\d+)?$", parsed.netloc):
+            return None
+    if parsed.scheme == "tg" and not parsed.netloc:
+        return None
+    return value
 
 
 async def get_user(manager: DialogManager):
@@ -99,7 +120,7 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
         "target_name": target_name,
         "target_photo": target_photo,
         "target_advanced_info": target_advanced_info,
-        "target_profile_link": target_tg_id and f"tg://user?id={target_tg_id}",
+        "target_profile_link": _safe_url(target_tg_id and f"tg://user?id={target_tg_id}", allow_tg=True),
     }
 
 
@@ -119,9 +140,12 @@ async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatch
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
 
+    discussion_link = _safe_url(getattr(settings.discussion_chat_invite_link, "invite_link", None))
+    next_game_link = _safe_url(settings.game_info_link)
+
     return {
-        "discussion_link": settings.discussion_chat_invite_link.invite_link,
-        "next_game_link": settings.game_info_link,
+        "discussion_link": discussion_link,
+        "next_game_link": next_game_link,
         "game_running": game is not None,
         "user_is_in_game": user.is_in_game,
         "join_game_button": game is not None and not user.is_in_game,
@@ -136,6 +160,6 @@ async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher,
     matchmaking = MatchmakingService()
 
     return {
-        "report_link": settings.report_link,
+        "report_link": _safe_url(settings.report_link),
         **await parse_target_info(game, user, matchmaking),
     }

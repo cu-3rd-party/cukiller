@@ -1,34 +1,125 @@
+import html
 import logging
 
-from aiogram import Router, Bot
+from aiogram import Bot, Router
 from aiogram.enums import ContentType
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Cancel, Button
+from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.media import DynamicMedia
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.text import Const, Format
 
 from bot.handlers.mainloop.getters import get_advanced_info, get_user
 from bot.handlers.registration_dialog import (
+    COURSE_TYPES,
     btns_course_types,
-    course_buttons,
     btns_groups,
-    reg_getter,
+    course_buttons,
     course_number_required,
     group_required,
-    COURSE_TYPES,
+    reg_getter,
 )
-from db.models import User
+from db.models import PendingProfile, User
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
-from services.states.my_profile import MyProfile, EditProfile
-from services.strings import is_safe, SafeStringConfig
+from services.states.my_profile import EditProfile, MyProfile
+from services.strings import SafeStringConfig, is_safe
 
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+
+FIELD_LABELS = {
+    "name": "Имя",
+    "type": "Тип",
+    "course_number": "Курс",
+    "group_name": "Поток",
+    "about_user": "О себе",
+    "photo": "Фото",
+}
+
+
+def _format_value(field: str, value):
+    if value is None:
+        return "-"
+    if field == "type":
+        return COURSE_TYPES.get(value, value)
+    return str(value)
+
+
+def _format_change_arrow(field: str, old, new) -> str:
+    return (
+        f"<b>{FIELD_LABELS[field]}:</b> "
+        f"{html.escape(_format_value(field, old))} -> "
+        f"{html.escape(_format_value(field, new))}"
+    )
+
+
+def _collect_changes(dialog_data: dict, user: User) -> tuple[dict, list[str]]:
+    changes: dict[str, object] = {}
+    changed_fields: list[str] = []
+
+    if "name" in dialog_data and dialog_data.get("name") != user.name:
+        changes["name"] = dialog_data.get("name")
+        changed_fields.append("name")
+
+    if dialog_data.get("academics_edited"):
+        if "course_type" in dialog_data and dialog_data.get("course_type") != user.type:
+            changes["type"] = dialog_data.get("course_type")
+            changed_fields.append("type")
+        if "course_number" in dialog_data and dialog_data.get("course_number") != user.course_number:
+            changes["course_number"] = dialog_data.get("course_number")
+            changed_fields.append("course_number")
+        if "group_name" in dialog_data and dialog_data.get("group_name") != user.group_name:
+            changes["group_name"] = dialog_data.get("group_name")
+            changed_fields.append("group_name")
+
+    if "about" in dialog_data and dialog_data.get("about") != user.about_user:
+        changes["about_user"] = dialog_data.get("about")
+        changed_fields.append("about_user")
+
+    if "photo" in dialog_data and dialog_data.get("photo") and dialog_data.get("photo") != user.photo:
+        changes["photo"] = dialog_data.get("photo")
+        changed_fields.append("photo")
+
+    return changes, changed_fields
+
+
+def _build_changes_preview(user: User, changes: dict, changed_fields: list[str]) -> str:
+    if not changed_fields:
+        return "Изменения пока не выбраны. Добавьте поля и вернитесь к подтверждению."
+
+    lines = ["<b>Изменения:</b>"]
+    for field in changed_fields:
+        if field == "photo":
+            lines.append(f"<b>{FIELD_LABELS['photo']}:</b> фото будет обновлено")
+            continue
+        old_value = getattr(user, field)
+        new_value = changes[field]
+        lines.append(_format_change_arrow(field, old_value, new_value))
+
+    return "\n".join(lines)
+
+
+def _build_profile_preview(user: User, changes: dict) -> str:
+    """Как профиль будет выглядеть после сохранения изменений."""
+    name = html.escape(changes.get("name", user.name))
+    type_value = html.escape(_format_value("type", changes.get("type", user.type)))
+    course_value = html.escape(_format_value("course_number", changes.get("course_number", user.course_number)))
+    group_value = html.escape(_format_value("group_name", changes.get("group_name", user.group_name)))
+    about_value = html.escape(changes.get("about_user", user.about_user) or "-")
+
+    return (
+        "<b>Черновик профиля:</b>\n"
+        f"Имя: <b>{name}</b>\n"
+        f"Тип: {type_value}\n"
+        f"Курс: {course_value}\n"
+        f"Поток: {group_value}\n"
+        f"О себе: {about_value}"
+    )
 
 
 async def get_profile_info(dialog_manager: DialogManager, **kwargs):
@@ -38,6 +129,23 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
         "photo": MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)),
         "advanced_info": get_advanced_info(user),
         "profile_link": user.tg_id and f"tg://user?id={user.tg_id}",
+    }
+
+
+async def confirm_preview_getter(dialog_manager: DialogManager, **kwargs):
+    user = await get_user(dialog_manager)
+    changes, changed_fields = _collect_changes(dialog_manager.dialog_data, user)
+    preview_photo_id = changes.get("photo") or user.photo
+
+    preview_photo = (
+        MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=preview_photo_id)) if preview_photo_id else None
+    )
+
+    return {
+        "preview_text": _build_profile_preview(user, changes),
+        "changes_preview": _build_changes_preview(user, changes, changed_fields),
+        "has_changes": bool(changed_fields),
+        "preview_photo": preview_photo,
     }
 
 
@@ -122,40 +230,61 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     d = manager.dialog_data
     tg_user = c.from_user
 
-    # DB save
-    user = await User.get_or_none(tg_id=tg_user.id) or User(tg_id=tg_user.id)
+    user = await User.get_or_none(tg_id=tg_user.id)
+    if user is None:
+        await c.answer("Не удалось найти пользователя.", show_alert=True)
+        await manager.done()
+        return
 
-    user.name = d.get("name") or user.name
-    user.tg_username = tg_user.username
-    if d.get("academics_edited"):
-        user.type = d.get("course_type")
-        user.course_number = d.get("course_number")
-        user.group_name = d.get("group_name")
-    user.about_user = d.get("about") or user.about_user
-    user.photo = d.get("photo") or user.photo
+    if user.tg_username != tg_user.username:
+        user.tg_username = tg_user.username
+        await user.save(update_fields=["tg_username"])
 
-    await user.save()
+    changes, changed_fields = _collect_changes(d, user)
 
-    # Notify admin
-    text = (
-        f"<b>Измененный профиль:</b>\n\n"
-        f"<b>Имя:</b> {user.name}\n"
-        f"<b>Тип:</b> {COURSE_TYPES[user.type]}\n"
-        f"<b>Курс:</b> {user.course_number or '-'}\n"
-        f"<b>Поток:</b> {user.group_name or '-'}\n"
-        f"<b>О себе:</b> {user.about_user}\n"
-        f"<b>Username:</b> @{tg_user.username or 'не указан'}\n"
-        f"<b>ID:</b> {tg_user.id}"
+    if not changed_fields:
+        await c.answer("Нет изменений для отправки", show_alert=True)
+        await manager.done()
+        return
+
+    pending = await PendingProfile.create(
+        user=user,
+        is_new_profile=False,
+        changed_fields=changed_fields,
+        submitted_username=tg_user.username,
+        **changes,
     )
 
-    await AdminChatService(bot).send_message_photo(
-        key="logs",
-        photo=user.photo,
+    changes_preview = _build_changes_preview(user, changes, changed_fields)
+    profile_preview = _build_profile_preview(user, changes)
+
+    lines = [
+        "<b>Изменение профиля:</b>",
+        f"<b>ID заявки:</b> {pending.id}",
+        f"<b>ID:</b> {tg_user.id}",
+        f"<b>Username:</b> @{tg_user.username or 'не указан'}",
+        changes_preview,
+        profile_preview,
+    ]
+
+    text = "\n\n".join(lines)
+    photo_to_send = changes.get("photo") or user.photo
+
+    admin_service = AdminChatService(bot)
+    admin_message = await admin_service.send_pending_profile_request(
+        chat_key="logs",
+        pending_id=str(pending.id),
         tg_id=tg_user.id,
         text=text,
-        tag="profile_confirm",
+        photo=photo_to_send,
+        tag="profile_edit",
     )
+    if admin_message:
+        pending.chat_id = admin_message.chat.id
+        pending.message_id = admin_message.message_id
+        await pending.save()
 
+    await c.message.answer("Изменения отправлены на модерацию. Пока используется старая версия профиля")
     await manager.done()
 
 
@@ -205,7 +334,6 @@ router.include_router(
             Cancel(Const("Назад")),
             state=EditProfile.group,
         ),
-        # одиночные изменения
         Window(
             Const("Введите измененное имя:"),
             MessageInput(on_name, content_types=ContentType.TEXT),
@@ -225,13 +353,22 @@ router.include_router(
             state=EditProfile.photo,
         ),
         Window(
-            Const("Подтверждаешь корректность изменений?"),
+            Format("{preview_text}"),
+            DynamicMedia("preview_photo", when="preview_photo"),
+            Format("\n{changes_preview}"),
             Button(
-                Const("Да, отправляй"),
+                Const("Добавить ещё поля"),
+                id="edit_more",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.main),
+            ),
+            Button(
+                Const("Отправить на модерацию"),
                 id="confirmed",
                 on_click=on_final_confirmation,
+                when="has_changes",
             ),
             Cancel(Const("Отмена")),
+            getter=confirm_preview_getter,
             state=EditProfile.confirm,
         ),
     )
