@@ -19,9 +19,7 @@ class ProfileBase(models.Model):
     # тип: студент/сотрудник/абитуриент
     type = fields.CharField(max_length=32, null=True)
     # номер курса
-    course_number = fields.SmallIntField(
-        null=True, validators=[MinValueValidator(1), MaxValueValidator(8)]
-    )
+    course_number = fields.SmallIntField(null=True, validators=[MinValueValidator(1), MaxValueValidator(8)])
     # название направления
     group_name = fields.CharField(max_length=255, null=True)
     # строчка айди файла в тг - мы даже не храним аватарки у себя

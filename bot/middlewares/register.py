@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any
 from datetime import datetime, timedelta
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message
@@ -39,9 +39,9 @@ class RegisterUserMiddleware(BaseMiddleware):
         cache_key = user.id
         cached_data = self._user_cache.get(cache_key)
 
-        if cached_data and cached_data["timestamp"] > datetime.now(
-            settings.timezone
-        ) - timedelta(seconds=self.cache_ttl):
+        if cached_data and cached_data["timestamp"] > datetime.now(settings.timezone) - timedelta(
+            seconds=self.cache_ttl
+        ):
             data["user_tg_id"] = cached_data["user"].tg_id
             return await handler(event, data)
 
@@ -66,10 +66,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                 ).strip(),
             }
 
-            if (
-                db_user.tg_username != user.username
-                or db_user.name != user_data["name"]
-            ):
+            if db_user.tg_username != user.username or db_user.name != user_data["name"]:
                 for field, value in user_data.items():
                     setattr(db_user, field, value)
                 await db_user.save()

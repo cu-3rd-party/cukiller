@@ -15,6 +15,7 @@ from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
+from services.states.reroll import Reroll
 from services.states.rules import RulesStates
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ async def _start_kill_confirmation(
     await manager.start(
         state,
         data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
@@ -46,43 +47,31 @@ async def _get_pending_event(user_id: int, game_id: int, role: str):
         "killer": {"killer_id": user_id},
     }[role]
 
-    return await KillEvent.filter(
-        **filters, game_id=game_id, status="pending"
-    ).first()
+    return await KillEvent.filter(**filters, game_id=game_id, status="pending").first()
 
 
 @log_dialog_action("I_WAS_KILLED")
-async def on_i_was_killed(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def on_i_was_killed(callback: CallbackQuery, button: Button, manager: DialogManager):
     logger.info("%d: reported they were killed", callback.from_user.id)
 
     user, game = await _get_user_and_game(manager)
     kill_event = await _get_pending_event(user.id, game.id, role="victim")
 
-    await _start_kill_confirmation(
-        manager, kill_event, ConfirmKillVictim.confirm
-    )
+    await _start_kill_confirmation(manager, kill_event, ConfirmKillVictim.confirm)
 
 
 @log_dialog_action("I_KILLED")
-async def on_i_killed(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def on_i_killed(callback: CallbackQuery, button: Button, manager: DialogManager):
     logger.info("%d: reported they killed their target", callback.from_user.id)
 
     user, game = await _get_user_and_game(manager)
     kill_event = await _get_pending_event(user.id, game.id, role="killer")
 
-    await _start_kill_confirmation(
-        manager, kill_event, ConfirmKillKiller.confirm
-    )
+    await _start_kill_confirmation(manager, kill_event, ConfirmKillKiller.confirm)
 
 
 @log_dialog_action("GET_TARGET")
-async def on_get_target(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def on_get_target(callback: CallbackQuery, button: Button, manager: DialogManager):
     user: User = manager.middleware_data["user"]
     game: Game = manager.middleware_data["game"]
     if not game:
@@ -102,9 +91,7 @@ async def on_get_target(
 
 
 @log_dialog_action("CONFIRM_PARTICIPATION")
-async def confirm_participation(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def confirm_participation(callback: CallbackQuery, button: Button, manager: DialogManager):
     user, game = await _get_user_and_game(manager)
 
     dialog = BgManagerFactoryImpl(router=participation.router).bg(
@@ -118,23 +105,29 @@ async def confirm_participation(
     await dialog.start(
         ParticipationForm.confirm,
         data={"game_id": game.id, "user_tg_id": user.tg_id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
 @log_dialog_action("OPEN_PROFILE")
-async def open_profile(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def open_profile(callback: CallbackQuery, button: Button, manager: DialogManager):
     await manager.start(
         MyProfile.profile,
         data={"user_tg_id": callback.from_user.id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
 @log_dialog_action("OPEN_RULES")
-async def open_rules(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def open_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
     await manager.start(RulesStates.rules)
+
+
+@log_dialog_action("REROLL")
+async def on_reroll(c: CallbackQuery, b: Button, m: DialogManager):
+    user, game = await _get_user_and_game(m)
+    await m.start(
+        Reroll.confirm,
+        data={"user_tg_id": user.tg_id, "game_id": game.id},
+        show_mode=ShowMode.SEND,
+    )

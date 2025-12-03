@@ -65,9 +65,7 @@ async def on_name_input(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("REG_TYPE_SELECTED")
-async def on_type_selected(
-    c: CallbackQuery, _, manager: DialogManager, course_type: str
-):
+async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_type: str):
     manager.dialog_data["course_type"] = course_type
 
     if course_number_required(course_type):
@@ -77,9 +75,7 @@ async def on_type_selected(
 
 
 @log_dialog_action("REG_COURSE_NUMBER_SELECTED")
-async def on_course_number_selected(
-    c: CallbackQuery, _, manager: DialogManager, num: str
-):
+async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager, num: str):
     manager.dialog_data["course_number"] = int(num)
 
     if group_required(manager.dialog_data["course_type"]):
@@ -89,16 +85,14 @@ async def on_course_number_selected(
 
 
 @log_dialog_action("REG_GROUP_SELECTED")
-async def on_group_selected(
-    c: CallbackQuery, _, manager: DialogManager, group: str
-):
+async def on_group_selected(c: CallbackQuery, _, manager: DialogManager, group: str):
     manager.dialog_data["group_name"] = group
     await manager.next()
 
 
 @log_dialog_action("REG_ABOUT_INPUT")
 async def on_about_input(m: Message, _, manager: DialogManager):
-    if not is_safe(m.text, SafeStringConfig(allow_newline=True, max_len=500)):
+    if not is_safe(m.text, SafeStringConfig(allow_newline=True, max_len=0)):
         return
     manager.dialog_data["about"] = m.text.strip()
     await manager.next()
@@ -127,9 +121,7 @@ async def reg_confirm_getter(dialog_manager: DialogManager, **_):
 
 
 @log_dialog_action("REG_FINAL_CONFIRM")
-async def on_final_confirmation(
-    c: CallbackQuery, b: Button, manager: DialogManager
-):
+async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogManager):
     bot: Bot = manager.middleware_data["bot"]
     d = manager.dialog_data
     tg_user = c.from_user
@@ -328,9 +320,7 @@ router.include_router(
             Format("<b>О себе:</b>\n{about}"),
             Format("Фото прикреплено", when="has_photo"),
             Column(
-                Button(
-                    Const("Отправить"), id="go", on_click=on_final_confirmation
-                ),
+                Button(Const("Отправить"), id="go", on_click=on_final_confirmation),
                 Button(
                     Const("Начать заново"),
                     id="restart",
@@ -351,9 +341,7 @@ async def registration_start(
     bot: Bot,
 ):
     await dialog_manager.reset_stack()
-    await dialog_manager.start(
-        RegisterForm.name, show_mode=ShowMode.DELETE_AND_SEND
-    )
+    await dialog_manager.start(RegisterForm.name, show_mode=ShowMode.SEND)
 
 
 @router.message(CommandStart(), PendingFilter())

@@ -218,9 +218,7 @@ async def _notify_user_rejection(
         return
 
 
-def _disabled_keyboard(
-    label_left: str, label_right: str
-) -> InlineKeyboardMarkup:
+def _disabled_keyboard(label_left: str, label_right: str) -> InlineKeyboardMarkup:
     """Return a non-interactive keyboard to indicate final state."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -378,13 +376,11 @@ async def on_confirm_profile(
                     "user_tg_id": approved_user.tg_id,
                     "game_id": (game and game.id) or None,
                 },
-                show_mode=ShowMode.DELETE_AND_SEND,
+                show_mode=ShowMode.SEND,
             )
     except TelegramForbiddenError as e:
         if callback.message:
-            await callback.message.reply(
-                f"Не удалось отправить уведомление пользователю {approved_user.tg_id}: {e}"
-            )
+            await callback.message.reply(f"Не удалось отправить уведомление пользователю {approved_user.tg_id}: {e}")
 
 
 @router.callback_query(F.data.startswith(_DENY_PREFIX))
@@ -417,9 +413,7 @@ async def on_deny_profile(
 
     try:
         if callback.message:
-            await callback.message.edit_reply_markup(
-                reply_markup=_disabled_keyboard("—", "denied")
-            )
+            await callback.message.edit_reply_markup(reply_markup=_disabled_keyboard("—", "denied"))
     except TelegramBadRequest:
         pass
 

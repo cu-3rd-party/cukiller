@@ -4,8 +4,8 @@ from .base import TimestampedModel
 
 
 class Chat(TimestampedModel):
-    chat_id = fields.BigIntField()
-    key = fields.CharField(max_length=1024)
+    chat_id = fields.BigIntField(index=True)
+    key = fields.CharField(max_length=1024, index=True)
 
     class Meta:
         table = "chats"

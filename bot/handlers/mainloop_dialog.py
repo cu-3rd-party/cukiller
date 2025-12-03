@@ -4,7 +4,7 @@ from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
-from aiogram_dialog.widgets.kbd import Button, Column, Url
+from aiogram_dialog.widgets.kbd import Button, Column, Url, Back
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
@@ -18,6 +18,7 @@ from bot.handlers.mainloop.button_handlers import (
     on_i_was_killed,
     open_profile,
     open_rules,
+    on_reroll,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from db.models import Game, User
@@ -122,15 +123,16 @@ main_menu_dialog = Dialog(
                 when=F["target_profile_link"],
             ),
             Button(
+                Const("Я сдаюсь"),
+                id="reroll",
+                on_click=on_reroll,
+            ),
+            Button(
                 Const("Я убил"),
                 id="i_killed",
                 on_click=on_i_killed,
             ),
-            Button(
-                Const("Назад"),
-                id="back_to_menu",
-                on_click=lambda c, b, m: m.switch_to(MainLoop.title),
-            ),
+            Back(Const("Назад")),
         ),
         getter=get_target_info,
         state=MainLoop.target_info,
@@ -157,5 +159,5 @@ async def confirmed_start(
             "user_tg_id": message.from_user.id,
             "game_id": (game and game.id) or None,
         },
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )

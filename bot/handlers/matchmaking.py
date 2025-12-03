@@ -34,12 +34,8 @@ async def get_queue_info(request: web.Request) -> web.StreamResponse:
     for ke in await KillEvent.filter(game=game).all():
         found_killers.add(ke.killer)
         found_victims.add(ke.victim)
-    potential_killers = await User.filter(
-        is_in_game=True, id__not_in=found_killers
-    ).all()
-    potential_victims = await User.filter(
-        is_in_game=True, id__not_in=found_victims
-    ).all()
+    potential_killers = await User.filter(is_in_game=True, id__not_in=found_killers).all()
+    potential_victims = await User.filter(is_in_game=True, id__not_in=found_victims).all()
     return web.json_response(
         status=200,
         data={
@@ -88,16 +84,12 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
         parse_mode="HTML",
     )
 
-    victim_dialog_manager = BgManagerFactoryImpl(
-        router=mainloop_dialog.router
-    ).bg(
+    victim_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
         bot=bot,
         user_id=victim_user.tg_id,
         chat_id=victim_user.tg_id,
     )
-    killer_dialog_manager = BgManagerFactoryImpl(
-        router=mainloop_dialog.router
-    ).bg(
+    killer_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
         bot=bot,
         user_id=killer_user.tg_id,
         chat_id=killer_user.tg_id,
@@ -106,12 +98,12 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
     await victim_dialog_manager.start(
         MainLoop.title,
         data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
     await killer_dialog_manager.start(
         MainLoop.title,
         data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
     return web.StreamResponse(status=200)

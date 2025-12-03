@@ -28,9 +28,7 @@ def _pending_buttons(
 ) -> InlineKeyboardMarkup:
     rows = []
     if with_inspect:
-        rows.append(
-            [InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")]
-        )
+        rows.append([InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")])
     else:
         logger.warning(f"User {tg_id} has forced us to disable inspect")
     rows.append(
@@ -58,9 +56,7 @@ class AdminChatService:
             raise ChatNotFoundError(key)
         return chat
 
-    async def send_message(
-        self, key: str, text: str, tag: str | None = None
-    ) -> None:
+    async def send_message(self, key: str, text: str, tag: str | None = None) -> None:
         """Send a text message to a chat by key"""
         chat = await self._get_chat(key)
         await self.bot.send_message(
@@ -69,9 +65,7 @@ class AdminChatService:
             parse_mode="HTML",
         )
 
-    async def send_message_photo(
-        self, photo, tg_id: int, key: str, text: str, tag: str | None = None
-    ):
+    async def send_message_photo(self, photo, tg_id: int, key: str, text: str, tag: str | None = None):
         chat = await self._get_chat(key)
         body = _build_body(text, tag)
 
@@ -80,13 +74,7 @@ class AdminChatService:
             photo=photo,
             caption=body,
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="inspect", url=f"tg://user?id={tg_id}"
-                        )
-                    ]
-                ]
+                inline_keyboard=[[InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")]]
             ),
             parse_mode="HTML",
         )
