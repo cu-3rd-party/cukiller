@@ -4,11 +4,15 @@ RUN_IN_TRANSACTION = True
 
 
 async def upgrade(db: BaseDBAsyncClient) -> str:
-    return ""
+    return """
+        ALTER TABLE "kill_events" RENAME COLUMN "victim_id" TO "victim_user_id";
+        ALTER TABLE "kill_events" RENAME COLUMN "killer_id" TO "killer_user_id";"""
 
 
 async def downgrade(db: BaseDBAsyncClient) -> str:
-    return ""
+    return """
+           ALTER TABLE "kill_events" RENAME COLUMN "victim_user_id" TO "victim_id";
+           ALTER TABLE "kill_events" RENAME COLUMN "killer_user_id" TO "killer_id";"""
 
 
 MODELS_STATE = (
