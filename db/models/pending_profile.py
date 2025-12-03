@@ -5,9 +5,7 @@ from .constants import PENDING_PROFILE_STATUS
 
 
 class PendingProfile(TimestampedModel, ProfileBase):
-    user = fields.ForeignKeyField(
-        "models.User", related_name="pending_profiles"
-    )
+    user = fields.ForeignKeyField("models.User", related_name="pending_profiles")
     status = fields.CharField(
         max_length=32,
         default="pending",

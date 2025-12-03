@@ -67,22 +67,13 @@ def _collect_changes(dialog_data: dict, user: User) -> tuple[dict, list[str]]:
         changed_fields.append("name")
 
     if dialog_data.get("academics_edited"):
-        if (
-            "course_type" in dialog_data
-            and dialog_data.get("course_type") != user.type
-        ):
+        if "course_type" in dialog_data and dialog_data.get("course_type") != user.type:
             changes["type"] = dialog_data.get("course_type")
             changed_fields.append("type")
-        if (
-            "course_number" in dialog_data
-            and dialog_data.get("course_number") != user.course_number
-        ):
+        if "course_number" in dialog_data and dialog_data.get("course_number") != user.course_number:
             changes["course_number"] = dialog_data.get("course_number")
             changed_fields.append("course_number")
-        if (
-            "group_name" in dialog_data
-            and dialog_data.get("group_name") != user.group_name
-        ):
+        if "group_name" in dialog_data and dialog_data.get("group_name") != user.group_name:
             changes["group_name"] = dialog_data.get("group_name")
             changed_fields.append("group_name")
 
@@ -90,29 +81,21 @@ def _collect_changes(dialog_data: dict, user: User) -> tuple[dict, list[str]]:
         changes["about_user"] = dialog_data.get("about")
         changed_fields.append("about_user")
 
-    if (
-        "photo" in dialog_data
-        and dialog_data.get("photo")
-        and dialog_data.get("photo") != user.photo
-    ):
+    if "photo" in dialog_data and dialog_data.get("photo") and dialog_data.get("photo") != user.photo:
         changes["photo"] = dialog_data.get("photo")
         changed_fields.append("photo")
 
     return changes, changed_fields
 
 
-def _build_changes_preview(
-    user: User, changes: dict, changed_fields: list[str]
-) -> str:
+def _build_changes_preview(user: User, changes: dict, changed_fields: list[str]) -> str:
     if not changed_fields:
         return "Изменения пока не выбраны. Добавьте поля и вернитесь к подтверждению."
 
     lines = ["<b>Изменения:</b>"]
     for field in changed_fields:
         if field == "photo":
-            lines.append(
-                f"<b>{FIELD_LABELS['photo']}:</b> фото будет обновлено"
-            )
+            lines.append(f"<b>{FIELD_LABELS['photo']}:</b> фото будет обновлено")
             continue
         old_value = getattr(user, field)
         new_value = changes[field]
@@ -124,20 +107,10 @@ def _build_changes_preview(
 def _build_profile_preview(user: User, changes: dict) -> str:
     """Как профиль будет выглядеть после сохранения изменений."""
     name = html.escape(changes.get("name", user.name))
-    type_value = html.escape(
-        _format_value("type", changes.get("type", user.type))
-    )
-    course_value = html.escape(
-        _format_value(
-            "course_number", changes.get("course_number", user.course_number)
-        )
-    )
-    group_value = html.escape(
-        _format_value("group_name", changes.get("group_name", user.group_name))
-    )
-    about_value = html.escape(
-        changes.get("about_user", user.about_user) or "-"
-    )
+    type_value = html.escape(_format_value("type", changes.get("type", user.type)))
+    course_value = html.escape(_format_value("course_number", changes.get("course_number", user.course_number)))
+    group_value = html.escape(_format_value("group_name", changes.get("group_name", user.group_name)))
+    about_value = html.escape(changes.get("about_user", user.about_user) or "-")
 
     return (
         "<b>Черновик профиля:</b>\n"
@@ -161,24 +134,16 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
 
 async def confirm_preview_getter(dialog_manager: DialogManager, **kwargs):
     user = await get_user(dialog_manager)
-    changes, changed_fields = _collect_changes(
-        dialog_manager.dialog_data, user
-    )
+    changes, changed_fields = _collect_changes(dialog_manager.dialog_data, user)
     preview_photo_id = changes.get("photo") or user.photo
 
     preview_photo = (
-        MediaAttachment(
-            type=ContentType.PHOTO, file_id=MediaId(file_id=preview_photo_id)
-        )
-        if preview_photo_id
-        else None
+        MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=preview_photo_id)) if preview_photo_id else None
     )
 
     return {
         "preview_text": _build_profile_preview(user, changes),
-        "changes_preview": _build_changes_preview(
-            user, changes, changed_fields
-        ),
+        "changes_preview": _build_changes_preview(user, changes, changed_fields),
         "has_changes": bool(changed_fields),
         "preview_photo": preview_photo,
     }
@@ -319,9 +284,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         pending.message_id = admin_message.message_id
         await pending.save()
 
-    await c.message.answer(
-        "Изменения отправлены на модерацию. Пока используется старая версия профиля"
-    )
+    await c.message.answer("Изменения отправлены на модерацию. Пока используется старая версия профиля")
     await manager.done()
 
 

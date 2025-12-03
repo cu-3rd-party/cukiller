@@ -120,9 +120,7 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
         "target_name": target_name,
         "target_photo": target_photo,
         "target_advanced_info": target_advanced_info,
-        "target_profile_link": _safe_url(
-            target_tg_id and f"tg://user?id={target_tg_id}", allow_tg=True
-        ),
+        "target_profile_link": _safe_url(target_tg_id and f"tg://user?id={target_tg_id}", allow_tg=True),
     }
 
 
@@ -142,9 +140,7 @@ async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatch
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
 
-    discussion_link = _safe_url(
-        getattr(settings.discussion_chat_invite_link, "invite_link", None)
-    )
+    discussion_link = _safe_url(getattr(settings.discussion_chat_invite_link, "invite_link", None))
     next_game_link = _safe_url(settings.game_info_link)
 
     return {

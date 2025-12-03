@@ -148,9 +148,7 @@ def _build_admin_body(pending: PendingProfile, user: User) -> str:
     return _build_changes_body(pending, user)
 
 
-def _build_user_denied_text(
-    pending: PendingProfile, reason: str | None
-) -> str:
+def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
     if pending.is_new_profile:
         base = "К сожалению, нам пришлось отклонить вашу заявку"
         if reason:
@@ -208,9 +206,7 @@ async def _edit_admin_message(
         )
 
 
-async def _notify_user_rejection(
-    bot: Bot, pending: PendingProfile, reason: str | None
-):
+async def _notify_user_rejection(bot: Bot, pending: PendingProfile, reason: str | None):
     text = _build_user_denied_text(pending, reason)
     try:
         await bot.send_message(chat_id=pending.user.tg_id, text=text)
@@ -246,11 +242,7 @@ async def _process_rejection(
         return
 
     updated_at = pending.updated_at
-    updated_at_local = (
-        updated_at
-        if updated_at.tzinfo
-        else updated_at.replace(tzinfo=settings.timezone)
-    )
+    updated_at_local = updated_at if updated_at.tzinfo else updated_at.replace(tzinfo=settings.timezone)
     now_local = datetime.now(updated_at_local.tzinfo)
     if now_local - updated_at_local > timedelta(minutes=10):
         await message.answer("Время на указание причины истекло")
@@ -298,17 +290,13 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
     user_id = callback.from_user.id
     user_obj = await User.get_or_none(tg_id=user_id)
     if not user_obj or not user_obj.is_admin:
-        await callback.answer(
-            "У вас нет прав для модерации профилей.", show_alert=True
-        )
+        await callback.answer("У вас нет прав для модерации профилей.", show_alert=True)
         return True
     return False
 
 
 @router.callback_query(F.data.startswith(_CONFIRM_PREFIX))
-async def on_confirm_profile(
-    callback: CallbackQuery, bot: Bot, state: FSMContext
-):
+async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     """
     Admin pressed 'confirm {user_id}'.
     - Notifies the user about approval.
@@ -322,11 +310,7 @@ async def on_confirm_profile(
         await callback.answer("Invalid payload", show_alert=True)
         return
 
-    pending = (
-        await PendingProfile.filter(id=pending_id)
-        .prefetch_related("user")
-        .first()
-    )
+    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if pending is None:
         await callback.answer("Запрос не найден", show_alert=True)
         return
@@ -354,17 +338,13 @@ async def on_confirm_profile(
     await callback.answer("Profile confirmed", show_alert=False)
 
     notify_text = (
-        "Ваш профиль подтвержден, скорее изучайте возможности бота"
-        if pending.is_new_profile
-        else "Изменения приняты"
+        "Ваш профиль подтвержден, скорее изучайте возможности бота" if pending.is_new_profile else "Изменения приняты"
     )
 
     try:
         await bot.send_message(chat_id=approved_user.tg_id, text=notify_text)
         if pending.is_new_profile:
-            user_dialog_manager = BgManagerFactoryImpl(
-                router=mainloop_dialog.router
-            ).bg(
+            user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
                 bot=bot,
                 user_id=approved_user.tg_id,
                 chat_id=approved_user.tg_id,
@@ -384,9 +364,7 @@ async def on_confirm_profile(
 
 
 @router.callback_query(F.data.startswith(_DENY_PREFIX))
-async def on_deny_profile(
-    callback: CallbackQuery, bot: Bot, state: FSMContext
-):
+async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     """
     Admin pressed 'deny {user_id}'.
     - Notifies the user about denial.
@@ -399,11 +377,7 @@ async def on_deny_profile(
         await callback.answer("Invalid payload", show_alert=True)
         return
 
-    pending = (
-        await PendingProfile.filter(id=pending_id)
-        .prefetch_related("user")
-        .first()
-    )
+    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if pending is None:
         await callback.answer("Запрос не найден", show_alert=True)
         return
@@ -425,9 +399,7 @@ async def on_deny_profile(
     pending.reason = None
     await pending.save()
 
-    status_line = (
-        f"❌ Отклонено {_moderator_name(callback.from_user)} (ожидаем причину)"
-    )
+    status_line = f"❌ Отклонено {_moderator_name(callback.from_user)} (ожидаем причину)"
     body = _build_admin_body(pending, pending.user)
     await _edit_admin_message(
         bot,
@@ -468,11 +440,7 @@ async def on_deny_profile(
 
     async def _timeout_notify():
         await asyncio.sleep(600)
-        fresh = (
-            await PendingProfile.filter(id=pending.id)
-            .prefetch_related("user")
-            .first()
-        )
+        fresh = await PendingProfile.filter(id=pending.id).prefetch_related("user").first()
         if not fresh:
             return
         if fresh.status != "rejected":
@@ -490,9 +458,7 @@ async def on_deny_profile(
     StateFilter(ProfileModeration.waiting_reason),
     flags={"block": True, "dialog": False},
 )
-async def on_rejection_reason_state(
-    message: Message, bot: Bot, state: FSMContext
-):
+async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContext):
     moderator = await User.get_or_none(tg_id=message.from_user.id)
     if not moderator or not moderator.is_admin:
         return
@@ -507,16 +473,10 @@ async def on_rejection_reason_state(
             pending_id = None
 
     if pending_id is None:
-        await message.answer(
-            "Не удалось определить заявку. Ответь на сообщение с ID заявки"
-        )
+        await message.answer("Не удалось определить заявку. Ответь на сообщение с ID заявки")
         return
 
-    pending = (
-        await PendingProfile.filter(id=pending_id)
-        .prefetch_related("user")
-        .first()
-    )
+    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if not pending:
         await message.answer("Заявка не найдена")
         await state.clear()
@@ -547,11 +507,7 @@ async def on_rejection_reason(message: Message, bot: Bot, state: FSMContext):
     if not pending_id:
         return
 
-    pending = (
-        await PendingProfile.filter(id=pending_id)
-        .prefetch_related("user")
-        .first()
-    )
+    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if not pending:
         return
 

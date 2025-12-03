@@ -23,9 +23,7 @@ def _build_body(text: str, tag: str | None) -> str:
     return f"#{tag}\n\n{text}" if tag else text
 
 
-def _pending_buttons(
-    pending_id: str, tg_id: int, with_inspect: bool
-) -> InlineKeyboardMarkup:
+def _pending_buttons(pending_id: str, tg_id: int, with_inspect: bool) -> InlineKeyboardMarkup:
     rows = []
     if with_inspect:
         rows.append([InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")])
@@ -37,9 +35,7 @@ def _pending_buttons(
                 text="confirm",
                 callback_data=f"confirm_pending:{pending_id}",
             ),
-            InlineKeyboardButton(
-                text="deny", callback_data=f"deny_pending:{pending_id}"
-            ),
+            InlineKeyboardButton(text="deny", callback_data=f"deny_pending:{pending_id}"),
         ]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -116,9 +112,7 @@ class AdminChatService:
                 chat.chat_id,
                 e,
             )
-            fallback_markup = _pending_buttons(
-                pending_id, tg_id, with_inspect=False
-            )
+            fallback_markup = _pending_buttons(pending_id, tg_id, with_inspect=False)
             try:
                 return await self.bot.send_message(
                     chat_id=chat.chat_id,

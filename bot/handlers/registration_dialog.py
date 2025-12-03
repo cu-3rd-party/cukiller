@@ -346,6 +346,4 @@ async def registration_start(
 
 @router.message(CommandStart(), PendingFilter())
 async def registration_pending(message: Message):
-    await message.answer(
-        "Твой профиль на модерации. Мы сообщим, как только его проверят"
-    )
+    await message.answer("Твой профиль на модерации. Мы сообщим, как только его проверят")
