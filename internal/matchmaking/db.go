@@ -37,7 +37,7 @@ func populateQueues(ctx context.Context) error {
         SELECT u.tg_id, p.rating, u.type, u.course_number, u.group_name 
         FROM users u
         LEFT JOIN players p ON u.id = p.user_id AND p.game_id = $1
-        LEFT JOIN kill_events k ON u.id = k.killer_user_id AND k.game_id = $1 AND k.status = 'pending'
+        LEFT JOIN kill_events k ON u.id = k.killer_id AND k.game_id = $1 AND k.status = 'pending'
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
@@ -83,7 +83,7 @@ func populateQueues(ctx context.Context) error {
         SELECT u.tg_id, p.rating, u.type, u.course_number, u.group_name 
         FROM users u
         LEFT JOIN players p ON u.id = p.user_id AND p.game_id = $1
-        LEFT JOIN kill_events k ON u.id = k.victim_user_id AND k.game_id = $1 AND k.status = 'pending'
+        LEFT JOIN kill_events k ON u.id = k.victim_id AND k.game_id = $1 AND k.status = 'pending'
         WHERE u.is_in_game = TRUE AND k.id IS NULL
     `, gameId)
 	if err != nil {
@@ -168,11 +168,11 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 
 	// Выбираем последние N confirmed kill_events
 	rows, err := db.Query(`
-		SELECT killer_user_id, victim_user_id
+		SELECT killer_id, victim_id
 		FROM kill_events
 		WHERE status != 'pending' 
 			AND game_id = $1
-			AND (killer_user_id = $2 OR victim_user_id = $3)
+			AND (killer_id = $2 OR victim_id = $3)
 		ORDER BY created_at DESC
 		LIMIT $4
 	`, gameId, killerId, victimId, conf.MatchHistoryCheckDepth)
@@ -226,8 +226,8 @@ func ArePaired(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 		SELECT 1
 		FROM kill_events ke
 		WHERE 
-			ke.killer_user_id = $1 
-			AND ke.victim_user_id = $2 
+			ke.killer_id = $1 
+			AND ke.victim_id = $2 
 			AND ke.status = 'pending'
 			AND ke.game_id = $3
 		LIMIT 1

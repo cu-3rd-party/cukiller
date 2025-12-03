@@ -24,7 +24,7 @@ type AnonEdge struct {
 
 func GetKillEventConnections() ([]AnonEdge, error) {
 	rows, err := db.Query(`
-        SELECT killer_user_id, victim_user_id
+        SELECT killer_id, victim_id
         FROM kill_events
         WHERE status = 'pending'
     `)
