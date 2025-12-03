@@ -98,12 +98,12 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
     await victim_dialog_manager.start(
         MainLoop.title,
         data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
     await killer_dialog_manager.start(
         MainLoop.title,
         data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
     return web.StreamResponse(status=200)

@@ -36,7 +36,7 @@ async def _start_kill_confirmation(
     await manager.start(
         state,
         data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
@@ -105,7 +105,7 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
     await dialog.start(
         ParticipationForm.confirm,
         data={"game_id": game.id, "user_tg_id": user.tg_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
@@ -114,7 +114,7 @@ async def open_profile(callback: CallbackQuery, button: Button, manager: DialogM
     await manager.start(
         MyProfile.profile,
         data={"user_tg_id": callback.from_user.id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
@@ -129,5 +129,5 @@ async def on_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     await m.start(
         Reroll.confirm,
         data={"user_tg_id": user.tg_id, "game_id": game.id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )

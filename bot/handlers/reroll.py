@@ -41,7 +41,7 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
     await dialog_manager.start(
         MainLoop.title,
         data={**manager.start_data, "user_tg_id": user.tg_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 

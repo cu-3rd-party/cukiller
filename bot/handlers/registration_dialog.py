@@ -341,7 +341,7 @@ async def registration_start(
     bot: Bot,
 ):
     await dialog_manager.reset_stack()
-    await dialog_manager.start(RegisterForm.name, show_mode=ShowMode.SEND)
+    await dialog_manager.start(RegisterForm.name, show_mode=ShowMode.AUTO)
 
 
 @router.message(CommandStart(), PendingFilter())

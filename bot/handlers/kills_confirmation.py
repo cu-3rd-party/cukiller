@@ -39,7 +39,7 @@ async def send_double_confirm_dialog(manager: DialogManager, user: User, state):
         user_id=user.tg_id,
         chat_id=user.tg_id,
     )
-    await dialog_manager.start(state, data=manager.start_data, show_mode=ShowMode.SEND)
+    await dialog_manager.start(state, data=manager.start_data, show_mode=ShowMode.AUTO)
 
 
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
@@ -60,7 +60,7 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
     await dialog_manager.start(
         MainLoop.title,
         data={**manager.start_data, "user_tg_id": user.tg_id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
@@ -135,7 +135,7 @@ async def handle_confirm(
             "user_tg_id": from_user.id,
             "game_id": manager.start_data["game_id"],
         },
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 

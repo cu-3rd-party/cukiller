@@ -55,7 +55,7 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
     await user_dialog_manager.start(
         MainLoop.title,
         data={"user_tg_id": user.tg_id, "game_id": (game and game.id) or None},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 

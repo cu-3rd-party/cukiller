@@ -356,7 +356,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
                     "user_tg_id": approved_user.tg_id,
                     "game_id": (game and game.id) or None,
                 },
-                show_mode=ShowMode.SEND,
+                show_mode=ShowMode.AUTO,
             )
     except TelegramForbiddenError as e:
         if callback.message:

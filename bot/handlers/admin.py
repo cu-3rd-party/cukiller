@@ -148,7 +148,7 @@ async def on_final_confirmation(
                 "game_id": game.id,
                 "user_tg_id": user.tg_id,
             },
-            show_mode=ShowMode.SEND,
+            show_mode=ShowMode.AUTO,
         )
         tasks.append(dialog_task)
 
@@ -213,7 +213,7 @@ async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
         await asyncio.sleep(10)
         await msg.delete()
         return
-    await dialog_manager.start(StartGame.name, show_mode=ShowMode.SEND)
+    await dialog_manager.start(StartGame.name, show_mode=ShowMode.AUTO)
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
@@ -363,7 +363,7 @@ async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
     await user_manager.start(
         MainLoop.title,
         data={"user_tg_id": user_id, "game_id": None},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
@@ -442,7 +442,7 @@ router.include_router(
 
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
-    await dialog_manager.start(EditGame.game_id, show_mode=ShowMode.SEND)
+    await dialog_manager.start(EditGame.game_id, show_mode=ShowMode.AUTO)
 
 
 router.include_router(

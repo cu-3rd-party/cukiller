@@ -154,7 +154,7 @@ async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManage
     await manager.start(
         EditProfile.main,
         data={"user_tg_id": callback.from_user.id},
-        show_mode=ShowMode.SEND,
+        show_mode=ShowMode.AUTO,
     )
 
 
