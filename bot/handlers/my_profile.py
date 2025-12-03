@@ -277,7 +277,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         tg_id=tg_user.id,
         text=text,
         photo=photo_to_send,
-        tag="profile_confirm",
+        tag="profile_edit",
     )
     if admin_message:
         pending.chat_id = admin_message.chat.id
