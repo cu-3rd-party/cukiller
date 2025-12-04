@@ -14,7 +14,7 @@ class PrivateMessagesMiddleware(BaseMiddleware):
         event: Message,
         data: dict[str, Any],
     ) -> Any:
-        if event.text is in self.exclusions:
+        if event.text in self.exclusions:
             return await handler(event, data)
         if event.from_user.id != event.chat.id:
             await event.answer("Этот бот работает только в личных сообщениях.")
