@@ -8,6 +8,7 @@ from aiogram.types import Message
 class PrivateMessagesMiddleware(BaseMiddleware):
     async def __init__(self, *exclusions) -> None:
         self.exclusions = exclusions
+
     async def __call__(
         self,
         handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
