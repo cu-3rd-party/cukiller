@@ -48,8 +48,8 @@ func getConfig() Config {
 			MatchHistoryCheckDepth: shared.GetEnvInt("MATCH_HISTORY_CHECK_DEPTH", 3),
 			ConfigRatePlayerPair: ConfigRatePlayerPair{
 				MaxRatingDiff:     shared.GetEnvFloat64("MAX_RATING_DIFF", 1000),
-				CourseCoefficient: shared.GetEnvFloat64("COURSE_COEFFICIENT", 0.3),
-				GroupCoefficient:  shared.GetEnvFloat64("GROUP_COEFFICIENT", -0.2),
+				CourseCoefficient: shared.GetEnvFloat64("COURSE_COEFFICIENT", -0.3),
+				GroupCoefficient:  shared.GetEnvFloat64("GROUP_COEFFICIENT", 0.2),
 				TypeCoefficient:   shared.GetEnvFloat64("TYPE_COEFFICIENT", -0.6),
 				TimeCoefficient:   shared.GetEnvFloat64("TIME_COEFFICIENT", 0.001),
 			},
