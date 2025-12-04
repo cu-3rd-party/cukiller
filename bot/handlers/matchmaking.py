@@ -78,12 +78,6 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
         parse_mode="HTML",
     )
 
-    await bot.send_message(
-        chat_id=victim_user.tg_id,
-        text="На вас открыта охота!",
-        parse_mode="HTML",
-    )
-
     victim_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
         bot=bot,
         user_id=victim_user.tg_id,

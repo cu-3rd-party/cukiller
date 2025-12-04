@@ -57,6 +57,9 @@ async def on_i_was_killed(callback: CallbackQuery, button: Button, manager: Dial
     user, game = await _get_user_and_game(manager)
     kill_event = await _get_pending_event(user.id, game.id, role="victim")
 
+    if not kill_event:
+        return
+
     await _start_kill_confirmation(manager, kill_event, ConfirmKillVictim.confirm)
 
 

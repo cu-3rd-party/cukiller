@@ -45,10 +45,6 @@ main_menu_dialog = Dialog(
             when="pending_kill_confirmed",
         ),
         Format(
-            "<b>На вас открыта охота!</b>\n",
-            when="is_hunted",
-        ),
-        Format(
             "Вы находитесь в очереди на цель, текущая:\nКоличество потенциальных убийц: <b>{killers_queue_length}</b>\nКоличество потенциальных жертв: <b>{victims_queue_length}</b>",
             when="enqueued",
         ),
@@ -92,7 +88,7 @@ main_menu_dialog = Dialog(
                 Const("Меня убили"),
                 id="i_was_killed",
                 on_click=on_i_was_killed,
-                when="is_hunted",
+                when="user_is_in_game",
             ),
             Button(
                 Format("Ваша цель: {target_name_trimmed}"),
