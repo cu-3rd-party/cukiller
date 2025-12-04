@@ -71,7 +71,7 @@ async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_t
     if course_number_required(course_type):
         await manager.switch_to(RegisterForm.course_number)
     else:
-        await manager.switch_to(RegisterForm.about)
+        await manager.switch_to(RegisterForm.photo)
 
 
 @log_dialog_action("REG_COURSE_NUMBER_SELECTED")
@@ -81,7 +81,7 @@ async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager,
     if group_required(manager.dialog_data["course_type"]):
         await manager.switch_to(RegisterForm.group_name)
     else:
-        await manager.switch_to(RegisterForm.about)
+        await manager.switch_to(RegisterForm.photo)
 
 
 @log_dialog_action("REG_GROUP_SELECTED")
@@ -292,16 +292,6 @@ router.include_router(
             state=RegisterForm.group_name,
         ),
         Window(
-            Const("Расскажи о себе:"),
-            Button(
-                Const("Назад"),
-                id="back",
-                on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
-            ),
-            MessageInput(on_about_input, content_types=ContentType.TEXT),
-            state=RegisterForm.about,
-        ),
-        Window(
             Const("Теперь отправь фото:"),
             Button(
                 Const("Назад"),
@@ -310,6 +300,16 @@ router.include_router(
             ),
             MessageInput(on_photo_input, content_types=ContentType.PHOTO),
             state=RegisterForm.photo,
+        ),
+        Window(
+            Const("Расскажи о себе:"),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
+            ),
+            MessageInput(on_about_input, content_types=ContentType.TEXT),
+            state=RegisterForm.about,
         ),
         Window(
             Const("Проверь данные и отправь на проверку:"),
