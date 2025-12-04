@@ -3,6 +3,7 @@ Metrics endpoint handler for Prometheus scraping.
 """
 
 import asyncio
+import contextlib
 import logging
 from datetime import datetime
 
@@ -31,7 +32,7 @@ async def metrics_endpoint(request: Request) -> Response:
             content_type="text/plain; version=0.0.4",
         )
     except Exception as e:
-        logger.error(f"Error generating metrics: {e}")
+        logger.exception(f"Error generating metrics: {e}")
         return Response(
             text=f"Error generating metrics: {e}",
             status=500,
@@ -56,7 +57,7 @@ async def health_check(request: Request) -> Response:
 
         return web.json_response(health_data)
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        logger.exception(f"Health check failed: {e}")
         return web.json_response(
             {
                 "status": "unhealthy",
@@ -82,7 +83,7 @@ class MetricsUpdater:
     Background task to periodically update metrics.
     """
 
-    def __init__(self, update_interval: int = 30):
+    def __init__(self, update_interval: int = 30) -> None:
         self.update_interval = update_interval
         self._task: asyncio.Task | None = None
         self._running = False
@@ -103,13 +104,11 @@ class MetricsUpdater:
 
         self._running = False
         self._task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await self._task
-        except asyncio.CancelledError:
-            pass
         logger.info("Metrics updater stopped")
 
-    async def _update_loop(self):
+    async def _update_loop(self) -> None:
         """Main update loop."""
         while self._running:
             try:
@@ -118,7 +117,7 @@ class MetricsUpdater:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in metrics update loop: {e}")
+                logger.exception(f"Error in metrics update loop: {e}")
                 await asyncio.sleep(self.update_interval)
 
 

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class BotMetrics:
     """Bot metrics collector for Prometheus."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # User metrics
         self.user_total = Gauge(
             "cukiller_users_total",
@@ -86,7 +86,7 @@ class BotMetrics:
                 f"Updated user metrics: total={total_users}, confirmed={confirmed_users}, pending={pending_users}"
             )
         except Exception as e:
-            logger.error(f"Failed to update user metrics: {e}")
+            logger.exception(f"Failed to update user metrics: {e}")
 
     async def update_game_metrics(self):
         """Update game-related metrics from the database."""
@@ -103,7 +103,7 @@ class BotMetrics:
                 f"Updated game metrics: total={total_games}, active={active_games}, completed={completed_games}"
             )
         except Exception as e:
-            logger.error(f"Failed to update game metrics: {e}")
+            logger.exception(f"Failed to update game metrics: {e}")
 
     async def update_player_metrics(self):
         """Update player-related metrics from the database."""
@@ -117,7 +117,7 @@ class BotMetrics:
 
             logger.debug(f"Updated player metrics for {len(games)} games")
         except Exception as e:
-            logger.error(f"Failed to update player metrics: {e}")
+            logger.exception(f"Failed to update player metrics: {e}")
 
     async def update_all_metrics(self):
         """Update all metrics from the database."""

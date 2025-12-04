@@ -353,7 +353,8 @@ async def send_game_credits(
             parse_mode="HTML",
         )
     except Exception as e:
-        raise Exception(f"Failed to send message to chat {chat_id}") from e
+        msg = f"Failed to send message to chat {chat_id}"
+        raise Exception(msg) from e
 
 
 def get_personal_stats(user_id: UUID, info: CreditsInfo):

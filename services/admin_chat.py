@@ -121,8 +121,8 @@ class AdminChatService:
                     parse_mode="HTML",
                 )
             except TelegramBadRequest as e2:
-                logger.error("Ошибка при отправке профиля: %s", e2)
+                logger.exception("Ошибка при отправке профиля: %s", e2)
                 return None
         except Exception as e:
-            logger.error("Произошла ошибка: %s", e)
+            logger.exception("Произошла ошибка: %s", e)
             return None

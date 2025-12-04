@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
+async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: float):
     await bot.send_message(
         chat_id=user.tg_id,
         text=(
@@ -59,8 +59,8 @@ async def notify_chat(
     victim: User,
     killer_player: Player,
     victim_player: Player,
-    killer_delta: int,
-    victim_delta: int,
+    killer_delta: float,
+    victim_delta: float,
 ):
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,

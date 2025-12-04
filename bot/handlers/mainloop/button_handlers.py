@@ -32,7 +32,7 @@ async def _start_kill_confirmation(
     manager: DialogManager,
     kill_event: KillEvent,
     state,
-):
+) -> None:
     await manager.start(
         state,
         data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},

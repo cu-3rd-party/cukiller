@@ -103,7 +103,7 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
         killers_queue_len,
         victims_queue_len,
     ) = await matchmaking.get_queues_length()
-    killer_queued, victim_queued = await matchmaking.get_player_by_id(user.tg_id)
+    killer_queued, _victim_queued = await matchmaking.get_player_by_id(user.tg_id)
 
     return {
         "has_target": killer_event is not None and not killer_event.killer_confirmed,

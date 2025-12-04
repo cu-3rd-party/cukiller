@@ -6,6 +6,7 @@ import aiohttp
 
 from services import settings
 
+
 # ---------- SERVICE ----------
 
 
@@ -41,7 +42,7 @@ class MatchmakingService:
                     return resp.status, await resp.json()
                 return resp.status, None
         except Exception as e:
-            self.logger.error(f"Failed {method} {url}: {e}")
+            self.logger.exception(f"Failed {method} {url}: {e}")
             return None, None
 
     # -------------------- QUEUE OPS --------------------

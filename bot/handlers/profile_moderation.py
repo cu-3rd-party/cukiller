@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import html
 import re
 from datetime import datetime, timedelta
@@ -178,7 +179,7 @@ async def _edit_admin_message(
     body: str,
     status_line: str,
     message: Message | None = None,
-):
+) -> None:
     chat_id = pending.chat_id or (message and message.chat.id)
     message_id = pending.message_id or (message and message.message_id)
     if not chat_id or not message_id:
@@ -204,7 +205,7 @@ async def _edit_admin_message(
         )
 
 
-async def _notify_user_rejection(bot: Bot, pending: PendingProfile, reason: str | None):
+async def _notify_user_rejection(bot: Bot, pending: PendingProfile, reason: str | None) -> None:
     text = _build_user_denied_text(pending, reason)
     try:
         await bot.send_message(chat_id=pending.user.tg_id, text=text)
@@ -232,7 +233,7 @@ async def _process_rejection(
     moderator: User,
     reason_text: str,
     state: FSMContext | None = None,
-):
+) -> None:
     if pending.status != "rejected":
         await message.answer("Эта заявка уже обработана")
         if state:
@@ -273,7 +274,7 @@ async def _process_rejection(
 
 
 @router.callback_query(F.data.startswith("noop"))
-async def _disabled_keyboard_callback(callback: CallbackQuery, bot: Bot):
+async def _disabled_keyboard_callback(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer(
         "Никаких действий не требуется, это выключенная кнопка, не видно?",
         show_alert=True,
@@ -411,7 +412,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         pending.user.status = "rejected"
         await pending.user.save(update_fields=["status"])
 
-    try:
+    with contextlib.suppress(TelegramForbiddenError):
         await bot.send_message(
             chat_id=callback.from_user.id,
             text=(
@@ -420,8 +421,6 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
                 "Ответь на это сообщение текстом причины или словом None"
             ),
         )
-    except TelegramForbiddenError:
-        pass
 
     user_state = FSMContext(
         storage=state.storage,
@@ -436,7 +435,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     initial_updated = pending.updated_at
 
-    async def _timeout_notify():
+    async def _timeout_notify() -> None:
         await asyncio.sleep(600)
         fresh = await PendingProfile.filter(id=pending.id).prefetch_related("user").first()
         if not fresh:

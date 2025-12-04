@@ -16,4 +16,4 @@ class PendingFilter(BaseFilter):
 
 class ProfileNonexistentFilter(BaseFilter):
     async def __call__(self, message: Message, user: User, **kwargs) -> bool:
-        return user is None or (user is not None and (user.status == "active" or user.status == "rejected"))
+        return user is None or (user is not None and (user.status in {"active", "rejected"}))

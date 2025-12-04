@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class GroupKeyFilter(BaseFilter):
-    def __init__(self, key):
+    def __init__(self, key) -> None:
         self.key = key
 
     async def __call__(self, update, **kwargs) -> bool:

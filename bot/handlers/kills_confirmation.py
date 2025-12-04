@@ -48,7 +48,7 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
         chat_id=user.tg_id,
         text=(
             f"Убийство было обоюдно подтверждено!\n\n"
-            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(round(delta))}</b> очков рейтинга"
+            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(delta)}</b> очков рейтинга"
         ),
     )
 
@@ -78,8 +78,8 @@ async def notify_chat(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
             f"<b>{killer.mention_html()}</b> убил <b>{victim.mention_html()}</b>\n\n"
-            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
-            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(killer_delta)})\n"
+            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(victim_delta)})\n"
         ),
     )
 

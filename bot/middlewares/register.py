@@ -100,7 +100,7 @@ class RegisterUserMiddleware(BaseMiddleware):
         self._clean_cache()
         return await handler(event, data)
 
-    def _clean_cache(self):
+    def _clean_cache(self) -> None:
         """Remove expired cache entries"""
         now = datetime.now(settings.timezone)
         expired_keys = [
