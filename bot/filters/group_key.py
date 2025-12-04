@@ -1,7 +1,6 @@
 import logging
 
 from aiogram.filters import BaseFilter
-from aiogram.types import Message
 
 from db.models import Chat
 

@@ -1,11 +1,12 @@
 from collections import Counter
-from typing import Dict, List
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from db.models import Game, Player, User, KillEvent
-from services.strings import trim_name, format_timedelta
+from db.models import Game, KillEvent, Player, User
+from services.settings import settings
+from services.strings import format_timedelta, trim_name
 from services.time import human_time
 
 
@@ -13,7 +14,7 @@ class PlayerStats(BaseModel):
     rating: int = 0
     kills: int = 0
     deaths: int = 0
-    log: List[str] = []
+    log: list[str] = []
 
 
 class CreditsInfo(BaseModel):
@@ -22,7 +23,7 @@ class CreditsInfo(BaseModel):
     rating_top: str
     killers_top: str
     victims_top: str
-    per_player: Dict[UUID, PlayerStats]
+    per_player: dict[UUID, PlayerStats]
     top_players_count: int = 3
 
     class Config:
@@ -36,7 +37,11 @@ class CreditsInfo(BaseModel):
         rating_top = cls._format_top([(p.user.name, p.rating) for p in players], empty="Нет участников")
 
         # Game duration
-        duration = format_timedelta(game.end_date - game.start_date)
+        duration = (
+            format_timedelta(game.end_date - game.start_date)
+            if game.end_date
+            else format_timedelta(datetime.now(settings.timezone) - game.start_date)
+        )
 
         # --- Load all confirmed kill events ---
         kills = await KillEvent.filter(game_id=game.id, status="confirmed").values(
@@ -75,14 +80,14 @@ class CreditsInfo(BaseModel):
         )
 
     @staticmethod
-    def _format_top(items: List[tuple], empty: str) -> str:
+    def _format_top(items: list[tuple], empty: str) -> str:
         """Formats a list of (username, value) pairs into a numbered list."""
         if not items:
             return empty
         return "\n".join(f"{i}: {trim_name(name, 20)} — {value}" for i, (name, value) in enumerate(items, 1))
 
     @staticmethod
-    async def _build_player_stats(game: Game, users: Dict[int, User], kills: List[dict]) -> Dict[UUID, PlayerStats]:
+    async def _build_player_stats(game: Game, users: dict[int, User], kills: list[dict]) -> dict[UUID, PlayerStats]:
         # preload all players
         all_players = await Player.filter(game_id=game.id).prefetch_related("user").all()
         stats = {p.user.id: PlayerStats(rating=p.rating) for p in all_players}

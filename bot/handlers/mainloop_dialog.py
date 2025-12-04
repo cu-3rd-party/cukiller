@@ -4,7 +4,7 @@ from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
-from aiogram_dialog.widgets.kbd import Button, Column, Url, Back
+from aiogram_dialog.widgets.kbd import Back, Button, Column, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
@@ -16,9 +16,9 @@ from bot.handlers.mainloop.button_handlers import (
     on_get_target,
     on_i_killed,
     on_i_was_killed,
+    on_reroll,
     open_profile,
     open_rules,
-    on_reroll,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from db.models import Game, User

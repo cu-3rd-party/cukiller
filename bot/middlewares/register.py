@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message
+from aiogram.types import Message, TelegramObject
 
 from db.models import User
 from services import settings

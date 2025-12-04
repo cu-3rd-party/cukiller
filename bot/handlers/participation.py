@@ -2,13 +2,13 @@ import logging
 
 from aiogram import Router
 from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
-from aiogram_dialog.widgets.kbd import Column, Button
+from aiogram_dialog.widgets.kbd import Button, Column
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import Player, Game, User
+from db.models import Game, Player, User
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop

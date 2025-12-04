@@ -1,6 +1,6 @@
 import logging
 
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
 logger = logging.getLogger("dialog_actions")
 

@@ -7,10 +7,10 @@ from aiogram_dialog.widgets.kbd import Button
 
 from bot.handlers import participation
 from bot.handlers.kills_confirmation import (
-    ConfirmKillVictim,
     ConfirmKillKiller,
+    ConfirmKillVictim,
 )
-from db.models import User, Game, KillEvent, Player
+from db.models import Game, KillEvent, Player, User
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile

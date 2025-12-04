@@ -3,8 +3,9 @@ from datetime import datetime
 
 from aiogram import Router
 from aiogram.client.bot import Bot
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, User as TgUser
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery
+from aiogram.types import User as TgUser
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -12,9 +13,9 @@ from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import KillEvent, User, Chat, Player
+from db.models import Chat, KillEvent, Player, User
 from services import settings
-from services.kills_confirmation import modify_rating, add_back_to_queues
+from services.kills_confirmation import add_back_to_queues, modify_rating
 from services.states import MainLoop
 from services.strings import trim_name
 

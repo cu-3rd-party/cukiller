@@ -9,7 +9,6 @@ def human_time(ts: datetime) -> str:
 
     if ts_local.date() == now.date():
         return ts_local.strftime("Сегодня %H:%M")
-    elif ts_local.date() == (now.date() - timedelta(days=1)):
+    if ts_local.date() == (now.date() - timedelta(days=1)):
         return ts_local.strftime("Вчера %H:%M")
-    else:
-        return ts_local.strftime("%d.%m %H:%M")
+    return ts_local.strftime("%d.%m %H:%M")

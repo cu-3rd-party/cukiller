@@ -3,31 +3,30 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from aiogram import Router, Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ContentType
 from aiogram.filters import Command
 from aiogram.types import (
-    Message,
     BotCommand,
     BotCommandScopeChat,
     CallbackQuery,
+    Message,
 )
-from aiogram_dialog import Dialog, Window, DialogManager, BaseDialogManager
+from aiogram_dialog import BaseDialogManager, Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Column, Button, Select, Row, Cancel
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, Select
+from aiogram_dialog.widgets.text import Const, Format
 
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
-from db.models import User, Game, Player, Chat
+from db.models import Chat, Game, Player, User
 from services import settings
 from services.credits import CreditsInfo
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
-from services.states import EditGame, EndGame, MainLoop
-from services.states import StartGame
+from services.states import EditGame, EndGame, MainLoop, StartGame
 from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
@@ -240,11 +239,10 @@ async def getservertime(message: Message):
 def parse_game_stage(game: Game) -> str:
     if game.end_date:
         return "Завершена"
-    elif game.start_date:
+    if game.start_date:
         return "Начата"
-    else:
-        logger.warning("start: %s; end: %s", game.start_date, game.end_date)
-        return "err"
+    logger.warning("start: %s; end: %s", game.start_date, game.end_date)
+    return "err"
 
 
 async def get_games_data(**kwargs):
@@ -315,7 +313,7 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
 
     results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
-    for user, result in zip(participants, results):
+    for user, result in zip(participants, results, strict=False):
         if isinstance(result, Exception):
             logger.error(f"Failed to send credits to user {user.id}: {result}")
 

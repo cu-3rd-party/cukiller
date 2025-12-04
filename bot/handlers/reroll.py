@@ -3,17 +3,17 @@ import math
 import random
 from datetime import datetime, timedelta
 
-from aiogram import Router, Bot
+from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, Window, DialogManager, ShowMode
+from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import Player, User, KillEvent, Chat
+from db.models import Chat, KillEvent, Player, User
 from services import settings
-from services.kills_confirmation import modify_rating, add_back_to_queues
+from services.kills_confirmation import add_back_to_queues, modify_rating
 from services.states import MainLoop
 from services.states.reroll import Reroll
 from services.strings import trim_name

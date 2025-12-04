@@ -6,7 +6,7 @@ import logging
 
 from prometheus_client import Counter, Gauge, Histogram, Info, generate_latest
 
-from db.models import User, Game, Player
+from db.models import Game, Player, User
 
 logger = logging.getLogger(__name__)
 

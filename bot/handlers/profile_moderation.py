@@ -2,7 +2,6 @@ import asyncio
 import html
 import re
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import UUID
 
 from aiogram import Bot, F, Router
@@ -52,7 +51,7 @@ def _moderator_name(tg_user) -> str:
     return html.escape(full_name)
 
 
-def _extract_pending_id_from_text(text: str) -> Optional[UUID]:
+def _extract_pending_id_from_text(text: str) -> UUID | None:
     match = re.search(
         r"(?P<uuid>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"
         r"[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
@@ -66,7 +65,7 @@ def _extract_pending_id_from_text(text: str) -> Optional[UUID]:
         return None
 
 
-def _extract_pending_id_from_message(message: Message) -> Optional[UUID]:
+def _extract_pending_id_from_message(message: Message) -> UUID | None:
     reply = message.reply_to_message
     if reply:
         for payload in (reply.text, reply.caption):
@@ -85,7 +84,7 @@ def _has_pending_id(message: Message) -> bool:
     return _extract_pending_id_from_message(message) is not None
 
 
-def _extract_pending_id(data: str, prefix: str) -> Optional[UUID]:
+def _extract_pending_id(data: str, prefix: str) -> UUID | None:
     if not data.startswith(prefix):
         return None
     raw = data[len(prefix) :]
@@ -154,11 +153,10 @@ def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
         if reason:
             return f"{base}, причина: {html.escape(reason)}"
         return base + "."
-    else:
-        base = "Ваши изменения не соответствуют нашим правилам"
-        if reason:
-            return f"{base} по причине {html.escape(reason)}."
-        return base + "."
+    base = "Ваши изменения не соответствуют нашим правилам"
+    if reason:
+        return f"{base} по причине {html.escape(reason)}."
+    return base + "."
 
 
 async def _apply_pending_profile(pending: PendingProfile) -> User:

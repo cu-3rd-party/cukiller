@@ -69,7 +69,7 @@ def register_all_handlers(dp: Dispatcher) -> None:
     if routers:
         dp.include_routers(*routers)
     else:
-        logger.warn("Не найдено ни одного роутера для регистрации")
+        logger.warning("Не найдено ни одного роутера для регистрации")
 
 
 # Global web server instance

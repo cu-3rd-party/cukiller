@@ -1,12 +1,12 @@
 import logging
 
-from aiogram import Router, Bot
+from aiogram import Bot, Router
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiohttp import web
 
 from bot.handlers import mainloop_dialog
-from db.models import KillEvent, Game, User
+from db.models import Game, KillEvent, User
 from services import settings
 from services.admin_chat import AdminChatService
 from services.states import MainLoop
@@ -74,7 +74,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
 
     await bot.send_message(
         chat_id=killer_user.tg_id,
-        text=f"Вам была выдана цель, посмотрите",
+        text="Вам была выдана цель, посмотрите",
         parse_mode="HTML",
     )
 
