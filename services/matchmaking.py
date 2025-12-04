@@ -22,19 +22,20 @@ class MatchmakingService:
 
     # -------------------- REST UTILS --------------------
 
-    async def _request(
-        self, method: str, path: str, json_data: dict | None = None
-    ) -> tuple[int | None, dict | None]:
+    async def _request(self, method: str, path: str, json_data: dict | None = None) -> tuple[int | None, dict | None]:
         """Unified helper to call the Go microservice via REST"""
         url = f"{self.base_url}{path}"
         try:
-            async with aiohttp.ClientSession() as session, session.request(
-                method,
-                url,
-                json=json_data,
-                timeout=10,
-                headers={"secret-key": settings.secret_key},
-            ) as resp:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.request(
+                    method,
+                    url,
+                    json=json_data,
+                    timeout=10,
+                    headers={"secret-key": settings.secret_key},
+                ) as resp,
+            ):
                 resp.raise_for_status()
                 if "application/json" in resp.headers.get("Content-Type", ""):
                     return resp.status, await resp.json()
