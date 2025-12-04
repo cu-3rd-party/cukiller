@@ -65,20 +65,34 @@ async def stats(message: Message, bot: Bot):
     user_count = await User().all().count()
     user_confirmed_count = await User().filter(status="confirmed").count()
     current_game = await Game().filter(end_date=None).first()
-    game_status = (
-        f"Сейчас игра <b>идет</b>, она началась {current_game.start_date}"
-        if current_game
-        else "Сейчас игра <b>не идет</b>"
-    )
-    await message.reply(
-        text=(
+    
+    if current_game:
+        # Get current game statistics
+        info = await CreditsInfo.from_game(current_game)
+        stats_text = (
+            "Держи статистику текущей игры\n\n"
+            f"<b>Игра: {info.name}</b>\n"
+            f"Продолжительность с начала: {info.duration}\n"
+            "\n"
+            "<b>Топ по рейтингу:</b>\n"
+            f"{info.rating_top}\n"
+            "\n"
+            "<b>Топ по убийствам:</b>\n"
+            f"{info.killers_top}\n"
+            "\n"
+            "<b>Топ по смертям:</b>\n"
+            f"{info.victims_top}"
+        )
+    else:
+        stats_text = (
             "Держи краткую статистику по боту\n\n"
             f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
             f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count / user_count * 100:.1f}%\n"
-            f"{game_status}\n"
+            "Сейчас игра <b>не идет</b>\n"
             "\nДругие статистики будут добавляться по ходу дела, хозяин"
         )
-    )
+    
+    await message.reply(text=stats_text, parse_mode="HTML")
 
 
 @log_dialog_action("ADMIN_CAMPAIGN_NAME_INPUT")
