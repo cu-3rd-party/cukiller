@@ -5,7 +5,7 @@ from uuid import UUID
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ContentType
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     BotCommand,
     BotCommandScopeChat,
@@ -21,7 +21,7 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
-from db.models import Chat, Game, Player, User
+from db.models import Chat, Game, Player, User, KillEvent
 from services import settings
 from services.credits import CreditsInfo
 from services.logging import log_dialog_action
@@ -490,3 +490,31 @@ async def endgame(
 @router.message(Command(commands=["cancel"]))
 async def cancel(message: Message, dialog_manager: DialogManager):
     await dialog_manager.done()
+
+
+@router.message(AdminFilter(), Command(commands=["ban"]))
+async def ban(
+    message: Message,
+    bot: Bot,
+    dispatcher: Dispatcher,
+    dialog_manager: DialogManager,
+    command: CommandObject,
+):
+    logger.info("Ban command used with args %s", command.args)
+    user_id = int(command.args)
+    user = await User.get_or_none(tg_id=user_id)
+    if not user:
+        await message.answer("Такого пользователя нет в базе данных")
+        return
+    user.status = "rejected"
+    await user.save()
+
+    game = await Game.get_or_none(end_date=None)
+    if not game:
+        await message.answer("нет активной игры, пропускаем процедуру каскадного удаления")
+    else:
+        # находим все килл ивенты, в которых участвовал человек, которого баним
+        evs: list[KillEvent] = await (
+            KillEvent.filter(game_id=game.id, killer_id=user.id) or KillEvent.filter(game_id=game.id, victim_id=user.id)
+        ).all()
+        # необходимо отменить каждую игру, откатив рейтинг участников к положению, как будто этого килл ивента не было
