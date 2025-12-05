@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import math
 from datetime import datetime, timedelta
@@ -6,6 +7,7 @@ from uuid import UUID
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ContentType
+from aiogram.exceptions import TelegramForbiddenError
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     BotCommand,
@@ -25,6 +27,7 @@ from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
 from db.models import Chat, Game, Player, User, KillEvent
 from services import settings
+from services.admin_chat import AdminChatService
 from services.credits import CreditsInfo
 from services.kills_confirmation import modify_rating
 from services.logging import log_dialog_action
@@ -169,10 +172,11 @@ async def on_final_confirmation(
         tasks.append(dialog_task)
 
     if tasks:
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"Task {i} failed: {result}")
+        with contextlib.suppress(TelegramForbiddenError):
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Task {i} failed: {result}")
 
     await manager.done()
     await callback.answer(
@@ -505,11 +509,13 @@ async def ban(
 ):
     logger.info("Ban command used with args %s", command.args)
     if not command.args:
-        await message.answer("Укажи tg_id пользователя: /ban <tg_id>")
+        await message.answer("Укажи tg_id пользователя и причину: /ban <tg_id> <reason>")
         return
 
     try:
-        user_id = int(command.args)
+        user_id, *reason = command.args.split(" ")
+        user_id = int(user_id)
+        reason = " ".join(reason)
     except ValueError:
         await message.answer("tg_id должен быть числом")
         return
@@ -518,9 +524,17 @@ async def ban(
     if not user:
         await message.answer("Такого пользователя нет в базе данных")
         return
-    user.status = "rejected"
+    user.status = "banned"
     user.is_in_game = False
     await user.save()
+
+    dialog_manager = BgManagerFactoryImpl(router=dispatcher).bg(
+        bot=bot,
+        user_id=user.tg_id,
+        chat_id=user.tg_id,
+    )
+    await dialog_manager.done()
+    await MatchmakingService().reset_queues()
 
     game = await Game.get_or_none(end_date=None)
     if not game:
@@ -536,6 +550,14 @@ async def ban(
 
         await recalc_game_ratings(game)
         await message.answer(f"Пользователь забанен, удалено килл-ивентов: {removed_events}")
+
+    await bot.send_message(
+        user.tg_id,
+        text="Вы были забанены. Не пытайтесь продолжить взаимодействие с ботом, это бесполезно. Если считаете что это ошибка, то свяжитесь с организатором",
+    )
+    await AdminChatService(bot).send_message(
+        key="discussion", text=f'Игрок {user.mention_html()} был забанен по причине "{reason}"'
+    )
 
 
 def calculate_penalty_at(creation: datetime, at: datetime | None = None) -> float:
