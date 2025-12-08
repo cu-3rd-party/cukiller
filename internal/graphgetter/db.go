@@ -25,7 +25,7 @@ type AnonEdge struct {
 
 func GetKillEventConnections() ([]AnonEdge, error) {
 	ok, gameId := shared.GetActiveGame(db)
-	if ok {
+	if !ok {
 		return nil, fmt.Errorf("there's no active game")
 	}
 	rows, err := db.Query(`
