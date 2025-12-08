@@ -27,7 +27,7 @@ func InitDb() {
 // populateQueues finds players who are in game but don't have kill events and puts them into KillerPool and VictimPool
 func populateQueues(ctx context.Context) error {
 	populationTime := time.Now()
-	ok, gameId := GetActiveGame()
+	ok, gameId := shared.GetActiveGame(db)
 	if !ok {
 		return nil
 	}
@@ -248,25 +248,4 @@ func ArePaired(gameId uuid.UUID, killerTgId, victimTgId uint64) (ok bool) {
 
 	// Если нашли хотя бы одну строку — они спарены
 	return true
-}
-
-func GetActiveGame() (bool, uuid.UUID) {
-	row := db.QueryRow(`
-	SELECT g.id FROM games g WHERE g.end_date IS NULL LIMIT 1
-	`)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	if errors.Is(err, sql.ErrNoRows) {
-		// Нет активной игры
-		return false, id
-	}
-
-	if err != nil {
-		// Ошибка SQL — безопасный return
-		logger.Error("GetActiveGame SQL error: %v", err)
-		return false, id
-	}
-
-	// Если нашли хотя бы одну строку — игра идет и возвращаем ее айди
-	return true, id
 }

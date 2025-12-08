@@ -2,6 +2,7 @@ package graphgetter
 
 import (
 	"cukiller/internal/shared"
+	"fmt"
 	"math/rand/v2"
 	"sync"
 	"time"
@@ -23,11 +24,15 @@ type AnonEdge struct {
 }
 
 func GetKillEventConnections() ([]AnonEdge, error) {
+	ok, gameId := shared.GetActiveGame(db)
+	if ok {
+		return nil, fmt.Errorf("there's no active game")
+	}
 	rows, err := db.Query(`
         SELECT killer_id, victim_id
         FROM kill_events
-        WHERE status = 'pending'
-    `)
+        WHERE status = 'pending' AND game_id = $1
+    `, gameId)
 	if err != nil {
 		return nil, err
 	}

@@ -2,8 +2,11 @@ package shared
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // MustGetDb returns a database connection
@@ -43,4 +46,25 @@ func TestDbConnection(db *sql.DB) {
 	if err := db.Ping(); err != nil {
 		logger.Fatalf("Failed to ping database: %v", err)
 	}
+}
+
+func GetActiveGame(db *sql.DB) (bool, uuid.UUID) {
+	row := db.QueryRow(`
+	SELECT g.id FROM games g WHERE g.end_date IS NULL LIMIT 1
+	`)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Нет активной игры
+		return false, id
+	}
+
+	if err != nil {
+		// Ошибка SQL — безопасный return
+		logger.Error("GetActiveGame SQL error: %v", err)
+		return false, id
+	}
+
+	// Если нашли хотя бы одну строку — игра идет и возвращаем ее айди
+	return true, id
 }
