@@ -65,7 +65,7 @@ async def stats(message: Message, bot: Bot):
     user_count = await User().all().count()
     user_confirmed_count = await User().filter(status="confirmed").count()
     current_game = await Game().filter(end_date=None).first()
-    
+
     if current_game:
         # Get current game statistics
         info = await CreditsInfo.from_game(current_game)
@@ -91,7 +91,7 @@ async def stats(message: Message, bot: Bot):
             "Сейчас игра <b>не идет</b>\n"
             "\nДругие статистики будут добавляться по ходу дела, хозяин"
         )
-    
+
     await message.reply(text=stats_text, parse_mode="HTML")
 
 
