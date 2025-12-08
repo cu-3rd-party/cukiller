@@ -159,7 +159,6 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 	}()
 	killerId, err1 := getUserIdByTgId(killerTgId)
 	victimId, err2 := getUserIdByTgId(victimTgId)
-	logger.Debug("PlayersWerePairedRecently: killerId: %s, victimId: %s", killerId, victimId)
 
 	if err1 != nil || err2 != nil {
 		// не нашли пользователя => считаем что нет истории игр
@@ -199,7 +198,7 @@ func PlayersWerePairedRecently(gameId uuid.UUID, killerTgId, victimTgId uint64) 
 		logger.Debug("Success scanning kill event row: %s -> %s", kId, vId)
 
 		// Проверяем совпадение пары
-		if vId == victimId {
+		if kId == killerId && vId == victimId {
 			// Они были вместе недавно
 			return true
 		}
