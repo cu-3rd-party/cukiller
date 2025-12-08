@@ -90,7 +90,7 @@ func matchmaking() {
 				continue
 			}
 
-			if PlayersWerePairedRecently(gameId, killerId, victimId) {
+			if PlayersWerePairedRecently(gameId, killerId, victimId) || PlayersWerePairedRecently(gameId, victimId, killerId) {
 				continue
 			}
 
