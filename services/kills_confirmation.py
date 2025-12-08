@@ -23,7 +23,7 @@ async def modify_rating(killer_player: Player, victim_player: Player, killer_k=1
     await killer_player.save()
     await victim_player.save()
 
-    return killer_delta, victim_delta
+    return round(killer_delta), round(victim_delta)
 
 
 async def add_back_to_queues(killer: User, victim: User, killer_player: Player, victim_player: Player):
