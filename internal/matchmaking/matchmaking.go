@@ -2,6 +2,7 @@ package matchmaking
 
 import (
 	"bytes"
+	"cukiller/internal/shared"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -45,7 +46,7 @@ func matchmaking() {
 	VictimPoolMutex.Lock()
 	defer VictimPoolMutex.Unlock()
 
-	gameActive, gameId := GetActiveGame()
+	gameActive, gameId := shared.GetActiveGame(db)
 	if !gameActive {
 		return
 	}
