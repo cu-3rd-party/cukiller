@@ -3,8 +3,9 @@ from datetime import datetime
 
 from aiogram import Router
 from aiogram.client.bot import Bot
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, User as TgUser
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery
+from aiogram.types import User as TgUser
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -12,9 +13,9 @@ from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
-from db.models import KillEvent, User, Chat, Player
+from db.models import Chat, KillEvent, Player, User
 from services import settings
-from services.kills_confirmation import modify_rating, add_back_to_queues
+from services.kills_confirmation import add_back_to_queues, modify_rating
 from services.states import MainLoop
 from services.strings import trim_name
 
@@ -47,7 +48,7 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
         chat_id=user.tg_id,
         text=(
             f"Убийство было обоюдно подтверждено!\n\n"
-            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(round(delta))}</b> очков рейтинга"
+            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(delta)}</b> очков рейтинга"
         ),
     )
 
@@ -77,8 +78,8 @@ async def notify_chat(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=(
             f"<b>{killer.mention_html()}</b> убил <b>{victim.mention_html()}</b>\n\n"
-            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
-            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(killer_delta)})\n"
+            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(victim_delta)})\n"
         ),
     )
 

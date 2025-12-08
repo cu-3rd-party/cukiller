@@ -1,33 +1,38 @@
 import asyncio
+import contextlib
 import logging
-from datetime import datetime
+import math
+from datetime import datetime, timedelta
 from uuid import UUID
 
-from aiogram import Router, Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ContentType
-from aiogram.filters import Command
+from aiogram.exceptions import TelegramForbiddenError
+from aiogram.filters import Command, CommandObject
 from aiogram.types import (
-    Message,
     BotCommand,
     BotCommandScopeChat,
     CallbackQuery,
+    Message,
 )
-from aiogram_dialog import Dialog, Window, DialogManager, BaseDialogManager
+from aiogram_dialog import BaseDialogManager, Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
-from aiogram_dialog.widgets.kbd import Column, Button, Select, Row, Cancel
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, Select
+from aiogram_dialog.widgets.text import Const, Format
+from tortoise.expressions import Q
 
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
-from db.models import User, Game, Player, Chat
+from db.models import Chat, Game, Player, User, KillEvent
 from services import settings
+from services.admin_chat import AdminChatService
 from services.credits import CreditsInfo
+from services.kills_confirmation import modify_rating
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
-from services.states import EditGame, EndGame, MainLoop
-from services.states import StartGame
+from services.states import EditGame, EndGame, MainLoop, StartGame
 from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
@@ -167,10 +172,11 @@ async def on_final_confirmation(
         tasks.append(dialog_task)
 
     if tasks:
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"Task {i} failed: {result}")
+        with contextlib.suppress(TelegramForbiddenError):
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Task {i} failed: {result}")
 
     await manager.done()
     await callback.answer(
@@ -240,11 +246,10 @@ async def getservertime(message: Message):
 def parse_game_stage(game: Game) -> str:
     if game.end_date:
         return "Завершена"
-    elif game.start_date:
+    if game.start_date:
         return "Начата"
-    else:
-        logger.warning("start: %s; end: %s", game.start_date, game.end_date)
-        return "err"
+    logger.warning("start: %s; end: %s", game.start_date, game.end_date)
+    return "err"
 
 
 async def get_games_data(**kwargs):
@@ -315,7 +320,7 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
 
     results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
-    for user, result in zip(participants, results):
+    for user, result in zip(participants, results, strict=False):
         if isinstance(result, Exception):
             logger.error(f"Failed to send credits to user {user.id}: {result}")
 
@@ -355,7 +360,8 @@ async def send_game_credits(
             parse_mode="HTML",
         )
     except Exception as e:
-        raise Exception(f"Failed to send message to chat {chat_id}") from e
+        msg = f"Failed to send message to chat {chat_id}"
+        raise Exception(msg) from e
 
 
 def get_personal_stats(user_id: UUID, info: CreditsInfo):
@@ -491,3 +497,103 @@ async def endgame(
 @router.message(Command(commands=["cancel"]))
 async def cancel(message: Message, dialog_manager: DialogManager):
     await dialog_manager.done()
+
+
+@router.message(AdminFilter(), Command(commands=["ban"]))
+async def ban(
+    message: Message,
+    bot: Bot,
+    dispatcher: Dispatcher,
+    dialog_manager: DialogManager,
+    command: CommandObject,
+):
+    logger.info("Ban command used with args %s", command.args)
+    if not command.args:
+        await message.answer("Укажи tg_id пользователя и причину: /ban <tg_id> <reason>")
+        return
+
+    try:
+        user_id, *reason = command.args.split(" ")
+        user_id = int(user_id)
+        reason = " ".join(reason)
+    except ValueError:
+        await message.answer("tg_id должен быть числом")
+        return
+
+    user = await User.get_or_none(tg_id=user_id)
+    if not user:
+        await message.answer("Такого пользователя нет в базе данных")
+        return
+    user.status = "banned"
+    user.is_in_game = False
+    await user.save()
+
+    dialog_manager = BgManagerFactoryImpl(router=dispatcher).bg(
+        bot=bot,
+        user_id=user.tg_id,
+        chat_id=user.tg_id,
+    )
+    await dialog_manager.done()
+    await MatchmakingService().reset_queues()
+
+    game = await Game.get_or_none(end_date=None)
+    if not game:
+        await message.answer("нет активной игры, пропускаем процедуру каскадного удаления")
+    else:
+        # находим все килл ивенты, в которых участвовал человек, которого баним
+        evs: list[KillEvent] = await KillEvent.filter(
+            Q(game_id=game.id) & (Q(killer_id=user.id) | Q(victim_id=user.id))
+        ).all()
+        removed_events = len(evs)
+        if evs:
+            await KillEvent.filter(id__in=[ev.id for ev in evs]).delete()
+
+        await recalc_game_ratings(game)
+        await message.answer(f"Пользователь забанен, удалено килл-ивентов: {removed_events}")
+
+    await bot.send_message(
+        user.tg_id,
+        text="Вы были забанены. Не пытайтесь продолжить взаимодействие с ботом, это бесполезно. Если считаете что это ошибка, то свяжитесь с организатором",
+    )
+    await AdminChatService(bot).send_message(
+        key="discussion", text=f'Игрок {user.mention_html()} был забанен по причине "{reason}"'
+    )
+
+
+def calculate_penalty_at(creation: datetime, at: datetime | None = None) -> float:
+    """Penalize reroll based on time passed since KillEvent creation."""
+    now = at or datetime.now(settings.timezone)
+    end = creation + timedelta(days=7)
+
+    if now >= end:
+        return 0.0
+
+    remaining = (end - now).total_seconds()
+    total = (end - creation).total_seconds()
+    return math.sqrt(remaining / total)
+
+
+async def recalc_game_ratings(game: Game) -> None:
+    """Recalculate all player ratings for the game from scratch (without banned events)."""
+    players = await Player.filter(game_id=game.id).prefetch_related("user").all()
+    players_map = {p.user_id: p for p in players}
+
+    # reset ratings to baseline
+    for player in players:
+        player.rating = 600
+    await Player.bulk_update(players, fields=["rating"])
+
+    # apply all remaining events in chronological order
+    events = await KillEvent.filter(game_id=game.id).order_by("created_at").all()
+    for event in events:
+        killer_player = players_map.get(event.killer_id)
+        victim_player = players_map.get(event.victim_id)
+        if not killer_player or not victim_player:
+            logger.warning("Player record not found for KillEvent %s", event.id)
+            continue
+
+        if event.status == "confirmed":
+            await modify_rating(killer_player, victim_player)
+        elif event.status == "rejected":
+            penalty = calculate_penalty_at(event.created_at, event.updated_at)
+            await modify_rating(killer_player, victim_player, 0, 1, penalty)

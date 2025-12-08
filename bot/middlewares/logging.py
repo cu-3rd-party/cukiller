@@ -1,7 +1,7 @@
 import logging
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery, Update
+from aiogram.types import CallbackQuery, Message, TelegramObject, Update
 
 logger = logging.getLogger("user_actions")
 

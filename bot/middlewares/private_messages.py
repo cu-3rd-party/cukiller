@@ -6,7 +6,11 @@ from aiogram.types import Message
 
 
 class PrivateMessagesMiddleware(BaseMiddleware):
+<<<<<<< HEAD
     async def __init__(self, *exclusions) -> None:
+=======
+    def __init__(self, *exclusions: list[str]) -> None:
+>>>>>>> origin/master
         self.exclusions = exclusions
 
     async def __call__(
@@ -14,7 +18,11 @@ class PrivateMessagesMiddleware(BaseMiddleware):
         handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
         event: Message,
         data: dict[str, Any],
+<<<<<<< HEAD
     ) -> Any:
+=======
+    ) -> Callable[[Message, dict[str, Any]], Awaitable[Any]]:
+>>>>>>> origin/master
         if event.text in self.exclusions:
             return await handler(event, data)
         if event.from_user.id != event.chat.id:

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message
+from aiogram.types import Message, TelegramObject
 
 from db.models import User
 from services import settings
@@ -100,7 +100,7 @@ class RegisterUserMiddleware(BaseMiddleware):
         self._clean_cache()
         return await handler(event, data)
 
-    def _clean_cache(self):
+    def _clean_cache(self) -> None:
         """Remove expired cache entries"""
         now = datetime.now(settings.timezone)
         expired_keys = [

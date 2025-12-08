@@ -62,7 +62,7 @@ async def _ensure_default_admins() -> None:
     # Выдаем админки тем, кто указан
     admins = [int(i) for i in settings.admin_ids_raw.split(",")]
     for admin_id in admins:
-        user, created = await User.get_or_create(
+        user, _created = await User.get_or_create(
             tg_id=admin_id,
         )
         if not user.is_admin:

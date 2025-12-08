@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import aiohttp
 
@@ -23,31 +23,31 @@ class MatchmakingService:
 
     # -------------------- REST UTILS --------------------
 
-    async def _request(
-        self, method: str, path: str, json_data: Optional[dict] = None
-    ) -> Tuple[Optional[int], Optional[dict]]:
+    async def _request(self, method: str, path: str, json_data: dict | None = None) -> tuple[int | None, dict | None]:
         """Unified helper to call the Go microservice via REST"""
         url = f"{self.base_url}{path}"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.request(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.request(
                     method,
                     url,
                     json=json_data,
                     timeout=10,
                     headers={"secret-key": settings.secret_key},
-                ) as resp:
-                    resp.raise_for_status()
-                    if "application/json" in resp.headers.get("Content-Type", ""):
-                        return resp.status, await resp.json()
-                    return resp.status, None
+                ) as resp,
+            ):
+                resp.raise_for_status()
+                if "application/json" in resp.headers.get("Content-Type", ""):
+                    return resp.status, await resp.json()
+                return resp.status, None
         except Exception as e:
-            self.logger.error(f"Failed {method} {url}: {e}")
+            self.logger.exception(f"Failed {method} {url}: {e}")
             return None, None
 
     # -------------------- QUEUE OPS --------------------
 
-    async def add_player_to_queue(self, player_id: int, player_data: Dict[str, Any], queue_type: str) -> bool:
+    async def add_player_to_queue(self, player_id: int, player_data: dict[str, Any], queue_type: str) -> bool:
         """Add player to Go service queue"""
         if queue_type not in {"killer", "victim"}:
             self.logger.error(f"Invalid queue type: {queue_type}")
@@ -56,7 +56,7 @@ class MatchmakingService:
         await self._request("POST", f"/add/{queue_type}/", json_data=player_data)
         return True
 
-    async def add_player_to_queues(self, player_id: int, player_data: Dict[str, Any]) -> bool:
+    async def add_player_to_queues(self, player_id: int, player_data: dict[str, Any]) -> bool:
         """Add player to both queues"""
         added_killer = await self.add_player_to_queue(player_id, player_data, "killer")
         added_victim = await self.add_player_to_queue(player_id, player_data, "victim")

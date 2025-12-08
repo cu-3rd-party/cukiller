@@ -96,6 +96,7 @@ func matchmaking() {
 
 			// считаем рейтинг пары
 			rating := RatePlayerPair(&killer, &victim, curTime)
+			logger.Debug("RatePlayerPair(%d, %d) got rating %f", killerId, victimId, rating)
 			if rating < conf.QualityThreshold {
 				continue
 			}

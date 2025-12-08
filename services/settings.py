@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from aiogram.types import ChatInviteLink
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
             },
         }
 
-    _timezone: Optional[ZoneInfo] = None
+    _timezone: ZoneInfo | None = None
 
     @computed_field
     @property

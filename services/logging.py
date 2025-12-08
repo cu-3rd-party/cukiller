@@ -1,6 +1,7 @@
+import contextlib
 import logging
 
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
 logger = logging.getLogger("dialog_actions")
 
@@ -23,10 +24,8 @@ def log_dialog_action(action_name: str):
 
             state = None
             if manager:
-                try:
+                with contextlib.suppress(Exception):
                     state = manager.current_context().state
-                except Exception:
-                    pass
 
             logger.info(
                 "DIALOG ACTION: user=%s state=%s action=%s data=%s",

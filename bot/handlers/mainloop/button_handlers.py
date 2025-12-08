@@ -7,10 +7,10 @@ from aiogram_dialog.widgets.kbd import Button
 
 from bot.handlers import participation
 from bot.handlers.kills_confirmation import (
-    ConfirmKillVictim,
     ConfirmKillKiller,
+    ConfirmKillVictim,
 )
-from db.models import User, Game, KillEvent, Player
+from db.models import Game, KillEvent, Player, User
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
@@ -32,7 +32,7 @@ async def _start_kill_confirmation(
     manager: DialogManager,
     kill_event: KillEvent,
     state,
-):
+) -> None:
     await manager.start(
         state,
         data={"kill_event_id": kill_event.id, "game_id": kill_event.game_id},
@@ -56,6 +56,9 @@ async def on_i_was_killed(callback: CallbackQuery, button: Button, manager: Dial
 
     user, game = await _get_user_and_game(manager)
     kill_event = await _get_pending_event(user.id, game.id, role="victim")
+
+    if not kill_event:
+        return
 
     await _start_kill_confirmation(manager, kill_event, ConfirmKillVictim.confirm)
 
