@@ -61,6 +61,8 @@ func matchmaking() {
 	processedKillers := make(map[uint64]struct{})
 	processedVictims := make(map[uint64]struct{})
 
+	possibleVictimsCounter := 0
+
 	for killerId, killer := range KillerPool {
 		// killer уже обработан?
 		if _, skip := processedKillers[killerId]; skip {
@@ -102,6 +104,8 @@ func matchmaking() {
 				continue
 			}
 
+			possibleVictimsCounter++
+
 			if rating > bestRating {
 				bestRating = rating
 				bestVictimId = victimId
@@ -109,7 +113,7 @@ func matchmaking() {
 		}
 
 		// не нашли подходящую жертву
-		if bestVictimId == 0 {
+		if bestVictimId == 0 || possibleVictimsCounter < conf.MinPossibleVictimsCount {
 			continue
 		}
 
