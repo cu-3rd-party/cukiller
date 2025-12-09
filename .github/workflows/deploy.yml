@@ -1,12 +1,6 @@
 name: Deploy
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - README.md
-      - .github/**
 
 jobs:
   deploy:
