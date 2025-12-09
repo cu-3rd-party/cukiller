@@ -73,6 +73,7 @@ func matchmaking() {
 
 		bestRating := 0.0
 		var bestVictimId uint64 = 0
+		var possibleVictimsCounter = 0
 
 		// ищем лучшую жертву
 		for victimId, victim := range VictimPool {
@@ -102,6 +103,8 @@ func matchmaking() {
 				continue
 			}
 
+			possibleVictimsCounter++
+
 			if rating > bestRating {
 				bestRating = rating
 				bestVictimId = victimId
@@ -109,7 +112,7 @@ func matchmaking() {
 		}
 
 		// не нашли подходящую жертву
-		if bestVictimId == 0 {
+		if bestVictimId == 0 || possibleVictimsCounter < conf.MinPossibleVictimsCount {
 			continue
 		}
 
