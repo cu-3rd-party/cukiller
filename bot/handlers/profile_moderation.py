@@ -42,6 +42,7 @@ FIELD_LABELS = {
     "group_name": "Поток",
     "about_user": "О себе",
     "photo": "Фото",
+    "allow_hugging_on_kill": "Объятия при убийстве",
 }
 
 
@@ -104,6 +105,8 @@ def _format_value(field: str, value) -> str:
         return "-"
     if field == "type":
         return COURSE_TYPES.get(value, value)
+    if field == "allow_hugging_on_kill":
+        return "разрешены" if value else "запрещены"
     return str(value)
 
 
@@ -116,6 +119,7 @@ def _build_new_profile_body(pending: PendingProfile) -> str:
         f"<b>Курс:</b> {html.escape(_format_value('course_number', pending.course_number))}\n"
         f"<b>Поток:</b> {html.escape(_format_value('group_name', pending.group_name))}\n"
         f"<b>О себе:</b> {html.escape(_format_value('about_user', pending.about_user))}\n"
+        f"<b>Объятия при убийстве:</b> {html.escape(_format_value('allow_hugging_on_kill', pending.allow_hugging_on_kill))}\n"
         f"<b>Username:</b> @{pending.submitted_username or 'не указан'}\n"
         f"<b>ID:</b> {pending.user.tg_id}"
     )

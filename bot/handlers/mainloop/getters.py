@@ -65,6 +65,11 @@ def get_advanced_info(user: User):
         ret.append(f"Поток: {user.group_name}")
     if user.about_user:
         ret.append(f"О себе: {user.about_user}")
+    if user.allow_hugging_on_kill is not None:
+        ret.append(
+            "Объятия при убийстве: "
+            f"{'разрешены' if user.allow_hugging_on_kill else 'запрещены'}"
+        )
     return "\n".join(ret)
 
 

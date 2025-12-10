@@ -51,6 +51,12 @@ def group_required(course_type: str) -> bool:
     return course_type == "bachelor"
 
 
+def hugging_allowed_label(value: bool | None) -> str:
+    if value is None:
+        return "-"
+    return "Да" if value else "Нет"
+
+
 # ---------------------------------------------
 # HANDLERS
 # ---------------------------------------------
@@ -95,7 +101,15 @@ async def on_about_input(m: Message, _, manager: DialogManager):
     if not is_safe(m.text, SafeStringConfig(allow_newline=True, max_len=0)):
         return
     manager.dialog_data["about"] = m.text.strip()
-    await manager.next()
+    await manager.switch_to(RegisterForm.allow_hugging_on_kill)
+
+
+@log_dialog_action("REG_HUGGING_SELECTED")
+async def on_hugging_selected(
+    c: CallbackQuery, _: Button, manager: DialogManager, allowed: bool
+):
+    manager.dialog_data["allow_hugging_on_kill"] = allowed
+    await manager.switch_to(RegisterForm.confirm)
 
 
 @log_dialog_action("REG_PHOTO_INPUT")
@@ -117,6 +131,9 @@ async def reg_confirm_getter(dialog_manager: DialogManager, **_):
         "about": d.get("about") or "-",
         "photo": d.get("photo"),
         "has_photo": bool(d.get("photo")),
+        "allow_hugging_on_kill_label": hugging_allowed_label(
+            d.get("allow_hugging_on_kill")
+        ),
     }
 
 
@@ -141,6 +158,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         group_name=d.get("group_name"),
         about_user=d["about"],
         photo=d["photo"],
+        allow_hugging_on_kill=d.get("allow_hugging_on_kill", False),
         changed_fields=[
             "name",
             "type",
@@ -148,6 +166,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
             "group_name",
             "about_user",
             "photo",
+            "allow_hugging_on_kill",
         ],
         submitted_username=tg_user.username,
     )
@@ -160,6 +179,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         f"<b>Курс:</b> {d.get('course_number') or '-'}\n"
         f"<b>Поток:</b> {d.get('group_name') or '-'}\n"
         f"<b>О себе:</b> {d['about']}\n"
+        f"<b>Обнимать при убийстве:</b> {hugging_allowed_label(d.get('allow_hugging_on_kill'))}\n"
         f"<b>Username:</b> @{tg_user.username or 'не указан'}\n"
         f"<b>ID:</b> {tg_user.id}\n"
         f"<b>ID заявки:</b> {pending.id}"
@@ -312,12 +332,32 @@ router.include_router(
             state=RegisterForm.about,
         ),
         Window(
+            Const('Разрешено ли вас обнимать при "убийстве"?'),
+            Button(
+                Const("Да"),
+                id="hug_yes",
+                on_click=lambda c, b, m: on_hugging_selected(c, b, m, True),
+            ),
+            Button(
+                Const("Нет"),
+                id="hug_no",
+                on_click=lambda c, b, m: on_hugging_selected(c, b, m, False),
+            ),
+            Button(
+                Const("Назад"),
+                id="back",
+                on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
+            ),
+            state=RegisterForm.allow_hugging_on_kill,
+        ),
+        Window(
             Const("Проверь данные и отправь на проверку:"),
             Format("<b>Имя:</b> {name}", when="name"),
             Format("<b>Тип:</b> {course_type_label}"),
             Format("<b>Курс:</b> {course_number}"),
             Format("<b>Поток:</b> {group_name}"),
             Format("<b>О себе:</b>\n{about}"),
+            Format("<b>Объятия при убийстве:</b> {allow_hugging_on_kill_label}"),
             Format("Фото прикреплено", when="has_photo"),
             Column(
                 Button(Const("Отправить"), id="go", on_click=on_final_confirmation),
