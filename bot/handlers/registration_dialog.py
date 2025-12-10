@@ -105,9 +105,7 @@ async def on_about_input(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("REG_HUGGING_SELECTED")
-async def on_hugging_selected(
-    c: CallbackQuery, _: Button, manager: DialogManager, allowed: bool
-):
+async def on_hugging_selected(c: CallbackQuery, _: Button, manager: DialogManager, allowed: bool):
     manager.dialog_data["allow_hugging_on_kill"] = allowed
     await manager.switch_to(RegisterForm.confirm)
 
@@ -131,9 +129,7 @@ async def reg_confirm_getter(dialog_manager: DialogManager, **_):
         "about": d.get("about") or "-",
         "photo": d.get("photo"),
         "has_photo": bool(d.get("photo")),
-        "allow_hugging_on_kill_label": hugging_allowed_label(
-            d.get("allow_hugging_on_kill")
-        ),
+        "allow_hugging_on_kill_label": hugging_allowed_label(d.get("allow_hugging_on_kill")),
     }
 
 

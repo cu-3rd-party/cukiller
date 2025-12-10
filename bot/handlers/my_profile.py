@@ -171,15 +171,11 @@ async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManage
 
 
 @log_dialog_action("TOGGLE_HUGGING_SETTING")
-async def toggle_hugging_setting(
-    callback: CallbackQuery, button: Button, manager: DialogManager
-):
+async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manager: DialogManager):
     user = await get_user(manager)
     user.allow_hugging_on_kill = not bool(user.allow_hugging_on_kill)
     await user.save(update_fields=["allow_hugging_on_kill"])
-    await callback.answer(
-        "Настройка обновлена. Мы снова показали ваш профиль с новой отметкой."
-    )
+    await callback.answer("Настройка обновлена. Мы снова показали ваш профиль с новой отметкой.")
     await manager.switch_to(MyProfile.profile)
 
 
