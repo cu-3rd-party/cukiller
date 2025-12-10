@@ -20,6 +20,7 @@ from bot.handlers.registration_dialog import (
     course_number_required,
     group_required,
     reg_getter,
+    hugging_allowed_label,
 )
 from db.models import PendingProfile, User
 from services.admin_chat import AdminChatService
@@ -39,6 +40,7 @@ FIELD_LABELS = {
     "group_name": "Поток",
     "about_user": "О себе",
     "photo": "Фото",
+    "allow_hugging_on_kill": "Объятия при убийстве",
 }
 
 
@@ -47,6 +49,8 @@ def _format_value(field: str, value):
         return "-"
     if field == "type":
         return COURSE_TYPES.get(value, value)
+    if field == "allow_hugging_on_kill":
+        return "разрешены" if value else "запрещены"
     return str(value)
 
 
@@ -111,6 +115,12 @@ def _build_profile_preview(user: User, changes: dict) -> str:
     course_value = html.escape(_format_value("course_number", changes.get("course_number", user.course_number)))
     group_value = html.escape(_format_value("group_name", changes.get("group_name", user.group_name)))
     about_value = html.escape(changes.get("about_user", user.about_user) or "-")
+    hugging_value = html.escape(
+        _format_value(
+            "allow_hugging_on_kill",
+            changes.get("allow_hugging_on_kill", user.allow_hugging_on_kill),
+        )
+    )
 
     return (
         "<b>Черновик профиля:</b>\n"
@@ -118,7 +128,8 @@ def _build_profile_preview(user: User, changes: dict) -> str:
         f"Тип: {type_value}\n"
         f"Курс: {course_value}\n"
         f"Поток: {group_value}\n"
-        f"О себе: {about_value}"
+        f"О себе: {about_value}\n"
+        f"Объятия при убийстве: {hugging_value}"
     )
 
 
@@ -129,6 +140,7 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
         "photo": MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)),
         "advanced_info": get_advanced_info(user),
         "profile_link": user.tg_id and f"tg://user?id={user.tg_id}",
+        "hugs_allowed_label": hugging_allowed_label(user.allow_hugging_on_kill),
     }
 
 
@@ -158,12 +170,26 @@ async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManage
     )
 
 
+@log_dialog_action("TOGGLE_HUGGING_SETTING")
+async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manager: DialogManager):
+    user = await get_user(manager)
+    user.allow_hugging_on_kill = not bool(user.allow_hugging_on_kill)
+    await user.save(update_fields=["allow_hugging_on_kill"])
+    await callback.answer("Настройка обновлена. Мы снова показали ваш профиль с новой отметкой.")
+    await manager.switch_to(MyProfile.profile)
+
+
 router.include_router(
     Dialog(
         Window(
             Format("\nИмя: <b>{name}</b>\n", when="name"),
             Format("{advanced_info}", when="advanced_info"),
             DynamicMedia("photo", when="photo"),
+            Button(
+                Format("Объятия при убийстве: {hugs_allowed_label}"),
+                id="toggle_hugs",
+                on_click=toggle_hugging_setting,
+            ),
             Button(Const("Редактировать"), id="edit", on_click=on_edit),
             Cancel(Const("Назад")),
             getter=get_profile_info,

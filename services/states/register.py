@@ -10,5 +10,6 @@ class RegisterForm(StatesGroup):
     course_other = State()
     group_name = State()
     about = State()
+    allow_hugging_on_kill = State()
     photo = State()
     confirm = State()

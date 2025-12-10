@@ -26,6 +26,8 @@ class ProfileBase(models.Model):
     photo = fields.TextField(null=True)
     # описание пользователя (о себе)
     about_user = fields.TextField(null=True)
+    # согласие на объятия при убийстве
+    allow_hugging_on_kill = fields.BooleanField(default=False)
 
     class Meta:
         abstract = True
