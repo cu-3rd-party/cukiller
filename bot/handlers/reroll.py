@@ -13,7 +13,8 @@ from aiogram_dialog.widgets.text import Const
 from bot.handlers import mainloop_dialog
 from db.models import Chat, KillEvent, Player, User
 from services import settings
-from services.kills_confirmation import add_back_to_queues, modify_rating
+from services.ban import modify_rating
+from services.kills_confirmation import add_back_to_queues
 from services.states import MainLoop
 from services.states.reroll import Reroll
 from services.strings import trim_name

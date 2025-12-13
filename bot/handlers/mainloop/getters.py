@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 from urllib.parse import urlparse
 
 from aiogram import Dispatcher
@@ -67,6 +68,9 @@ def get_advanced_info(user: User):
         ret.append(f"О себе: {user.about_user}")
     if user.allow_hugging_on_kill is not None:
         ret.append(f"Объятия при убийстве: {'разрешены' if user.allow_hugging_on_kill else 'запрещены'}")
+    if user.created_at:
+        now = datetime.now(settings.tz)
+        ret.append(f"Цель была выдана {now - user.created_at}")
     return "\n".join(ret)
 
 

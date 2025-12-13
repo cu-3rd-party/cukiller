@@ -23,13 +23,14 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, Select
 from aiogram_dialog.widgets.text import Const, Format
 from tortoise.expressions import Q
 
+import services.ban
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
 from db.models import Chat, Game, Player, User, KillEvent
 from services import settings
 from services.admin_chat import AdminChatService
+from services.ban import recalc_game_ratings
 from services.credits import CreditsInfo
-from services.kills_confirmation import modify_rating
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import EditGame, EndGame, MainLoop, StartGame
@@ -524,76 +525,4 @@ async def ban(
     if not user:
         await message.answer("Такого пользователя нет в базе данных")
         return
-    user.status = "banned"
-    user.is_in_game = False
-    await user.save()
-
-    dialog_manager = BgManagerFactoryImpl(router=dispatcher).bg(
-        bot=bot,
-        user_id=user.tg_id,
-        chat_id=user.tg_id,
-    )
-    await dialog_manager.done()
-    await MatchmakingService().reset_queues()
-
-    game = await Game.get_or_none(end_date=None)
-    if not game:
-        await message.answer("нет активной игры, пропускаем процедуру каскадного удаления")
-    else:
-        # находим все килл ивенты, в которых участвовал человек, которого баним
-        evs: list[KillEvent] = await KillEvent.filter(
-            Q(game_id=game.id) & (Q(killer_id=user.id) | Q(victim_id=user.id))
-        ).all()
-        removed_events = len(evs)
-        if evs:
-            await KillEvent.filter(id__in=[ev.id for ev in evs]).delete()
-
-        await recalc_game_ratings(game)
-        await message.answer(f"Пользователь забанен, удалено килл-ивентов: {removed_events}")
-
-    await bot.send_message(
-        user.tg_id,
-        text="Вы были забанены. Не пытайтесь продолжить взаимодействие с ботом, это бесполезно. Если считаете что это ошибка, то свяжитесь с организатором",
-    )
-    await AdminChatService(bot).send_message(
-        key="discussion", text=f'Игрок {user.mention_html()} был забанен по причине "{reason}"'
-    )
-
-
-def calculate_penalty_at(creation: datetime, at: datetime | None = None) -> float:
-    """Penalize reroll based on time passed since KillEvent creation."""
-    now = at or datetime.now(settings.timezone)
-    end = creation + timedelta(days=7)
-
-    if now >= end:
-        return 0.0
-
-    remaining = (end - now).total_seconds()
-    total = (end - creation).total_seconds()
-    return math.sqrt(remaining / total)
-
-
-async def recalc_game_ratings(game: Game) -> None:
-    """Recalculate all player ratings for the game from scratch (without banned events)."""
-    players = await Player.filter(game_id=game.id).prefetch_related("user").all()
-    players_map = {p.user_id: p for p in players}
-
-    # reset ratings to baseline
-    for player in players:
-        player.rating = 600
-    await Player.bulk_update(players, fields=["rating"])
-
-    # apply all remaining events in chronological order
-    events = await KillEvent.filter(game_id=game.id).order_by("created_at").all()
-    for event in events:
-        killer_player = players_map.get(event.killer_id)
-        victim_player = players_map.get(event.victim_id)
-        if not killer_player or not victim_player:
-            logger.warning("Player record not found for KillEvent %s", event.id)
-            continue
-
-        if event.status == "confirmed":
-            await modify_rating(killer_player, victim_player)
-        elif event.status == "rejected":
-            penalty = calculate_penalty_at(event.created_at, event.updated_at)
-            await modify_rating(killer_player, victim_player, 0, 1, penalty)
+    await message.answer(await services.ban.ban(user, reason))
