@@ -15,8 +15,10 @@ from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
+from services.states.leave_game import LeaveGame
 from services.states.reroll import Reroll
 from services.states.rules import RulesStates
+from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +79,7 @@ async def on_i_killed(callback: CallbackQuery, button: Button, manager: DialogMa
 async def on_get_target(callback: CallbackQuery, button: Button, manager: DialogManager):
     user: User = manager.middleware_data["user"]
     game: Game = manager.middleware_data["game"]
-    if not game:
+    if not game or not user.is_in_game:
         return
     player: Player = await Player.get(game_id=game.id, user_id=user.id)
 
@@ -96,6 +98,12 @@ async def on_get_target(callback: CallbackQuery, button: Button, manager: Dialog
 @log_dialog_action("CONFIRM_PARTICIPATION")
 async def confirm_participation(callback: CallbackQuery, button: Button, manager: DialogManager):
     user, game = await _get_user_and_game(manager)
+    if is_exit_cooldown_active(user):
+        await callback.answer(
+            f"Вы недавно вышли из игры. Повторное участие будет доступно после {format_exit_cooldown(user)}",
+            show_alert=True,
+        )
+        return
 
     dialog = BgManagerFactoryImpl(router=participation.router).bg(
         bot=manager.event.bot,
@@ -131,6 +139,18 @@ async def on_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     user, game = await _get_user_and_game(m)
     await m.start(
         Reroll.confirm,
+        data={"user_tg_id": user.tg_id, "game_id": game.id},
+        show_mode=ShowMode.AUTO,
+    )
+
+
+@log_dialog_action("LEAVE_GAME_OPEN")
+async def on_leave_game(callback: CallbackQuery, button: Button, manager: DialogManager):
+    user, game = await _get_user_and_game(manager)
+    if not game:
+        return
+    await manager.start(
+        LeaveGame.confirm,
         data={"user_tg_id": user.tg_id, "game_id": game.id},
         show_mode=ShowMode.AUTO,
     )

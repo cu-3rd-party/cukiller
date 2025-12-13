@@ -13,6 +13,7 @@ from services import settings
 from services.logging import log_getter
 from services.matchmaking import MatchmakingService
 from services.strings import trim_name
+from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
 
@@ -87,11 +88,31 @@ async def extract_target(killer_event: KillEvent | None):
     )
 
 
+def _empty_target_state() -> dict:
+    return {
+        "has_target": False,
+        "pending_kill_confirmed": False,
+        "no_target": True,
+        "should_get_target": False,
+        "enqueued": False,
+        "not_enqueued": True,
+        "killers_queue_length": 0,
+        "victims_queue_length": 0,
+        "is_hunted": False,
+        "pending_victim_confirmed": False,
+        "target_name_trimmed": None,
+        "target_name": None,
+        "target_photo": None,
+        "target_advanced_info": None,
+        "target_profile_link": None,
+    }
+
+
 async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
     """Compute target-related info for the main menu or target window."""
     player = await Player.filter(user=user, game=game).first()
-    if not player:
-        return {"no_target": False, "has_target": False, "is_hunted": False}
+    if not player or not user.is_in_game:
+        return _empty_target_state()
 
     killer_event, victim_event = await get_pending_events(game, user)
     (
@@ -101,13 +122,11 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
         target_advanced_info,
     ) = await extract_target(killer_event)
 
-    (
-        killers_queue_len,
-        victims_queue_len,
-    ) = await matchmaking.get_queues_length()
+    killers_queue_len, victims_queue_len = await matchmaking.get_queues_length()
     killer_queued, _victim_queued = await matchmaking.get_player_by_id(user.tg_id)
 
     return {
+        **_empty_target_state(),
         "has_target": killer_event is not None and not killer_event.killer_confirmed,
         "pending_kill_confirmed": killer_event is not None and killer_event.killer_confirmed,
         "no_target": killer_event is None,
@@ -144,13 +163,15 @@ async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatch
 
     discussion_link = _safe_url(getattr(settings.discussion_chat_invite_link, "invite_link", None))
     next_game_link = _safe_url(settings.game_info_link)
+    cooldown_active = is_exit_cooldown_active(user)
 
     return {
         "discussion_link": discussion_link,
         "next_game_link": next_game_link,
         "game_running": game is not None,
         "user_is_in_game": user.is_in_game,
-        "join_game_button": game is not None and not user.is_in_game,
+        "join_game_button": game is not None and not user.is_in_game and not cooldown_active,
+        "exit_cooldown_until": format_exit_cooldown(user) if cooldown_active else None,
         **await get_user_rating(user, game),
         **await parse_target_info(game, user, matchmaking),
     }

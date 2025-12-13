@@ -16,6 +16,7 @@ from bot.handlers.mainloop.button_handlers import (
     on_get_target,
     on_i_killed,
     on_i_was_killed,
+    on_leave_game,
     on_reroll,
     open_profile,
     open_rules,
@@ -35,6 +36,10 @@ main_menu_dialog = Dialog(
         Format(
             "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
             when="user_rating",
+        ),
+        Format(
+            "Вы недавно вышли из игры. Снова присоединиться можно после: <b>{exit_cooldown_until}</b>\n",
+            when="exit_cooldown_until",
         ),
         Format(
             "Вы запросили подтверждение убийства вас у вашего убийцы, ожидайте",
@@ -66,6 +71,12 @@ main_menu_dialog = Dialog(
                 id="join_game",
                 on_click=confirm_participation,
                 when="join_game_button",
+            ),
+            Button(
+                Const("Выйти из игры"),
+                id="leave_game",
+                on_click=on_leave_game,
+                when="user_is_in_game",
             ),
             Button(
                 Const("Мой профиль"),

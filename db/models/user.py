@@ -14,6 +14,7 @@ class User(TimestampedModel, ProfileBase):
 
     is_in_game = fields.BooleanField(default=False, index=True)
     is_admin = fields.BooleanField(default=False, index=True)
+    exit_cooldown_until = fields.DatetimeField(null=True, index=True)
 
     status = fields.CharField(
         max_length=32,
