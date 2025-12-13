@@ -27,13 +27,17 @@ async def _confirm_pending_victim_event(
     player: Player,
     now: datetime,
 ) -> tuple[int, User | None]:
-    victim_events = await KillEvent.filter(game_id=game.id, victim_id=user.id, status="pending").prefetch_related("killer")
+    victim_events = await KillEvent.filter(game_id=game.id, victim_id=user.id, status="pending").prefetch_related(
+        "killer"
+    )
     if not victim_events:
         return 0, None
 
     primary_event = victim_events[0]
     killer_player = await Player.get_or_none(game_id=game.id, user_id=primary_event.killer_id)
-    killer_user = primary_event.killer if hasattr(primary_event, "killer") else await User.get(id=primary_event.killer_id)
+    killer_user = (
+        primary_event.killer if hasattr(primary_event, "killer") else await User.get(id=primary_event.killer_id)
+    )
 
     if killer_player:
         killer_delta, victim_delta = await modify_rating(killer_player, player)
