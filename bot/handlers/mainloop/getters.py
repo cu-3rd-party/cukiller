@@ -69,9 +69,6 @@ def get_advanced_info(user: User):
         ret.append(f"О себе: {user.about_user}")
     if user.allow_hugging_on_kill is not None:
         ret.append(f"Объятия при убийстве: {'разрешены' if user.allow_hugging_on_kill else 'запрещены'}")
-    if user.created_at:
-        now = datetime.now(settings.timezone)
-        ret.append(f"Цель была выдана {now - user.created_at}")
     return "\n".join(ret)
 
 
