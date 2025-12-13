@@ -169,6 +169,9 @@ async def run_bot() -> None:
     )
     dp = Dispatcher(storage=storage)
 
+    settings.bot = bot
+    settings.dispatcher = dp
+
     register_all_middlewares(dp)
     register_all_handlers(dp)
     setup_dialogs(dp)

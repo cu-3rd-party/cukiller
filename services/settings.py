@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
+from aiogram import Dispatcher, Bot
 from aiogram.types import ChatInviteLink
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -51,6 +52,9 @@ class Settings(BaseSettings):
     tortoise_generate_schemas: bool = Field(default=False, alias="TORTOISE_GENERATE_SCHEMAS")
 
     matchmaking_service_url: str = Field(default="http://matchmaking:6543", alias="MATCHMAKING_URL")
+
+    bot: Optional[Bot] = None
+    dispatcher: Optional[Dispatcher] = None
 
     @computed_field
     @property
