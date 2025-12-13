@@ -13,6 +13,7 @@ from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop
 from services.states.participation import ParticipationForm
+from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,14 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
     game: Game = await Game.get(id=manager.start_data["game_id"])
     user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService()
+    if is_exit_cooldown_active(user):
+        cooldown_until = format_exit_cooldown(user)
+        await callback.answer(
+            f"Вы недавно вышли из игры. Повторное участие будет доступно после {cooldown_until}",
+            show_alert=True,
+        )
+        await manager.done()
+        return
     user.is_in_game = True
     await user.save()
     player: Player = await Player().create(

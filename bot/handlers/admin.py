@@ -145,7 +145,13 @@ async def on_final_confirmation(
         name=manager.dialog_data.get("name") or "test",
         start_date=creation_date,
     )
-    users = await User().filter(is_in_game=False, status="confirmed").only("tg_id", "name").all()
+    users = (
+        await User()
+        .filter(is_in_game=False, status="confirmed")
+        .filter(Q(exit_cooldown_until__isnull=True) | Q(exit_cooldown_until__lte=creation_date))
+        .only("tg_id", "name")
+        .all()
+    )
 
     logger.debug(f"Notifying {len(users)} about new game {game.id}")
 
