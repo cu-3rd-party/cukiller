@@ -139,7 +139,10 @@ async def on_confirm_leave(callback: CallbackQuery, button: Button, manager: Dia
 router.include_router(
     Dialog(
         Window(
-            Const("Вы уверены что хотите выйти?\nВы потеряете рейтинг как будто вас убили!"),
+            Const(
+                "Вы уверены что хотите выйти?\n"
+                "Вы потеряете рейтинг как будто вас убили и не сможете вернуться в игру еще 7 дней"
+            ),
             Button(Const("Подтвердить"), id="confirm", on_click=on_confirm_leave),
             Cancel(Const("Отменить")),
             state=LeaveGame.confirm,
