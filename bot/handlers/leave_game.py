@@ -10,7 +10,7 @@ from aiogram_dialog.widgets.text import Const
 from bot.handlers import mainloop_dialog
 from db.models import Game, KillEvent, Player, User
 from services import settings
-from services.kills_confirmation import modify_rating
+from services.ban import modify_rating
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop
