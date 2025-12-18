@@ -1,6 +1,8 @@
 services:
   bot:
-    image: pacable/cukiller-bot:latest
+    build:
+      context: .
+      dockerfile: bot.Dockerfile
     env_file:
       - .env
     depends_on:
@@ -14,7 +16,9 @@ services:
         max-file: "3"
 
   matchmaking:
-    image: pacable/cukiller-matchmaking:latest
+    build:
+      context: .
+      dockerfile: matchmaking.Dockerfile
     env_file: .env
     depends_on:
       - db
@@ -26,7 +30,9 @@ services:
         max-file: "3"
 
   graphgetter:
-    image: pacable/cukiller-graphgetter:latest
+    build:
+      context: .
+      dockerfile: graphgetter.Dockerfile
     ports:
       - "6544:6544"
     env_file: .env
