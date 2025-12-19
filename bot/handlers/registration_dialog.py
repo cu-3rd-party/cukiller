@@ -1,3 +1,4 @@
+import html
 import logging
 
 from aiogram import Bot, Router
@@ -11,6 +12,7 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from bot.filters.confirmed import PendingFilter, ProfileNonexistentFilter
 from db.models import PendingProfile, User
+from services import texts
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
 from services.states import RegisterForm
@@ -113,7 +115,7 @@ async def on_hugging_selected(c: CallbackQuery, _: Button, manager: DialogManage
 @log_dialog_action("REG_PHOTO_INPUT")
 async def on_photo_input(m: Message, _, manager: DialogManager):
     if not m.photo:
-        return await m.answer("Пожалуйста, отправь фото.")
+        return await m.answer(texts.get("registration.photo_required"))
     manager.dialog_data["photo"] = m.photo[-1].file_id
     await manager.next()
     return None
@@ -168,17 +170,17 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     )
 
     # Notify admin
-    text = (
-        f"<b>Новый профиль:</b>\n\n"
-        f"<b>Имя:</b> {d['name']}\n"
-        f"<b>Тип:</b> {COURSE_TYPES[d['course_type']]}\n"
-        f"<b>Курс:</b> {d.get('course_number') or '-'}\n"
-        f"<b>Поток:</b> {d.get('group_name') or '-'}\n"
-        f"<b>О себе:</b> {d['about']}\n"
-        f"<b>Обнимать при убийстве:</b> {hugging_allowed_label(d.get('allow_hugging_on_kill'))}\n"
-        f"<b>Username:</b> @{tg_user.username or 'не указан'}\n"
-        f"<b>ID:</b> {tg_user.id}\n"
-        f"<b>ID заявки:</b> {pending.id}"
+    text = texts.render(
+        "moderation.new_profile_body",
+        pending_id=pending.id,
+        name=html.escape(d["name"]),
+        type=html.escape(COURSE_TYPES[d["course_type"]]),
+        course_number=html.escape(str(d.get("course_number") or "-")),
+        group_name=html.escape(d.get("group_name") or "-"),
+        about_user=html.escape(d["about"]),
+        allow_hugging_on_kill=html.escape(hugging_allowed_label(d.get("allow_hugging_on_kill"))),
+        submitted_username=tg_user.username or texts.get("common.username_unknown"),
+        user_id=tg_user.id,
     )
 
     admin_service = AdminChatService(bot)
@@ -195,7 +197,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         pending.message_id = admin_message.message_id
         await pending.save()
 
-    await c.message.answer("Твой профиль отправлен на проверку!")
+    await c.message.answer(texts.get("registration.submitted"))
     await manager.done()
 
 
@@ -272,25 +274,25 @@ async def reg_getter(dialog_manager: DialogManager, **_):
 router.include_router(
     Dialog(
         Window(
-            Const("Привет! Как тебя зовут?"),
+            Const(texts.get("registration.ask_name")),
             MessageInput(on_name_input),
             state=RegisterForm.name,
         ),
         Window(
-            Const("Выбери тип обучения:"),
+            Const(texts.get("registration.ask_type")),
             btns_course_types(),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
             ),
             state=RegisterForm.course_type,
         ),
         Window(
-            Const("Выбери курс:"),
+            Const(texts.get("registration.ask_course")),
             course_buttons(),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
             ),
@@ -298,19 +300,19 @@ router.include_router(
             state=RegisterForm.course_number,
         ),
         Window(
-            Const("Выбери свой поток:"),
+            Const(texts.get("registration.ask_group")),
             btns_groups(),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
             ),
             state=RegisterForm.group_name,
         ),
         Window(
-            Const("Теперь отправь фото:"),
+            Const(texts.get("registration.ask_photo")),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
             ),
@@ -318,9 +320,9 @@ router.include_router(
             state=RegisterForm.photo,
         ),
         Window(
-            Const("Расскажи о себе:"),
+            Const(texts.get("registration.ask_about")),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.course_type),
             ),
@@ -328,37 +330,37 @@ router.include_router(
             state=RegisterForm.about,
         ),
         Window(
-            Const('Разрешено ли вас обнимать при "убийстве"?'),
+            Const(texts.get("registration.ask_hugging")),
             Button(
-                Const("Да"),
+                Const(texts.get("buttons.hug_yes")),
                 id="hug_yes",
                 on_click=lambda c, b, m: on_hugging_selected(c, b, m, True),
             ),
             Button(
-                Const("Нет"),
+                Const(texts.get("buttons.hug_no")),
                 id="hug_no",
                 on_click=lambda c, b, m: on_hugging_selected(c, b, m, False),
             ),
             Button(
-                Const("Назад"),
+                Const(texts.get("buttons.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(RegisterForm.about),
             ),
             state=RegisterForm.allow_hugging_on_kill,
         ),
         Window(
-            Const("Проверь данные и отправь на проверку:"),
-            Format("<b>Имя:</b> {name}", when="name"),
-            Format("<b>Тип:</b> {course_type_label}"),
-            Format("<b>Курс:</b> {course_number}"),
-            Format("<b>Поток:</b> {group_name}"),
-            Format("<b>О себе:</b>\n{about}"),
-            Format("<b>Объятия при убийстве:</b> {allow_hugging_on_kill_label}"),
-            Format("Фото прикреплено", when="has_photo"),
+            Const(texts.get("registration.confirm_title")),
+            Format(texts.get("registration.confirm.name"), when="name"),
+            Format(texts.get("registration.confirm.type")),
+            Format(texts.get("registration.confirm.course")),
+            Format(texts.get("registration.confirm.group")),
+            Format(texts.get("registration.confirm.about")),
+            Format(texts.get("registration.confirm.hugging")),
+            Format(texts.get("registration.confirm.photo_attached"), when="has_photo"),
             Column(
-                Button(Const("Отправить"), id="go", on_click=on_final_confirmation),
+                Button(Const(texts.get("buttons.send")), id="go", on_click=on_final_confirmation),
                 Button(
-                    Const("Начать заново"),
+                    Const(texts.get("buttons.restart")),
                     id="restart",
                     on_click=lambda c, b, m: m.switch_to(RegisterForm.name),
                 ),
@@ -382,4 +384,4 @@ async def registration_start(
 
 @router.message(CommandStart(), PendingFilter())
 async def registration_pending(message: Message):
-    await message.answer("Твой профиль на модерации. Мы сообщим, как только его проверят")
+    await message.answer(texts.get("registration.pending"))

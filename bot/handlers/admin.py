@@ -27,7 +27,7 @@ import services.ban
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
 from db.models import Chat, Game, Player, User, KillEvent
-from services import settings
+from services import settings, texts
 from services.admin_chat import AdminChatService
 from services.ban import recalc_game_ratings
 from services.credits import CreditsInfo
@@ -44,22 +44,22 @@ router = Router()
 async def set_admin_commands(bot: Bot, chat_id: int):
     await bot.set_my_commands(
         commands=[
-            BotCommand(command="/start", description="Начать работу с ботом"),
+            BotCommand(command="/start", description=texts.get("admin.command.start")),
             BotCommand(
                 command="/stats",
-                description="Получить краткую статистику по боту",
+                description=texts.get("admin.command.stats"),
             ),
             BotCommand(
                 command="/creategame",
-                description="Создать новую игру",
+                description=texts.get("admin.command.creategame"),
             ),
             BotCommand(
                 command="/editgame",
-                description="Посмотреть список всех игр",
+                description=texts.get("admin.command.editgame"),
             ),
             BotCommand(
                 command="/getservertime",
-                description="Получить текущее время на сервере",
+                description=texts.get("admin.command.server_time"),
             ),
         ],
         scope=BotCommandScopeChat(chat_id=chat_id),
@@ -75,27 +75,21 @@ async def stats(message: Message, bot: Bot):
     if current_game:
         # Get current game statistics
         info = await CreditsInfo.from_game(current_game)
-        stats_text = (
-            "Держи статистику текущей игры\n\n"
-            f"<b>Игра: {info.name}</b>\n"
-            f"Продолжительность с начала: {info.duration}\n"
-            "\n"
-            "<b>Топ по рейтингу:</b>\n"
-            f"{info.rating_top}\n"
-            "\n"
-            "<b>Топ по убийствам:</b>\n"
-            f"{info.killers_top}\n"
-            "\n"
-            "<b>Топ по смертям:</b>\n"
-            f"{info.victims_top}"
+        stats_text = texts.render(
+            "admin.stats.with_game",
+            game_name=info.name,
+            duration=info.duration,
+            rating_top=info.rating_top,
+            killers_top=info.killers_top,
+            victims_top=info.victims_top,
         )
     else:
-        stats_text = (
-            "Держи краткую статистику по боту\n\n"
-            f"В базе данных сейчас находится {user_count} уникальных пользователей\n"
-            f"Из них {user_confirmed_count} имеют подтвержденные профили, что составляет {user_confirmed_count / user_count * 100:.1f}%\n"
-            "Сейчас игра <b>не идет</b>\n"
-            "\nДругие статистики будут добавляться по ходу дела, хозяин"
+        confirmed_percent = (user_confirmed_count / user_count * 100) if user_count else 0
+        stats_text = texts.render(
+            "admin.stats.no_game",
+            user_count=user_count,
+            confirmed_count=user_confirmed_count,
+            confirmed_percent=confirmed_percent,
         )
 
     await message.reply(text=stats_text, parse_mode="HTML")
@@ -159,7 +153,11 @@ async def on_final_confirmation(
     factory = BgManagerFactoryImpl(router=router)
 
     for user in users:
-        message_task = send_notification(bot, user, f"Внимание, {user.mention_html()}!!")
+        message_task = send_notification(
+            bot,
+            user,
+            texts.render("admin.notify_new_game", mention=user.mention_html()),
+        )
         tasks.append(message_task)
 
         user_dialog_manager = factory.bg(
@@ -187,7 +185,7 @@ async def on_final_confirmation(
 
     await manager.done()
     await callback.answer(
-        f"Новая игра создана. Дата создания: {creation_date}",
+        texts.render("admin.game_created_alert", creation_date=creation_date),
         show_alert=True,
     )
 
@@ -202,20 +200,20 @@ async def on_reset_game_creation(callback: CallbackQuery, button: Button, manage
 router.include_router(
     Dialog(
         Window(
-            Const("Ну вот ты хочешь начать новую игру, как назовем ее?"),
+            Const(texts.get("admin.creategame.ask_name")),
             MessageInput(on_name_input, content_types=ContentType.TEXT),
             state=StartGame.name,
         ),
         Window(
-            Const("Ну в принципе я получил все что мне надо было, стартуем?"),
+            Const(texts.get("admin.creategame.confirm")),
             Column(
                 Button(
-                    Const("Да, погнали"),
+                    Const(texts.get("admin.creategame.confirm_yes")),
                     on_click=on_final_confirmation,
                     id="startgame_confirm",
                 ),
                 Button(
-                    Const("Нет, назад"),
+                    Const(texts.get("admin.creategame.confirm_no")),
                     on_click=on_reset_game_creation,
                     id="startgame_reject",
                 ),
@@ -230,12 +228,7 @@ router.include_router(
 async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
     if await Game().filter(end_date=None).exists():
         msg = await message.reply(
-            text=(
-                "Ты уверен, что хочешь начать новую игру, не закончив старую?\n\n"
-                "Даже если уверен, то ты меня не научил так делать, так "
-                "что начала закончи текущую активную игру\n"
-                "Для этого можешь воспользоваться /editgame\n"
-            )
+            text=texts.get("admin.creategame.already_running")
         )
         await asyncio.sleep(10)
         await msg.delete()
@@ -245,18 +238,18 @@ async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
 async def getservertime(message: Message):
-    msg = await message.reply(f"Сейчас на сервере: {datetime.now(settings.timezone)}")
+    msg = await message.reply(texts.render("admin.server_time", server_time=datetime.now(settings.timezone)))
     await asyncio.sleep(10)
     await msg.delete()
 
 
 def parse_game_stage(game: Game) -> str:
     if game.end_date:
-        return "Завершена"
+        return texts.get("admin.game_stage.finished")
     if game.start_date:
-        return "Начата"
+        return texts.get("admin.game_stage.started")
     logger.warning("start: %s; end: %s", game.start_date, game.end_date)
-    return "err"
+    return texts.get("admin.game_stage.error")
 
 
 async def get_games_data(**kwargs):
@@ -285,7 +278,7 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
 
 @log_dialog_action("ADMIN_GAME_SELECTED")
 async def on_game_selected(callback: CallbackQuery, widget, manager: DialogManager, item_id: str):
-    await callback.answer(f"Вы выбрали игру {item_id}")
+    await callback.answer(texts.render("admin.game_selected", item_id=item_id))
     manager.dialog_data["game_id"] = item_id
     await manager.next()
 
@@ -346,23 +339,18 @@ async def send_game_credits(
     user_id: UUID | None = None,
 ) -> None:
     """Send game credits message to a specific user."""
+    personal_stats = get_personal_stats(user_id, info) if user_id else ""
     try:
         await bot.send_message(
             chat_id=chat_id,
-            text=(
-                f"Игра <b>{info.name}</b> закончилась!\n"
-                f"Она продлилась {info.duration}\n"
-                "\n"
-                "<b>Топ по рейтингу:</b>\n"
-                f"{info.rating_top}\n"
-                "\n"
-                "<b>Топ по убийствам:</b>\n"
-                f"{info.killers_top}\n"
-                "\n"
-                "<b>Топ по смертям:</b>\n"
-                f"{info.victims_top}\n"
-                "\n"
-                f"{get_personal_stats(user_id, info) if user_id else ''}"
+            text=texts.render(
+                "admin.game_credits",
+                name=info.name,
+                duration=info.duration,
+                rating_top=info.rating_top,
+                killers_top=info.killers_top,
+                victims_top=info.victims_top,
+                personal_stats=personal_stats,
             ),
             parse_mode="HTML",
         )
@@ -374,13 +362,13 @@ async def send_game_credits(
 def get_personal_stats(user_id: UUID, info: CreditsInfo):
     player_info = info.per_player.get(user_id)
     if not player_info:
-        return "Нет данных"
-    return (
-        "<b>Ваша статистика:</b>\n"
-        f"Ваш рейтинг к концу игры: <b>{player_info.rating}</b>\n"
-        f"Ваш К/Д: <b>{player_info.kills}/{player_info.deaths}</b>\n"
-        "Логи убийств:\n"
-        f"{'\n'.join(player_info.log)}"
+        return texts.get("admin.personal_stats.empty")
+    return texts.render(
+        "admin.personal_stats",
+        rating=player_info.rating,
+        kills=player_info.kills,
+        deaths=player_info.deaths,
+        log="\n".join(player_info.log),
     )
 
 
@@ -399,11 +387,13 @@ async def game_info_getter(dialog_manager: DialogManager, **kwargs):
     game = await Game().get(id=game_id)
     participants_count = await Player().filter(game=game_id).count()
     return {
-        "game_info": (
-            f'Информация об игре "{game.name}" с айди {game_id}\n\n'
-            f"Начало игры: {game.start_date}\n"
-            f"Конец игры: {game.end_date}\n"
-            f"\nКоличество участников: <b>{participants_count}</b>\n"
+        "game_info": texts.render(
+            "admin.game_info",
+            game_name=game.name,
+            game_id=game_id,
+            start_date=game.start_date,
+            end_date=game.end_date,
+            participants_count=participants_count,
         )
     }
 
@@ -411,7 +401,7 @@ async def game_info_getter(dialog_manager: DialogManager, **kwargs):
 router.include_router(
     Dialog(
         Window(
-            Const("Выбери, какую игру хочешь изменить:"),
+            Const(texts.get("admin.editgame.select_prompt")),
             Column(
                 Select(
                     Format("{item[name]}"),
@@ -421,16 +411,16 @@ router.include_router(
                     on_click=on_game_selected,
                 )
             ),
-            Cancel(Const("Отмена")),
+            Cancel(Const(texts.get("buttons.cancel"))),
             state=EditGame.game_id,
             getter=get_games_data,
         ),
         Window(
-            Format("Ну и что с ней делать будем?"),
-            Format("Игра {game_name}", when="game_name"),
+            Format(texts.get("admin.editgame.what_next")),
+            Format(texts.get("admin.editgame.game_title"), when="game_name"),
             Row(
                 Button(
-                    Const("Закончить игру"),
+                    Const(texts.get("admin.editgame.end_game")),
                     id="end_game",
                     on_click=on_action_clicked,
                     when="show_end_game",
@@ -438,14 +428,14 @@ router.include_router(
             ),
             Row(
                 Button(
-                    Const("Посмотреть информацию"),
+                    Const(texts.get("admin.editgame.show_info")),
                     id="info",
                     on_click=lambda c, b, m: m.switch_to(EditGame.info),
                 )
             ),
             Row(
                 Button(
-                    Const("Назад"),
+                    Const(texts.get("admin.editgame.back")),
                     id="back",
                     on_click=lambda c, w, m: m.switch_to(EditGame.game_id),
                 )
@@ -456,7 +446,7 @@ router.include_router(
         Window(
             Format("{game_info}"),
             Button(
-                Const("Назад"),
+                Const(texts.get("admin.editgame.back")),
                 id="back",
                 on_click=lambda c, b, m: m.switch_to(EditGame.edit),
             ),
@@ -475,7 +465,7 @@ async def editgame(message: Message, dialog_manager: DialogManager):
 router.include_router(
     Dialog(
         Window(
-            Const("Вы уверены что хотите завершить активную игру?"),
+            Const(texts.get("admin.editgame.confirm_end")),
             state=EndGame.confirm,
         )
     )
@@ -491,12 +481,12 @@ async def endgame(
 ):
     active_game = await Game().filter(end_date=None).first()
     if not active_game:
-        msg = await message.answer("Сейчас нет активных игр чтобы завершать")
+        msg = await message.answer(texts.get("admin.no_active_games"))
         await asyncio.sleep(1)
         await msg.delete()
         return
     await handle_end_game(bot, dispatcher, active_game)
-    msg = await message.answer("Игра успешно завершена\nБот уходит на перезагрузку")
+    msg = await message.answer(texts.get("admin.game_finished"))
     await asyncio.sleep(1)
     await msg.delete()
 
@@ -516,7 +506,7 @@ async def ban(
 ):
     logger.info("Ban command used with args %s", command.args)
     if not command.args:
-        await message.answer("Укажи tg_id пользователя и причину: /ban <tg_id> <reason>")
+        await message.answer(texts.get("admin.ban.ask_args"))
         return
 
     try:
@@ -524,11 +514,11 @@ async def ban(
         user_id = int(user_id)
         reason = " ".join(reason)
     except ValueError:
-        await message.answer("tg_id должен быть числом")
+        await message.answer(texts.get("admin.ban.tg_id_must_be_int"))
         return
 
     user = await User.get_or_none(tg_id=user_id)
     if not user:
-        await message.answer("Такого пользователя нет в базе данных")
+        await message.answer(texts.get("admin.ban.user_not_found"))
         return
     await message.answer(await services.ban.ban(user, reason))

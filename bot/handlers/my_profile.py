@@ -23,6 +23,7 @@ from bot.handlers.registration_dialog import (
     hugging_allowed_label,
 )
 from db.models import PendingProfile, User
+from services import texts
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
 from services.states.my_profile import EditProfile, MyProfile
@@ -33,15 +34,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-FIELD_LABELS = {
-    "name": "Имя",
-    "type": "Тип",
-    "course_number": "Курс",
-    "group_name": "Поток",
-    "about_user": "О себе",
-    "photo": "Фото",
-    "allow_hugging_on_kill": "Объятия при убийстве",
-}
+FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
 def _format_value(field: str, value):
@@ -50,15 +43,16 @@ def _format_value(field: str, value):
     if field == "type":
         return COURSE_TYPES.get(value, value)
     if field == "allow_hugging_on_kill":
-        return "разрешены" if value else "запрещены"
+        return texts.get("profile.hugs_allowed_yes") if value else texts.get("profile.hugs_allowed_no")
     return str(value)
 
 
 def _format_change_arrow(field: str, old, new) -> str:
-    return (
-        f"<b>{FIELD_LABELS[field]}:</b> "
-        f"{html.escape(_format_value(field, old))} -> "
-        f"{html.escape(_format_value(field, new))}"
+    return texts.render(
+        "profile.change_arrow",
+        field_label=FIELD_LABELS[field],
+        old_value=html.escape(_format_value(field, old)),
+        new_value=html.escape(_format_value(field, new)),
     )
 
 
@@ -94,12 +88,14 @@ def _collect_changes(dialog_data: dict, user: User) -> tuple[dict, list[str]]:
 
 def _build_changes_preview(user: User, changes: dict, changed_fields: list[str]) -> str:
     if not changed_fields:
-        return "Изменения пока не выбраны. Добавьте поля и вернитесь к подтверждению."
+        return texts.get("profile.changes_empty")
 
-    lines = ["<b>Изменения:</b>"]
+    lines = [texts.get("profile.changes_title")]
     for field in changed_fields:
         if field == "photo":
-            lines.append(f"<b>{FIELD_LABELS['photo']}:</b> фото будет обновлено")
+            lines.append(
+                texts.render("profile.photo_will_be_updated", field_label=FIELD_LABELS["photo"])
+            )
             continue
         old_value = getattr(user, field)
         new_value = changes[field]
@@ -122,14 +118,14 @@ def _build_profile_preview(user: User, changes: dict) -> str:
         )
     )
 
-    return (
-        "<b>Черновик профиля:</b>\n"
-        f"Имя: <b>{name}</b>\n"
-        f"Тип: {type_value}\n"
-        f"Курс: {course_value}\n"
-        f"Поток: {group_value}\n"
-        f"О себе: {about_value}\n"
-        f"Объятия при убийстве: {hugging_value}"
+    return texts.get("profile.draft_title") + texts.render(
+        "profile.draft_body",
+        name=name,
+        type_value=type_value,
+        course_value=course_value,
+        group_value=group_value,
+        about_value=about_value,
+        hugging_value=hugging_value,
     )
 
 
@@ -175,27 +171,27 @@ async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manage
     user = await get_user(manager)
     user.allow_hugging_on_kill = not bool(user.allow_hugging_on_kill)
     await user.save(update_fields=["allow_hugging_on_kill"])
-    await callback.answer("Настройка обновлена. Мы снова показали ваш профиль с новой отметкой.")
+    await callback.answer(texts.get("profile.toggle_hugs_updated"))
     await manager.switch_to(MyProfile.profile)
 
 
 router.include_router(
     Dialog(
         Window(
-            Format("\nИмя: <b>{name}</b>\n", when="name"),
+            Format(texts.get("profile.name_line"), when="name"),
             Format("{advanced_info}", when="advanced_info"),
             DynamicMedia("photo", when="photo"),
             Button(
-                Format("Объятия при убийстве: {hugs_allowed_label}"),
+                Format(texts.get("profile.hugs_label")),
                 id="toggle_hugs",
-                on_click=toggle_hugging_setting,
-            ),
-            Button(Const("Редактировать"), id="edit", on_click=on_edit),
-            Cancel(Const("Назад")),
-            getter=get_profile_info,
-            state=MyProfile.profile,
-        )
+            on_click=toggle_hugging_setting,
+        ),
+        Button(Const(texts.get("buttons.edit")), id="edit", on_click=on_edit),
+        Cancel(Const(texts.get("buttons.back"))),
+        getter=get_profile_info,
+        state=MyProfile.profile,
     )
+)
 )
 
 
@@ -258,7 +254,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
 
     user = await User.get_or_none(tg_id=tg_user.id)
     if user is None:
-        await c.answer("Не удалось найти пользователя.", show_alert=True)
+        await c.answer(texts.get("profile.no_user_found"), show_alert=True)
         await manager.done()
         return
 
@@ -269,7 +265,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     changes, changed_fields = _collect_changes(d, user)
 
     if not changed_fields:
-        await c.answer("Нет изменений для отправки", show_alert=True)
+        await c.answer(texts.get("profile.no_changes"), show_alert=True)
         await manager.done()
         return
 
@@ -285,10 +281,13 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     profile_preview = _build_profile_preview(user, changes)
 
     lines = [
-        "<b>Изменение профиля:</b>",
-        f"<b>ID заявки:</b> {pending.id}",
-        f"<b>ID:</b> {tg_user.id}",
-        f"<b>Username:</b> @{tg_user.username or 'не указан'}",
+        texts.get("moderation.change_header"),
+        texts.render("moderation.change_meta_id", pending_id=pending.id),
+        texts.render("moderation.change_meta_user_id", user_id=tg_user.id),
+        texts.render(
+            "moderation.change_meta_username",
+            username=tg_user.username or texts.get("common.username_unknown"),
+        ),
         changes_preview,
         profile_preview,
     ]
@@ -310,90 +309,90 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         pending.message_id = admin_message.message_id
         await pending.save()
 
-    await c.message.answer("Изменения отправлены на модерацию. Пока используется старая версия профиля")
+    await c.message.answer(texts.get("profile.change_sent"))
     await manager.done()
 
 
 router.include_router(
     Dialog(
         Window(
-            Const("Что хотите изменить?"),
+            Const(texts.get("profile.edit_prompt")),
             Button(
-                Const("Имя"),
+                Const(texts.get("buttons.profile_name")),
                 id="name",
                 on_click=lambda c, b, m: m.switch_to(EditProfile.name),
             ),
             Button(
-                Const("Обучение"),
+                Const(texts.get("buttons.profile_academic")),
                 id="academic",
                 on_click=lambda c, b, m: m.switch_to(EditProfile.type),
             ),
             Button(
-                Const("Описание"),
+                Const(texts.get("buttons.profile_description")),
                 id="description",
                 on_click=lambda c, b, m: m.switch_to(EditProfile.about),
             ),
             Button(
-                Const("Фото профиля"),
+                Const(texts.get("buttons.profile_photo")),
                 id="profile_photo",
                 on_click=lambda c, b, m: m.switch_to(EditProfile.photo),
             ),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.main,
         ),
         Window(
-            Const("Выбери тип обучения:"),
+            Const(texts.get("profile.ask_type")),
             btns_course_types(on_type_selected),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.type,
         ),
         Window(
-            Const("Выбери курс:"),
+            Const(texts.get("profile.ask_course")),
             course_buttons(on_course_number_selected),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             getter=reg_getter,
             state=EditProfile.course,
         ),
         Window(
-            Const("Выбери свой поток:"),
+            Const(texts.get("profile.ask_group")),
             btns_groups(on_group_selected),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.group,
         ),
         Window(
-            Const("Введите измененное имя:"),
+            Const(texts.get("profile.ask_name")),
             MessageInput(on_name, content_types=ContentType.TEXT),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.name,
         ),
         Window(
-            Const("Введите измененное описание:"),
+            Const(texts.get("profile.ask_about")),
             MessageInput(on_about, content_types=ContentType.TEXT),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.about,
         ),
         Window(
-            Const("Отправь мне новое фото:"),
+            Const(texts.get("profile.ask_photo")),
             MessageInput(on_photo, content_types=ContentType.PHOTO),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=EditProfile.photo,
         ),
         Window(
             Format("{preview_text}"),
             DynamicMedia("preview_photo", when="preview_photo"),
-            Format("\n{changes_preview}"),
+            Format(texts.get("profile.preview_changes")),
             Button(
-                Const("Добавить ещё поля"),
+                Const(texts.get("profile.add_more_fields")),
                 id="edit_more",
                 on_click=lambda c, b, m: m.switch_to(EditProfile.main),
             ),
             Button(
-                Const("Отправить на модерацию"),
+                Const(texts.get("profile.send_to_moderation")),
                 id="confirmed",
                 on_click=on_final_confirmation,
                 when="has_changes",
             ),
-            Cancel(Const("Отмена")),
+            Cancel(Const(texts.get("buttons.cancel"))),
             getter=confirm_preview_getter,
             state=EditProfile.confirm,
         ),

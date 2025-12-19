@@ -9,6 +9,7 @@ from aiogram_dialog.widgets.text import Const
 
 from bot.handlers import mainloop_dialog
 from db.models import Game, Player, User
+from services import texts
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states import MainLoop
@@ -28,7 +29,7 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
     if is_exit_cooldown_active(user):
         cooldown_until = format_exit_cooldown(user)
         await callback.answer(
-            f"Вы недавно вышли из игры. Повторное участие будет доступно после {cooldown_until}",
+            texts.render("common.exit_cooldown", until=cooldown_until),
             show_alert=True,
         )
         await manager.done()
@@ -71,15 +72,15 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
 router.include_router(
     Dialog(
         Window(
-            Const("Начинается новая игра, хотите принять в ней участие?"),
+            Const(texts.get("participation.prompt")),
             Column(
                 Button(
-                    Const("Да, хочу"),
+                    Const(texts.get("participation.confirm_yes")),
                     id="confirm",
                     on_click=confirm_participation,
                 ),
                 Button(
-                    Const("Нет, спасибо"),
+                    Const(texts.get("participation.confirm_no")),
                     id="deny",
                     on_click=lambda c, b, m: m.done(),
                 ),

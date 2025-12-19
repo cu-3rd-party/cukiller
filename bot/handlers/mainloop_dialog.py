@@ -23,6 +23,7 @@ from bot.handlers.mainloop.button_handlers import (
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from db.models import Game, User
+from services import texts
 from services.states import MainLoop
 
 logger = logging.getLogger(__name__)
@@ -32,77 +33,77 @@ router = Router()
 
 main_menu_dialog = Dialog(
     Window(
-        Const("Главное меню\n"),
+        Const(texts.get("main_menu.title")),
         Format(
-            "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
+            texts.get("main_menu.rating"),
             when="user_rating",
         ),
         Format(
-            "Вы недавно вышли из игры. Снова присоединиться можно после: <b>{exit_cooldown_until}</b>\n",
+            texts.get("main_menu.exit_cooldown"),
             when="exit_cooldown_until",
         ),
         Format(
-            "Вы запросили подтверждение убийства вас у вашего убийцы, ожидайте",
+            texts.get("main_menu.waiting_victim_confirm"),
             when="pending_victim_confirmed",
         ),
         Format(
-            "Вы запросили подтверждение вашего убийства у вашей жертвы, ожидайте\n",
+            texts.get("main_menu.waiting_kill_confirm"),
             when="pending_kill_confirmed",
         ),
         Format(
-            "Вы находитесь в очереди на цель, текущая:\nКоличество потенциальных убийц: <b>{killers_queue_length}</b>\nКоличество потенциальных жертв: <b>{victims_queue_length}</b>",
+            texts.get("main_menu.queue_stats"),
             when="enqueued",
         ),
         Column(
             Url(
-                Const("Перейти в чат обсуждения"),
+                Const(texts.get("buttons.discussion")),
                 id="discussion_group_link",
                 url=Format("{discussion_link}"),
                 when="discussion_link",
             ),
             Url(
-                Const("Когда следующая игра?"),
+                Const(texts.get("buttons.next_game")),
                 id="next_game_link",
                 url=Format("{next_game_link}"),
                 when=F["next_game_link"] & ~F["game_running"],
             ),
             Button(
-                Const("Присоединиться к игре"),
+                Const(texts.get("buttons.join_game")),
                 id="join_game",
                 on_click=confirm_participation,
                 when="join_game_button",
             ),
             Button(
-                Const("Выйти из игры"),
+                Const(texts.get("buttons.leave_game")),
                 id="leave_game",
                 on_click=on_leave_game,
                 when="user_is_in_game",
             ),
             Button(
-                Const("Мой профиль"),
+                Const(texts.get("buttons.profile")),
                 id="profile",
                 on_click=open_profile,
             ),
             Button(
-                Const("Правила"),
+                Const(texts.get("buttons.rules")),
                 id="rules",
                 on_click=open_rules,
             ),
             # Game-related buttons
             Button(
-                Const("Получить цель"),
+                Const(texts.get("buttons.get_target")),
                 id="get_target",
                 on_click=on_get_target,
                 when="should_get_target",
             ),
             Button(
-                Const("Меня убили"),
+                Const(texts.get("buttons.was_killed")),
                 id="i_was_killed",
                 on_click=on_i_was_killed,
                 when="user_is_in_game",
             ),
             Button(
-                Format("Ваша цель: {target_name_trimmed}"),
+                Format(texts.get("main_menu.target_label")),
                 id="target_info",
                 on_click=lambda c, b, m: m.switch_to(MainLoop.target_info),
                 when="has_target",
@@ -112,34 +113,34 @@ main_menu_dialog = Dialog(
         state=MainLoop.title,
     ),
     Window(
-        Const("Информация о цели"),
-        Format("\nИмя: <b>{target_name}</b>\n", when="target_name"),
-        Format("{target_advanced_info}", when="target_advanced_info"),
+        Const(texts.get("main_menu.target_info_title")),
+        Format(texts.get("main_menu.target_name"), when="target_name"),
+        Format(texts.get("main_menu.target_advanced_info"), when="target_advanced_info"),
         DynamicMedia("target_photo", when="target_photo"),
         Column(
             Url(
-                Const("Написать репорт"),
+                Const(texts.get("buttons.write_report")),
                 id="write_report",
                 url=Format("{report_link}"),
                 when=F["report_link"],
             ),
             Url(
-                Const("Открыть профиль"),
+                Const(texts.get("buttons.open_profile")),
                 id="profile",
                 url=Format("{target_profile_link}"),
                 when=F["target_profile_link"],
             ),
             Button(
-                Const("Я сдаюсь"),
+                Const(texts.get("buttons.surrender")),
                 id="reroll",
                 on_click=on_reroll,
             ),
             Button(
-                Const("Я убил"),
+                Const(texts.get("buttons.i_killed")),
                 id="i_killed",
                 on_click=on_i_killed,
             ),
-            Back(Const("Назад")),
+            Back(Const(texts.get("buttons.back"))),
         ),
         getter=get_target_info,
         state=MainLoop.target_info,

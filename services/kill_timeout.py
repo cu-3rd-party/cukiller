@@ -7,6 +7,7 @@ from aiogram import Bot
 
 from db.models import Chat, KillEvent, Player
 from services import settings
+from services import texts
 from services.kills_confirmation import add_back_to_queues
 
 logger = logging.getLogger(__name__)
@@ -102,7 +103,7 @@ class KillTimeoutMonitor:
         try:
             await self._bot.send_message(
                 chat_id=victim.tg_id,
-                text=(f"Киллеру не удалось вас выследить за {self.deadline.days} дней"),
+                text=texts.render("timeout.victim", days=self.deadline.days),
             )
         except Exception as exc:
             logger.warning("Ошибка уведомления жертвы (%s) о таймауте, ошибка: %s", victim.id, exc)
@@ -110,7 +111,7 @@ class KillTimeoutMonitor:
         try:
             await self._bot.send_message(
                 chat_id=killer.tg_id,
-                text=(f"Вам не удалось устранить цель за {self.deadline.days} дней"),
+                text=texts.render("timeout.killer", days=self.deadline.days),
             )
         except Exception as exc:
             logger.warning("Ошибка уведомления киллера (%s) о таймауте, ошибка: %s", killer.id, exc)
@@ -119,9 +120,11 @@ class KillTimeoutMonitor:
             try:
                 await self._bot.send_message(
                     chat_id=discussion_chat.chat_id,
-                    text=(
-                        f"<b>{killer.mention_html()}</b> не смог устранить "
-                        f"<b>{victim.mention_html()}</b> за {self.deadline.days} дней"
+                    text=texts.render(
+                        "timeout.discussion",
+                        killer=killer.mention_html(),
+                        victim=victim.mention_html(),
+                        days=self.deadline.days,
                     ),
                 )
             except Exception as exc:

@@ -4,6 +4,8 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 
+from services import texts
+
 
 class PrivateMessagesMiddleware(BaseMiddleware):
     def __init__(self, *exclusions: list[str]) -> None:
@@ -18,7 +20,7 @@ class PrivateMessagesMiddleware(BaseMiddleware):
         if event.text in self.exclusions:
             return await handler(event, data)
         if event.from_user.id != event.chat.id:
-            await event.answer("Этот бот работает только в личных сообщениях.")
+            await event.answer(texts.get("common.private_only"))
             return None
 
         return await handler(event, data)
