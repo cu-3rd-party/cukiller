@@ -3,7 +3,6 @@ from textwrap import dedent
 from typing import Any
 
 _TEXTS: dict[str, str] = {
-
     # Common
     "common.private_only": "Этот бот работает только в личных сообщениях",
     "common.user_missing": "Не удалось определить пользователя",
@@ -11,11 +10,9 @@ _TEXTS: dict[str, str] = {
     "common.exit_cooldown": "Недавно вы вышли из «Операции». Доступ будет выдан спустя {until}",
     "common.unknown": "Неизвестно",
     "common.username_unknown": "не указан",
-
     # Score directions
     "score.lost": "потеряли",
     "score.gained": "получили",
-
     # Buttons / labels
     "buttons.back": "Назад",
     "buttons.cancel": "Отмена",
@@ -47,7 +44,6 @@ _TEXTS: dict[str, str] = {
     "buttons.profile_academic": "Обучение",
     "buttons.profile_description": "Описание",
     "buttons.cancel_text": "Отмена",
-
     # Main menu
     "main_menu.title": "Главное меню\n",
     "main_menu.rating": "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
@@ -65,7 +61,6 @@ _TEXTS: dict[str, str] = {
     "main_menu.target_info_title": "Информация о цели",
     "main_menu.target_name": "\nИмя: <b>{target_name}</b>\n",
     "main_menu.target_advanced_info": "{target_advanced_info}",
-
     # Registration
     "registration.ask_name": "Привет! Как тебя зовут?",
     "registration.ask_type": "Выбери тип обучения:",
@@ -85,12 +80,10 @@ _TEXTS: dict[str, str] = {
     "registration.photo_required": "Пожалуйста, отправь фото",
     "registration.submitted": "Твое досье отправлено! Ожидай результаты внутреннего расследования",
     "registration.pending": "Главное, в ходе следственных действий не выйти на самих себя. Твое досье проходит проверку, оперативно сообщим результат",
-
     # Participation
     "participation.prompt": "Начинается новая «Операция». Вы в деле?",
     "participation.confirm_yes": "Принять приглашение",
     "participation.confirm_no": "Это слишком опасно...",
-
     # Kill confirmation
     "kills.player_notified": (
         "Агент раскрыт! Все агенты подтвердили нейтрализацию\n\nВы {score_direction} <b>{points}</b> очков рейтинга"
@@ -108,9 +101,10 @@ _TEXTS: dict[str, str] = {
     "kills.killer_double_confirm_prompt": "По версии цели, она была скомпрометирована. Подтвердите",
     "kills.killer_confirm_button": "Цель раскрыта",
     "kills.killer_deny_button": "Дезинформация. Цель под наблюдением",
-
     # Reroll
-    "reroll.player_notified": ("Доказательств нет. Но под прикрытием скрывался агент... Цель снята\n\nВы {score_direction} <b>{points}</b> очков рейтинга"),
+    "reroll.player_notified": (
+        "Доказательств нет. Но под прикрытием скрывался агент... Цель снята\n\nВы {score_direction} <b>{points}</b> очков рейтинга"
+    ),
     "reroll.chat_notified": (
         "<b>{killer}</b> {reason} <b>{victim}</b>\n\n"
         "Новый MMR {killer_name}: {killer_rating}({killer_delta})\n"
@@ -119,7 +113,6 @@ _TEXTS: dict[str, str] = {
     "reroll.prompt": "Вы уверены что хотите заменить цель?",
     "reroll.confirm": "Да",
     "reroll.cancel": "Нет, назад",
-
     # Leave game
     "leave.prompt": (
         "Вы уверены, что хотите покинуть операцию?\n"
@@ -133,18 +126,15 @@ _TEXTS: dict[str, str] = {
     "leave.result": (
         "Вы вышли из игры и стали NPC с богатым прошлым. Но бывших не бывает... {penalty_text}\nВернуться можно после недели ожидания"
     ),
-
     # Matchmaking
     "matchmaking.admin_log": (
         "Найдено совпадение: {killer} vs {victim} (сходство: {quality:.2f}), создан KillEvent id={kill_event_id}"
     ),
     "matchmaking.killer_message": "Назначена новая цель, изучите досье",
-
     # Kill timeout
     "timeout.victim": "Вы скрывались {days} дней. Ваш след потерян, контрагент не раскрыл вас",
     "timeout.killer": "Ты зашёл слишком далеко... След оборвался, за {days} дней цель успела скрыться",
     "timeout.discussion": "<b>{killer}</b> не раскрыл <b>{victim}</b> за {days} дней",
-
     # Ban
     "ban.user_notification": (
         "Вы были забанены. Не пытайтесь продолжить взаимодействие с ботом, это бесполезно"
@@ -152,7 +142,6 @@ _TEXTS: dict[str, str] = {
     ),
     "ban.admin_notification": 'Игрок {user} был забанен по причине "{reason}"',
     "ban.result": "Пользователь забанен, удалено килл-ивентов: {removed_events}",
-
     # Admin commands / stats / flows
     "admin.command.start": "Начать работу с ботом",
     "admin.command.stats": "Получить краткую статистику по боту",
@@ -238,7 +227,6 @@ _TEXTS: dict[str, str] = {
         "{log}"
     ),
     "admin.personal_stats.empty": "Нет данных",
-
     # Profile moderation
     "moderation.request_already_processed": "Эта заявка уже обработана",
     "moderation.reason_timeout": "Время на указание причины истекло",
@@ -289,7 +277,6 @@ _TEXTS: dict[str, str] = {
     "moderation.change_meta_username": "<b>Username:</b> @{username}",
     "moderation.change_photo": "<b>{field_label}:</b> обновлено",
     "moderation.change_line": "<b>{field_label}:</b>\n— было: {old_value}\n— стало: {new_value}",
-
     # Profile editing / viewing
     "profile.toggle_hugs_updated": ("Изменения применены. Профиль агента обновлён и снова отображается в системе"),
     "profile.no_changes": "Нет изменений для отправки",
@@ -322,10 +309,8 @@ _TEXTS: dict[str, str] = {
     "profile.hugs_allowed_yes": "разрешены",
     "profile.hugs_allowed_no": "запрещены",
     "profile.name_line": "\nИмя: <b>{name}</b>\n",
-
     # Matchmaking participation dialog
     "participation.get_target": "Получить цель",
-
     # Rules
     "rules.body": """
 <b><u>Формальные правила игры</u></b>
@@ -402,8 +387,7 @@ _TEXTS: dict[str, str] = {
 <i>И помни:</i> <b>Большой брат следит за тобой.</b><br>
 <i>Приятной игры!</i>
 """,
-
-"rules.profile": """
+    "rules.profile": """
 <b>Правила оформления досье (профиля)</b>
 
 <br>
@@ -430,8 +414,7 @@ _TEXTS: dict[str, str] = {
 
 <i>Администрация вправе</i> потребовать изменить профиль, отклонить заявку на регистрацию, отказать во внесении изменений в профиль, а в крайнем случае — <b>удалить профиль</b>.
 """,
-
-"rules.game": """
+    "rules.game": """
 <b>Игровой процесс</b>
 
 <b>Термины</b>
@@ -503,7 +486,7 @@ _TEXT_LISTS: dict[str, Iterable[str]] = {
         "Цель вышла из игры. «Чистая работа», — подумал Штирлиц",
         "Цель вышла ровно в момент проверки. «Совпадений не бывает», — подумал Штирлиц",
         "Цель вышла, не попрощавшись. «Сдалась», — подумал Штирлиц",
-    )
+    ),
 }
 
 PROFILE_FIELD_LABELS: dict[str, str] = {

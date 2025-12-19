@@ -93,9 +93,7 @@ def _build_changes_preview(user: User, changes: dict, changed_fields: list[str])
     lines = [texts.get("profile.changes_title")]
     for field in changed_fields:
         if field == "photo":
-            lines.append(
-                texts.render("profile.photo_will_be_updated", field_label=FIELD_LABELS["photo"])
-            )
+            lines.append(texts.render("profile.photo_will_be_updated", field_label=FIELD_LABELS["photo"]))
             continue
         old_value = getattr(user, field)
         new_value = changes[field]
@@ -184,14 +182,14 @@ router.include_router(
             Button(
                 Format(texts.get("profile.hugs_label")),
                 id="toggle_hugs",
-            on_click=toggle_hugging_setting,
-        ),
-        Button(Const(texts.get("buttons.edit")), id="edit", on_click=on_edit),
-        Cancel(Const(texts.get("buttons.back"))),
-        getter=get_profile_info,
-        state=MyProfile.profile,
+                on_click=toggle_hugging_setting,
+            ),
+            Button(Const(texts.get("buttons.edit")), id="edit", on_click=on_edit),
+            Cancel(Const(texts.get("buttons.back"))),
+            getter=get_profile_info,
+            state=MyProfile.profile,
+        )
     )
-)
 )
 
 

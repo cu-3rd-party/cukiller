@@ -227,9 +227,7 @@ router.include_router(
 @router.message(AdminFilter(), Command(commands=["creategame"]))
 async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
     if await Game().filter(end_date=None).exists():
-        msg = await message.reply(
-            text=texts.get("admin.creategame.already_running")
-        )
+        msg = await message.reply(text=texts.get("admin.creategame.already_running"))
         await asyncio.sleep(10)
         await msg.delete()
         return

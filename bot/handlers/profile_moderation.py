@@ -129,9 +129,7 @@ def _build_changes_body(pending: PendingProfile, current_user: User) -> str:
     ]
     for field in pending.changed_fields:
         if field == "photo":
-            lines.append(
-                texts.render("moderation.change_photo", field_label=FIELD_LABELS["photo"])
-            )
+            lines.append(texts.render("moderation.change_photo", field_label=FIELD_LABELS["photo"]))
             continue
         old_value = getattr(current_user, field)
         new_value = getattr(pending, field)
@@ -417,9 +415,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     pending.reason = None
     await pending.save()
 
-    status_line = texts.render(
-        "moderation.status_denied_waiting", moderator=_moderator_name(callback.from_user)
-    )
+    status_line = texts.render("moderation.status_denied_waiting", moderator=_moderator_name(callback.from_user))
     body = _build_admin_body(pending, pending.user)
     await _edit_admin_message(
         bot,
