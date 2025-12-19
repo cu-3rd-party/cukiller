@@ -106,7 +106,9 @@ def _build_new_profile_body(pending: PendingProfile) -> str:
     return texts.render(
         "moderation.new_profile_body",
         pending_id=pending.id,
-        name=html.escape(_format_value("name", pending.name)),
+        family_name=html.escape(_format_value("family_name", pending.family_name)),
+        given_name=html.escape(_format_value("given_name", pending.given_name)),
+        full_name=html.escape(_format_value("name", pending.full_name)),
         type=html.escape(_format_value("type", pending.type)),
         course_number=html.escape(_format_value("course_number", pending.course_number)),
         group_name=html.escape(_format_value("group_name", pending.group_name)),
@@ -131,12 +133,17 @@ def _build_changes_body(pending: PendingProfile, current_user: User) -> str:
         if field == "photo":
             lines.append(texts.render("moderation.change_photo", field_label=FIELD_LABELS["photo"]))
             continue
-        old_value = getattr(current_user, field)
-        new_value = getattr(pending, field)
+        field_label = FIELD_LABELS.get(field, FIELD_LABELS.get("name", "Фамилия и имя"))
+        if field == "name":
+            old_value = current_user.full_name
+            new_value = pending.full_name
+        else:
+            old_value = getattr(current_user, field, None)
+            new_value = getattr(pending, field, None)
         lines.append(
             texts.render(
                 "moderation.change_line",
-                field_label=FIELD_LABELS[field],
+                field_label=field_label,
                 old_value=html.escape(_format_value(field, old_value)),
                 new_value=html.escape(_format_value(field, new_value)),
             )
@@ -169,6 +176,8 @@ async def _apply_pending_profile(pending: PendingProfile) -> User:
         user.tg_username = pending.submitted_username
     if pending.is_new_profile:
         user.status = "confirmed"
+    if "family_name" in pending.changed_fields and pending.family_name:
+        user.family_name_required = False
     await user.save()
     return user
 

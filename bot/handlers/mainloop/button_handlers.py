@@ -135,6 +135,16 @@ async def open_rules(callback: CallbackQuery, button: Button, manager: DialogMan
     await manager.start(RulesStates.rules)
 
 
+@log_dialog_action("OPEN_GAMEPLAY_RULES")
+async def open_gameplay_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
+    await manager.start(RulesStates.gameplay)
+
+
+@log_dialog_action("OPEN_PROFILE_RULES")
+async def open_profile_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
+    await manager.start(RulesStates.profile_rules)
+
+
 @log_dialog_action("REROLL")
 async def on_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     user, game = await _get_user_and_game(m)

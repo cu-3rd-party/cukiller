@@ -143,7 +143,7 @@ async def on_final_confirmation(
         await User()
         .filter(is_in_game=False, status="confirmed")
         .filter(Q(exit_cooldown_until__isnull=True) | Q(exit_cooldown_until__lte=creation_date))
-        .only("tg_id", "name")
+        .only("tg_id", "tg_username", "given_name", "family_name")
         .all()
     )
 

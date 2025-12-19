@@ -27,6 +27,8 @@ _TEXTS: dict[str, str] = {
     "buttons.send_to_moderation": "Отправить на внутреннюю проверку",
     "buttons.profile": "Мое досье",
     "buttons.rules": "Правила",
+    "buttons.rules_gameplay": "Игровой процесс",
+    "buttons.rules_profile": "Оформление досье",
     "buttons.join_game": "Присоединиться к «Операции»",
     "buttons.leave_game": "Выйти из «Операции»",
     "buttons.get_target": "Получить цель",
@@ -40,10 +42,13 @@ _TEXTS: dict[str, str] = {
     "buttons.hug_yes": "Да",
     "buttons.hug_no": "Нет",
     "buttons.profile_photo": "Фото досье",
-    "buttons.profile_name": "Имя",
+    "buttons.profile_name": "Фамилия и имя",
+    "buttons.profile_family_name": "Фамилия",
+    "buttons.profile_given_name": "Имя",
     "buttons.profile_academic": "Обучение",
     "buttons.profile_description": "Описание",
     "buttons.cancel_text": "Отмена",
+    "buttons.continue": "Продолжить",
     # Main menu
     "main_menu.title": "Главное меню\n",
     "main_menu.rating": "Ваш текущий рейтинг: <b>{user_rating}</b>\n",
@@ -59,10 +64,12 @@ _TEXTS: dict[str, str] = {
     ),
     "main_menu.target_label": "Ваша цель: {target_name_trimmed}",
     "main_menu.target_info_title": "Информация о цели",
-    "main_menu.target_name": "\nИмя: <b>{target_name}</b>\n",
+    "main_menu.target_name": "\nФамилия и имя: <b>{target_name}</b>\n",
     "main_menu.target_advanced_info": "{target_advanced_info}",
     # Registration
-    "registration.ask_name": "Привет! Как тебя зовут?",
+    "registration.welcome": "Привет, новобранец! Изучи правила оформления профиля, укажи фамилию и имя и заполни свои данные",
+    "registration.ask_family_name": "Введи свою фамилию:",
+    "registration.ask_given_name": "Введи своё имя:",
     "registration.ask_type": "Выбери тип обучения:",
     "registration.ask_course": "Выбери курс:",
     "registration.ask_group": "Выбери свой поток:",
@@ -70,7 +77,8 @@ _TEXTS: dict[str, str] = {
     "registration.ask_about": "Расскажи о себе:",
     "registration.ask_hugging": 'Разрешено ли вас обнимать при "раскрытии"?',
     "registration.confirm_title": "Проверь данные и отправь на проверку:",
-    "registration.confirm.name": "<b>Имя:</b> {name}",
+    "registration.confirm.family_name": "<b>Фамилия:</b> {family_name}",
+    "registration.confirm.given_name": "<b>Имя:</b> {given_name}",
     "registration.confirm.type": "<b>Тип:</b> {course_type_label}",
     "registration.confirm.course": "<b>Курс:</b> {course_number}",
     "registration.confirm.group": "<b>Поток:</b> {group_name}",
@@ -262,7 +270,9 @@ _TEXTS: dict[str, str] = {
     "moderation.new_profile_body": (
         "<b>Новый профиль:</b>\n\n"
         "<b>ID заявки:</b> {pending_id}\n"
-        "<b>Имя:</b> {name}\n"
+        "<b>Фамилия:</b> {family_name}\n"
+        "<b>Имя:</b> {given_name}\n"
+        "<b>Полное имя:</b> {full_name}\n"
         "<b>Тип:</b> {type}\n"
         "<b>Курс:</b> {course_number}\n"
         "<b>Поток:</b> {group_name}\n"
@@ -287,7 +297,8 @@ _TEXTS: dict[str, str] = {
     "profile.change_arrow": "<b>{field_label}:</b> {old_value} -> {new_value}",
     "profile.draft_title": "<b>Черновик досье:</b>\n",
     "profile.draft_body": (
-        "Имя: <b>{name}</b>\n"
+        "Фамилия: <b>{family_name}</b>\n"
+        "Имя: <b>{given_name}</b>\n"
         "Тип: {type_value}\n"
         "Курс: {course_value}\n"
         "Поток: {group_value}\n"
@@ -298,7 +309,8 @@ _TEXTS: dict[str, str] = {
     "profile.ask_type": "Выбери тип обучения:",
     "profile.ask_course": "Выбери курс:",
     "profile.ask_group": "Выбери свой поток:",
-    "profile.ask_name": "Введите измененное имя:",
+    "profile.ask_family_name": "Введите изменённую фамилию:",
+    "profile.ask_given_name": "Введите изменённое имя:",
     "profile.ask_about": "Введите измененное описание:",
     "profile.ask_photo": "Отправь мне новое фото:",
     "profile.hugs_label": "Объятия при раскрытии: {hugs_allowed_label}",
@@ -308,7 +320,8 @@ _TEXTS: dict[str, str] = {
     "profile.no_user_found": "Не удалось найти пользователя",
     "profile.hugs_allowed_yes": "разрешены",
     "profile.hugs_allowed_no": "запрещены",
-    "profile.name_line": "\nИмя: <b>{name}</b>\n",
+    "profile.name_line": "\nФамилия: <b>{family_name}</b>\nИмя: <b>{given_name}</b>\n",
+    "profile.family_name_required": "Профиль временно заблокирован. Укажи фамилию и отправь досье на проверку — после подтверждения доступ восстановится",
     # Matchmaking participation dialog
     "participation.get_target": "Получить цель",
     # Rules
@@ -490,7 +503,9 @@ _TEXT_LISTS: dict[str, Iterable[str]] = {
 }
 
 PROFILE_FIELD_LABELS: dict[str, str] = {
-    "name": "Имя",
+    "family_name": "Фамилия",
+    "given_name": "Имя",
+    "name": "Фамилия и имя",
     "type": "Тип",
     "course_number": "Курс",
     "group_name": "Поток",

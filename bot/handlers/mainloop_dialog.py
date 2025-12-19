@@ -20,6 +20,8 @@ from bot.handlers.mainloop.button_handlers import (
     on_reroll,
     open_profile,
     open_rules,
+    open_gameplay_rules,
+    open_profile_rules,
 )
 from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
 from db.models import Game, User
@@ -88,6 +90,16 @@ main_menu_dialog = Dialog(
                 Const(texts.get("buttons.rules")),
                 id="rules",
                 on_click=open_rules,
+            ),
+            Button(
+                Const(texts.get("buttons.rules_gameplay")),
+                id="rules_gameplay",
+                on_click=open_gameplay_rules,
+            ),
+            Button(
+                Const(texts.get("buttons.rules_profile")),
+                id="rules_profile",
+                on_click=open_profile_rules,
             ),
             # Game-related buttons
             Button(
@@ -160,6 +172,20 @@ async def confirmed_start(
     if user and user.is_admin:
         await set_admin_commands(bot, message.chat.id)
     await dialog_manager.reset_stack()
+
+    if user.family_name_required:
+        await message.answer(texts.get("profile.family_name_required"))
+        from services.states.my_profile import MyProfile
+
+        await dialog_manager.start(
+            MyProfile.profile,
+            data={
+                "user_tg_id": message.from_user.id,
+            },
+            show_mode=ShowMode.AUTO,
+        )
+        return
+
     game = await Game().filter(end_date=None).first()
     await dialog_manager.start(
         MainLoop.title,

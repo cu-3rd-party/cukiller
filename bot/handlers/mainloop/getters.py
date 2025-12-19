@@ -1,6 +1,5 @@
 import logging
 import re
-from datetime import datetime
 from urllib.parse import urlparse
 
 from aiogram import Dispatcher
@@ -84,8 +83,9 @@ async def extract_target(killer_event: KillEvent | None):
 
     await killer_event.fetch_related("victim")
     victim: User = killer_event.victim
+    target_name = victim.full_name or texts.get("common.unknown")
     return (
-        victim.name,
+        target_name,
         victim.tg_id,
         MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=victim.photo))
         if victim.photo != "fastreg"

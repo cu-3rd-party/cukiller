@@ -77,16 +77,19 @@ async def notify_chat(
     killer_delta: int,
     victim_delta: int,
 ):
+    killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
+    victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
+
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
             "kills.chat_notified",
             killer=killer.mention_html(),
             victim=victim.mention_html(),
-            killer_name=trim_name(killer.name, 25),
+            killer_name=trim_name(killer_display, 25),
             killer_rating=killer_player.rating,
             killer_delta=f"{'+' if killer_delta >= 0 else '-'}{abs(killer_delta)}",
-            victim_name=trim_name(victim.name, 25),
+            victim_name=trim_name(victim_display, 25),
             victim_rating=victim_player.rating,
             victim_delta=f"{'+' if victim_delta >= 0 else '-'}{abs(victim_delta)}",
         ),

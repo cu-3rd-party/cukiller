@@ -58,6 +58,8 @@ async def notify_chat(
     victim_delta: float,
 ):
     reason = random.choice(texts.get_list("reroll.fail_reasons"))
+    killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
+    victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
@@ -65,10 +67,10 @@ async def notify_chat(
             killer=killer.mention_html(),
             victim=victim.mention_html(),
             reason=reason,
-            killer_name=trim_name(killer.name, 25),
+            killer_name=trim_name(killer_display, 25),
             killer_rating=killer_player.rating,
             killer_delta=f"{'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))}",
-            victim_name=trim_name(victim.name, 25),
+            victim_name=trim_name(victim_display, 25),
             victim_rating=victim_player.rating,
             victim_delta=f"{'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))}",
         ),

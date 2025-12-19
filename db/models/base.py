@@ -14,8 +14,8 @@ class TimestampedModel(models.Model):
 
 
 class ProfileBase(models.Model):
-    # имя фамилия вместе
-    name = fields.CharField(max_length=511, null=True)
+    given_name = fields.CharField(max_length=255, null=True)
+    family_name = fields.CharField(max_length=255, null=True)
     # тип: студент/сотрудник/абитуриент
     type = fields.CharField(max_length=32, null=True)
     # номер курса
@@ -31,3 +31,8 @@ class ProfileBase(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def full_name(self) -> str:
+        parts = [p.strip() for p in (self.family_name, self.given_name) if p]
+        return " ".join(parts).strip()

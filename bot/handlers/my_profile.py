@@ -27,7 +27,7 @@ from services import texts
 from services.admin_chat import AdminChatService
 from services.logging import log_dialog_action
 from services.states.my_profile import EditProfile, MyProfile
-from services.strings import SafeStringConfig, is_safe
+from services.strings import SafeStringConfig, is_safe, normalize_name_component
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,13 @@ def _collect_changes(dialog_data: dict, user: User) -> tuple[dict, list[str]]:
     changes: dict[str, object] = {}
     changed_fields: list[str] = []
 
-    if "name" in dialog_data and dialog_data.get("name") != user.name:
-        changes["name"] = dialog_data.get("name")
-        changed_fields.append("name")
+    if "family_name" in dialog_data and dialog_data.get("family_name") != user.family_name:
+        changes["family_name"] = dialog_data.get("family_name")
+        changed_fields.append("family_name")
+
+    if "given_name" in dialog_data and dialog_data.get("given_name") != user.given_name:
+        changes["given_name"] = dialog_data.get("given_name")
+        changed_fields.append("given_name")
 
     if dialog_data.get("academics_edited"):
         if "course_type" in dialog_data and dialog_data.get("course_type") != user.type:
@@ -104,7 +108,8 @@ def _build_changes_preview(user: User, changes: dict, changed_fields: list[str])
 
 def _build_profile_preview(user: User, changes: dict) -> str:
     """Как профиль будет выглядеть после сохранения изменений."""
-    name = html.escape(changes.get("name", user.name))
+    family_name = html.escape(changes.get("family_name", user.family_name) or "-")
+    given_name = html.escape(changes.get("given_name", user.given_name) or "-")
     type_value = html.escape(_format_value("type", changes.get("type", user.type)))
     course_value = html.escape(_format_value("course_number", changes.get("course_number", user.course_number)))
     group_value = html.escape(_format_value("group_name", changes.get("group_name", user.group_name)))
@@ -118,7 +123,8 @@ def _build_profile_preview(user: User, changes: dict) -> str:
 
     return texts.get("profile.draft_title") + texts.render(
         "profile.draft_body",
-        name=name,
+        family_name=family_name,
+        given_name=given_name,
         type_value=type_value,
         course_value=course_value,
         group_value=group_value,
@@ -130,7 +136,9 @@ def _build_profile_preview(user: User, changes: dict) -> str:
 async def get_profile_info(dialog_manager: DialogManager, **kwargs):
     user = await get_user(dialog_manager)
     return {
-        "name": user.name,
+        "family_name": user.family_name or "-",
+        "given_name": user.given_name or "-",
+        "full_name": user.full_name or "",
         "photo": MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)),
         "advanced_info": get_advanced_info(user),
         "profile_link": user.tg_id and f"tg://user?id={user.tg_id}",
@@ -176,7 +184,7 @@ async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manage
 router.include_router(
     Dialog(
         Window(
-            Format(texts.get("profile.name_line"), when="name"),
+            Format(texts.get("profile.name_line")),
             Format("{advanced_info}", when="advanced_info"),
             DynamicMedia("photo", when="photo"),
             Button(
@@ -220,11 +228,25 @@ async def on_group_selected(c: CallbackQuery, _, manager: DialogManager, group: 
     await manager.switch_to(EditProfile.confirm)
 
 
-@log_dialog_action("EDIT_NAME")
-async def on_name(message: Message, message_input: MessageInput, manager: DialogManager):
+@log_dialog_action("EDIT_FAMILY_NAME")
+async def on_family_name(message: Message, message_input: MessageInput, manager: DialogManager):
     if not is_safe(message.text):
         return
-    manager.dialog_data["name"] = message.text
+    value = normalize_name_component(message.text)
+    if not value:
+        return
+    manager.dialog_data["family_name"] = value
+    await manager.switch_to(EditProfile.confirm)
+
+
+@log_dialog_action("EDIT_GIVEN_NAME")
+async def on_given_name(message: Message, message_input: MessageInput, manager: DialogManager):
+    if not is_safe(message.text):
+        return
+    value = normalize_name_component(message.text)
+    if not value:
+        return
+    manager.dialog_data["given_name"] = value
     await manager.switch_to(EditProfile.confirm)
 
 
@@ -316,9 +338,14 @@ router.include_router(
         Window(
             Const(texts.get("profile.edit_prompt")),
             Button(
-                Const(texts.get("buttons.profile_name")),
-                id="name",
-                on_click=lambda c, b, m: m.switch_to(EditProfile.name),
+                Const(texts.get("buttons.profile_family_name")),
+                id="family_name",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.family_name),
+            ),
+            Button(
+                Const(texts.get("buttons.profile_given_name")),
+                id="given_name",
+                on_click=lambda c, b, m: m.switch_to(EditProfile.given_name),
             ),
             Button(
                 Const(texts.get("buttons.profile_academic")),
@@ -358,10 +385,16 @@ router.include_router(
             state=EditProfile.group,
         ),
         Window(
-            Const(texts.get("profile.ask_name")),
-            MessageInput(on_name, content_types=ContentType.TEXT),
+            Const(texts.get("profile.ask_family_name")),
+            MessageInput(on_family_name, content_types=ContentType.TEXT),
             Cancel(Const(texts.get("buttons.back"))),
-            state=EditProfile.name,
+            state=EditProfile.family_name,
+        ),
+        Window(
+            Const(texts.get("profile.ask_given_name")),
+            MessageInput(on_given_name, content_types=ContentType.TEXT),
+            Cancel(Const(texts.get("buttons.back"))),
+            state=EditProfile.given_name,
         ),
         Window(
             Const(texts.get("profile.ask_about")),

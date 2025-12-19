@@ -11,6 +11,7 @@ from .constants import PLAYER_STATUS
 class User(TimestampedModel, ProfileBase):
     tg_id = fields.BigIntField(unique=True, index=True)
     tg_username = fields.CharField(max_length=32, null=True, unique=True)
+    family_name_required = fields.BooleanField(default=False)
 
     is_in_game = fields.BooleanField(default=False, index=True)
     is_admin = fields.BooleanField(default=False, index=True)
@@ -39,4 +40,5 @@ class User(TimestampedModel, ProfileBase):
         return f"tg://user?id={self.tg_id}"
 
     def mention_html(self, max_len=25) -> str:
-        return f'<a href="{self.profile_link()}">{trim_name(html.escape(self.name), max_len)}</a>'
+        display_name = self.full_name or self.tg_username or f"user:{self.tg_id}"
+        return f'<a href="{self.profile_link()}">{trim_name(html.escape(display_name), max_len)}</a>'
