@@ -13,6 +13,7 @@ from aiogram_dialog.widgets.text import Const
 from bot.handlers import mainloop_dialog
 from db.models import Chat, KillEvent, Player, User
 from services import settings
+from services import texts
 from services.ban import modify_rating
 from services.kills_confirmation import add_back_to_queues
 from services.states import MainLoop
@@ -27,9 +28,10 @@ router = Router()
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: float):
     await bot.send_message(
         chat_id=user.tg_id,
-        text=(
-            f"Убийство отменено!\n\n"
-            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(round(delta))}</b> очков рейтинга"
+        text=texts.render(
+            "reroll.player_notified",
+            score_direction=texts.get("score.lost") if delta < 0 else texts.get("score.gained"),
+            points=abs(round(delta)),
         ),
     )
 
@@ -46,14 +48,6 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: flo
     )
 
 
-FAILED_MESSAGE = [
-    "отказался убивать",
-    "не осилил убийство",
-    "признал, что имеет недостаточно квалификации, чтоб убить",
-    "сдался убивать",
-]
-
-
 async def notify_chat(
     bot: Bot,
     killer: User,
@@ -63,12 +57,22 @@ async def notify_chat(
     killer_delta: float,
     victim_delta: float,
 ):
+    reason = random.choice(texts.get_list("reroll.fail_reasons"))
+    killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
+    victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
-        text=(
-            f"<b>{killer.mention_html()}</b> {random.choice(FAILED_MESSAGE)} <b>{victim.mention_html()}</b>\n\n"
-            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))})\n"
-            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))})\n"
+        text=texts.render(
+            "reroll.chat_notified",
+            killer=killer.mention_html(),
+            victim=victim.mention_html(),
+            reason=reason,
+            killer_name=trim_name(killer_display, 25),
+            killer_rating=killer_player.rating,
+            killer_delta=f"{'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))}",
+            victim_name=trim_name(victim_display, 25),
+            victim_rating=victim_player.rating,
+            victim_delta=f"{'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))}",
         ),
     )
 
@@ -125,9 +129,9 @@ async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
 router.include_router(
     Dialog(
         Window(
-            Const("Вы уверены что хотите заменить цель?"),
-            Button(Const("Да"), id="confirm", on_click=on_confirm_reroll),
-            Cancel(Const("Нет, назад")),
+            Const(texts.get("reroll.prompt")),
+            Button(Const(texts.get("reroll.confirm")), id="confirm", on_click=on_confirm_reroll),
+            Cancel(Const(texts.get("reroll.cancel"))),
             state=Reroll.confirm,
         )
     )

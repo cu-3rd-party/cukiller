@@ -7,7 +7,7 @@ from tortoise.expressions import Q
 
 from db.models import User
 from db.models import Game, Player, KillEvent
-from services import settings
+from services import settings, texts
 from services.admin_chat import AdminChatService
 from services.matchmaking import MatchmakingService
 
@@ -112,9 +112,10 @@ async def ban(user: User, reason: str) -> str:
 
     await settings.bot.send_message(
         user.tg_id,
-        text="Вы были забанены. Не пытайтесь продолжить взаимодействие с ботом, это бесполезно. Если считаете что это ошибка, то свяжитесь с организатором",
+        text=texts.get("ban.user_notification"),
     )
     await AdminChatService(settings.bot).send_message(
-        key="discussion", text=f'Игрок {user.mention_html()} был забанен по причине "{reason}"'
+        key="discussion",
+        text=texts.render("ban.admin_notification", user=user.mention_html(), reason=reason),
     )
-    return f"Пользователь забанен, удалено килл-ивентов: {removed_events}"
+    return texts.render("ban.result", removed_events=removed_events)

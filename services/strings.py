@@ -60,6 +60,20 @@ def trim_name(string: str, max_len: int) -> str:
     return string
 
 
+def build_full_name(given_name: str | None, family_name: str | None, fallback: str | None = "") -> str:
+    parts = [p.strip() for p in (family_name, given_name) if p and p.strip()]
+    if parts:
+        return " ".join(parts)
+    return fallback or ""
+
+
+def normalize_name_component(value: str | None) -> str:
+    if not value:
+        return ""
+    value = value.strip()
+    return value[:1].upper() + value[1:] if value else ""
+
+
 def format_timedelta(delta: timedelta) -> str:
     """Format timedelta into a human-readable string."""
     total_seconds = int(delta.total_seconds())

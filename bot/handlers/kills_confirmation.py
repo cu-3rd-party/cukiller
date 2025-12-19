@@ -19,6 +19,7 @@ from services.ban import modify_rating
 from services.kills_confirmation import add_back_to_queues
 from services.states import MainLoop
 from services.strings import trim_name
+from services import texts
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -47,9 +48,10 @@ async def send_double_confirm_dialog(manager: DialogManager, user: User, state):
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
     await bot.send_message(
         chat_id=user.tg_id,
-        text=(
-            f"Убийство было обоюдно подтверждено!\n\n"
-            f"Вы {'потеряли' if delta < 0 else 'получили'} <b>{abs(delta)}</b> очков рейтинга"
+        text=texts.render(
+            "kills.player_notified",
+            score_direction=texts.get("score.lost") if delta < 0 else texts.get("score.gained"),
+            points=abs(delta),
         ),
     )
 
@@ -75,12 +77,21 @@ async def notify_chat(
     killer_delta: int,
     victim_delta: int,
 ):
+    killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
+    victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
+
     await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
-        text=(
-            f"<b>{killer.mention_html()}</b> убил <b>{victim.mention_html()}</b>\n\n"
-            f"Новый MMR {trim_name(killer.name, 25)}: {killer_player.rating}({'+' if killer_delta >= 0 else '-'}{abs(killer_delta)})\n"
-            f"Новый MMR {trim_name(victim.name, 25)}: {victim_player.rating}({'+' if victim_delta >= 0 else '-'}{abs(victim_delta)})\n"
+        text=texts.render(
+            "kills.chat_notified",
+            killer=killer.mention_html(),
+            victim=victim.mention_html(),
+            killer_name=trim_name(killer_display, 25),
+            killer_rating=killer_player.rating,
+            killer_delta=f"{'+' if killer_delta >= 0 else '-'}{abs(killer_delta)}",
+            victim_name=trim_name(victim_display, 25),
+            victim_rating=victim_player.rating,
+            victim_delta=f"{'+' if victim_delta >= 0 else '-'}{abs(victim_delta)}",
         ),
     )
 
@@ -207,24 +218,24 @@ async def on_killer_deny(callback: CallbackQuery, button: Button, manager: Dialo
 router.include_router(
     Dialog(
         Window(
-            Const("Вы уверены что хотите подтвердить, что вас убили?"),
+            Const(texts.get("kills.victim_confirm_prompt")),
             Button(
-                Const("Да, меня убили"),
+                Const(texts.get("kills.victim_confirm_button")),
                 id="confirm",
                 on_click=on_victim_confirm,
             ),
-            Cancel(Const("Назад")),
+            Cancel(Const(texts.get("buttons.back"))),
             state=ConfirmKillVictim.confirm,
         ),
         Window(
-            Const("Ваш убийца утверждает, что он вас убил. Это правда?"),
+            Const(texts.get("kills.victim_double_confirm_prompt")),
             Button(
-                Const("Да, меня убили"),
+                Const(texts.get("kills.victim_confirm_button")),
                 id="confirm",
                 on_click=on_victim_confirm,
             ),
             Button(
-                Const("Наглая ложь, меня не убивали"),
+                Const(texts.get("kills.victim_deny_button")),
                 id="deny",
                 on_click=on_victim_deny,
             ),
@@ -236,16 +247,16 @@ router.include_router(
 router.include_router(
     Dialog(
         Window(
-            Const("Вы уверены что вы убили цель?"),
-            Button(Const("Да, я убил"), id="confirm", on_click=on_killer_confirm),
-            Cancel(Const("Назад")),
+            Const(texts.get("kills.killer_confirm_prompt")),
+            Button(Const(texts.get("kills.killer_confirm_button")), id="confirm", on_click=on_killer_confirm),
+            Cancel(Const(texts.get("buttons.back"))),
             state=ConfirmKillKiller.confirm,
         ),
         Window(
-            Const("Ваша жертва утверждает, что вы ее убили. Это правда?"),
-            Button(Const("Да, я убил"), id="confirm", on_click=on_killer_confirm),
+            Const(texts.get("kills.killer_double_confirm_prompt")),
+            Button(Const(texts.get("kills.killer_confirm_button")), id="confirm", on_click=on_killer_confirm),
             Button(
-                Const("Нет, я ее не убивал"),
+                Const(texts.get("kills.killer_deny_button")),
                 id="deny",
                 on_click=on_killer_deny,
             ),

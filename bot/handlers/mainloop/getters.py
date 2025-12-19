@@ -1,6 +1,5 @@
 import logging
 import re
-from datetime import datetime
 from urllib.parse import urlparse
 
 from aiogram import Dispatcher
@@ -10,13 +9,15 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
 from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, KillEvent, Player, User
-from services import settings
+from services import settings, texts
 from services.logging import log_getter
 from services.matchmaking import MatchmakingService
 from services.strings import trim_name
 from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
+
+FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
 def _safe_url(value: str | None, allow_tg: bool = False) -> str | None:
@@ -60,27 +61,31 @@ async def get_pending_events(game: Game, user: User):
 
 
 def get_advanced_info(user: User):
-    ret = [f"Тип: {COURSE_TYPES[user.type]}"]
+    ret = [f"{FIELD_LABELS['type']}: {COURSE_TYPES[user.type]}"]
     if user.course_number:
-        ret.append(f"Курс: {user.course_number}")
+        ret.append(f"{FIELD_LABELS['course_number']}: {user.course_number}")
     if user.group_name:
-        ret.append(f"Поток: {user.group_name}")
+        ret.append(f"{FIELD_LABELS['group_name']}: {user.group_name}")
     if user.about_user:
-        ret.append(f"О себе: {user.about_user}")
+        ret.append(f"{FIELD_LABELS['about_user']}: {user.about_user}")
     if user.allow_hugging_on_kill is not None:
-        ret.append(f"Объятия при убийстве: {'разрешены' if user.allow_hugging_on_kill else 'запрещены'}")
+        ret.append(
+            f"{FIELD_LABELS['allow_hugging_on_kill']}: "
+            f"{texts.get('profile.hugs_allowed_yes') if user.allow_hugging_on_kill else texts.get('profile.hugs_allowed_no')}"
+        )
     return "\n".join(ret)
 
 
 async def extract_target(killer_event: KillEvent | None):
     """Return target info."""
     if not killer_event:
-        return "Неизвестно", None, None, None
+        return texts.get("common.unknown"), None, None, None
 
     await killer_event.fetch_related("victim")
     victim: User = killer_event.victim
+    target_name = victim.full_name or texts.get("common.unknown")
     return (
-        victim.name,
+        target_name,
         victim.tg_id,
         MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=victim.photo))
         if victim.photo != "fastreg"

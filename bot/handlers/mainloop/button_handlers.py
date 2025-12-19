@@ -11,6 +11,7 @@ from bot.handlers.kills_confirmation import (
     ConfirmKillVictim,
 )
 from db.models import Game, KillEvent, Player, User
+from services import texts
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
 from services.states.my_profile import MyProfile
@@ -92,7 +93,7 @@ async def on_get_target(callback: CallbackQuery, button: Button, manager: Dialog
     }
 
     await MatchmakingService().add_player_to_queue(user.tg_id, data, "killer")
-    await callback.answer("Вы были поставлены в очередь, ожидайте...")
+    await callback.answer(texts.get("common.queue_joined"))
 
 
 @log_dialog_action("CONFIRM_PARTICIPATION")
@@ -100,7 +101,7 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
     user, game = await _get_user_and_game(manager)
     if is_exit_cooldown_active(user):
         await callback.answer(
-            f"Вы недавно вышли из игры. Повторное участие будет доступно после {format_exit_cooldown(user)}",
+            texts.render("common.exit_cooldown", until=format_exit_cooldown(user)),
             show_alert=True,
         )
         return
@@ -132,6 +133,16 @@ async def open_profile(callback: CallbackQuery, button: Button, manager: DialogM
 @log_dialog_action("OPEN_RULES")
 async def open_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
     await manager.start(RulesStates.rules)
+
+
+@log_dialog_action("OPEN_GAMEPLAY_RULES")
+async def open_gameplay_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
+    await manager.start(RulesStates.gameplay)
+
+
+@log_dialog_action("OPEN_PROFILE_RULES")
+async def open_profile_rules(callback: CallbackQuery, button: Button, manager: DialogManager):
+    await manager.start(RulesStates.profile_rules)
 
 
 @log_dialog_action("REROLL")

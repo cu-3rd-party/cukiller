@@ -7,7 +7,7 @@ from aiohttp import web
 
 from bot.handlers import mainloop_dialog
 from db.models import Game, KillEvent, User
-from services import settings
+from services import settings, texts
 from services.admin_chat import AdminChatService
 from services.states import MainLoop
 
@@ -69,12 +69,18 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
 
     await request.app["admin_chat"].send_message(
         key="logs",
-        text=f"Match found: {killer_user.profile_link()} vs {victim_user.profile_link()} (quality: {match_quality:.2f}), created KillEvent id={ke.id}",
+        text=texts.render(
+            "matchmaking.admin_log",
+            killer=killer_user.profile_link(),
+            victim=victim_user.profile_link(),
+            quality=match_quality,
+            kill_event_id=ke.id,
+        ),
     )
 
     await bot.send_message(
         chat_id=killer_user.tg_id,
-        text="Вам была выдана цель, посмотрите",
+        text=texts.get("matchmaking.killer_message"),
         parse_mode="HTML",
     )
 

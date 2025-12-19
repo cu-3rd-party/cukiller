@@ -7,7 +7,8 @@ class MyProfile(StatesGroup):
 
 class EditProfile(StatesGroup):
     main = State()
-    name = State()
+    family_name = State()
+    given_name = State()
     type = State()
     course = State()
     group = State()

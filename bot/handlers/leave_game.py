@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+import random
 
 from aiogram import Router
 from aiogram.types import CallbackQuery
@@ -10,6 +11,7 @@ from aiogram_dialog.widgets.text import Const
 from bot.handlers import mainloop_dialog
 from db.models import Game, KillEvent, Player, User
 from services import settings
+from services import texts
 from services.ban import modify_rating
 from services.logging import log_dialog_action
 from services.matchmaking import MatchmakingService
@@ -98,9 +100,10 @@ async def _apply_leave_penalty(user: User, game: Game | None, now: datetime) -> 
 
 async def _notify_killer(bot, killer: User):
     try:
+        killer_notification = random.choice(texts.get_list("leave.killer_notification"))
         await bot.send_message(
             killer.tg_id,
-            "Убийство без жертв, ваша цель вышла из игры. Убийство засчитано, ищем новые цели...",
+            killer_notification,
         )
     except Exception as exc:
         logger.warning("Не можем оповестить клиллера %s о том что жертва вышла из игры: %s", killer.id, exc)
@@ -123,9 +126,13 @@ async def on_confirm_leave(callback: CallbackQuery, button: Button, manager: Dia
 
     await MatchmakingService().reset_queues()
 
-    penalty_text = f"Рейтинг изменился на {penalty:+}" if penalty else "Рейтинг не изменился"
+    penalty_text = (
+        texts.render("leave.penalty_changed", penalty=f"{penalty:+}")
+        if penalty
+        else texts.get("leave.penalty_unchanged")
+    )
     await callback.answer(
-        f"Вы вышли из игры и стали NPC с богатым прошлым. {penalty_text}\nВернуться можно после недели ожидания",
+        texts.render("leave.result", penalty_text=penalty_text),
         show_alert=True,
     )
 
@@ -139,12 +146,9 @@ async def on_confirm_leave(callback: CallbackQuery, button: Button, manager: Dia
 router.include_router(
     Dialog(
         Window(
-            Const(
-                "Вы уверены что хотите выйти?\n"
-                "Вы потеряете рейтинг как будто вас убили и не сможете вернуться в игру еще 7 дней"
-            ),
-            Button(Const("Подтвердить"), id="confirm", on_click=on_confirm_leave),
-            Cancel(Const("Отменить")),
+            Const(texts.get("leave.prompt")),
+            Button(Const(texts.get("leave.confirm")), id="confirm", on_click=on_confirm_leave),
+            Cancel(Const(texts.get("leave.cancel"))),
             state=LeaveGame.confirm,
         )
     )

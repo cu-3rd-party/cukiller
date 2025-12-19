@@ -8,6 +8,7 @@ from aiogram.types import Message, TelegramObject
 
 from db.models import User
 from services import settings
+from services.strings import normalize_name_component
 
 logger = logging.getLogger(__name__)
 
@@ -58,15 +59,11 @@ class RegisterUserMiddleware(BaseMiddleware):
 
             user_data = {
                 "tg_username": user.username,
-                "name": " ".join(
-                    (
-                        user.first_name if user.first_name else "",
-                        user.last_name if user.last_name else "",
-                    )
-                ).strip(),
+                "given_name": normalize_name_component(user.first_name),
+                "family_name": normalize_name_component(user.last_name),
             }
 
-            if db_user.tg_username != user.username or db_user.name != user_data["name"]:
+            if any(getattr(db_user, field) != value for field, value in user_data.items()):
                 for field, value in user_data.items():
                     setattr(db_user, field, value)
                 await db_user.save()
@@ -80,12 +77,8 @@ class RegisterUserMiddleware(BaseMiddleware):
         else:
             user_data = {
                 "tg_username": user.username,
-                "name": " ".join(
-                    (
-                        user.first_name if user.first_name else "",
-                        user.last_name if user.last_name else "",
-                    )
-                ).strip(),
+                "given_name": normalize_name_component(user.first_name),
+                "family_name": normalize_name_component(user.last_name),
             }
 
             db_user = await User().create(tg_id=user.id, **user_data)

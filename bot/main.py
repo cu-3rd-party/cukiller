@@ -31,6 +31,7 @@ from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
+from services.kill_timeout import kill_timeout_monitor
 from services.matchmaking import MatchmakingService
 
 logger = logging.getLogger(__name__)
@@ -114,9 +115,11 @@ async def on_startup(bot: Bot) -> None:
     await start_web_server(bot)
     await MatchmakingService().healthcheck()
     await MatchmakingService().reset_queues()
+    await kill_timeout_monitor.start(bot)
 
 
 async def on_shutdown(bot: Bot) -> None:
+    await kill_timeout_monitor.stop()
     await revoke_discussion_invite_link(bot)
     await stop_web_server()
     await metrics_updater.stop()

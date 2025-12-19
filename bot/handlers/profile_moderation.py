@@ -25,7 +25,7 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from bot.handlers import mainloop_dialog
 from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, PendingProfile, User
-from services import settings
+from services import settings, texts
 from services.states import MainLoop, ProfileModeration
 
 router = Router(name="profile_moderation")
@@ -35,15 +35,7 @@ _DENY_PREFIX = "deny_pending:"
 _TAG = "profile_confirm"
 
 
-FIELD_LABELS = {
-    "name": "Имя",
-    "type": "Тип",
-    "course_number": "Курс",
-    "group_name": "Поток",
-    "about_user": "О себе",
-    "photo": "Фото",
-    "allow_hugging_on_kill": "Объятия при убийстве",
-}
+FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
 def _moderator_name(tg_user) -> str:
@@ -106,42 +98,55 @@ def _format_value(field: str, value) -> str:
     if field == "type":
         return COURSE_TYPES.get(value, value)
     if field == "allow_hugging_on_kill":
-        return "разрешены" if value else "запрещены"
+        return texts.get("profile.hugs_allowed_yes") if value else texts.get("profile.hugs_allowed_no")
     return str(value)
 
 
 def _build_new_profile_body(pending: PendingProfile) -> str:
-    return (
-        "<b>Новый профиль:</b>\n\n"
-        f"<b>ID заявки:</b> {pending.id}\n"
-        f"<b>Имя:</b> {html.escape(_format_value('name', pending.name))}\n"
-        f"<b>Тип:</b> {html.escape(_format_value('type', pending.type))}\n"
-        f"<b>Курс:</b> {html.escape(_format_value('course_number', pending.course_number))}\n"
-        f"<b>Поток:</b> {html.escape(_format_value('group_name', pending.group_name))}\n"
-        f"<b>О себе:</b> {html.escape(_format_value('about_user', pending.about_user))}\n"
-        f"<b>Объятия при убийстве:</b> {html.escape(_format_value('allow_hugging_on_kill', pending.allow_hugging_on_kill))}\n"
-        f"<b>Username:</b> @{pending.submitted_username or 'не указан'}\n"
-        f"<b>ID:</b> {pending.user.tg_id}"
+    return texts.render(
+        "moderation.new_profile_body",
+        pending_id=pending.id,
+        family_name=html.escape(_format_value("family_name", pending.family_name)),
+        given_name=html.escape(_format_value("given_name", pending.given_name)),
+        full_name=html.escape(_format_value("name", pending.full_name)),
+        type=html.escape(_format_value("type", pending.type)),
+        course_number=html.escape(_format_value("course_number", pending.course_number)),
+        group_name=html.escape(_format_value("group_name", pending.group_name)),
+        about_user=html.escape(_format_value("about_user", pending.about_user)),
+        allow_hugging_on_kill=html.escape(_format_value("allow_hugging_on_kill", pending.allow_hugging_on_kill)),
+        submitted_username=pending.submitted_username or texts.get("common.username_unknown"),
+        user_id=pending.user.tg_id,
     )
 
 
 def _build_changes_body(pending: PendingProfile, current_user: User) -> str:
     lines = [
-        "<b>Изменение профиля:</b>",
-        f"<b>ID заявки:</b> {pending.id}",
-        f"<b>ID:</b> {pending.user.tg_id}",
-        f"<b>Username:</b> @{pending.submitted_username or 'не указан'}",
+        texts.get("moderation.change_header"),
+        texts.render("moderation.change_meta_id", pending_id=pending.id),
+        texts.render("moderation.change_meta_user_id", user_id=pending.user.tg_id),
+        texts.render(
+            "moderation.change_meta_username",
+            username=pending.submitted_username or texts.get("common.username_unknown"),
+        ),
     ]
     for field in pending.changed_fields:
         if field == "photo":
-            lines.append(f"<b>{FIELD_LABELS['photo']}:</b> обновлено")
+            lines.append(texts.render("moderation.change_photo", field_label=FIELD_LABELS["photo"]))
             continue
-        old_value = getattr(current_user, field)
-        new_value = getattr(pending, field)
+        field_label = FIELD_LABELS.get(field, FIELD_LABELS.get("name", "Фамилия и имя"))
+        if field == "name":
+            old_value = current_user.full_name
+            new_value = pending.full_name
+        else:
+            old_value = getattr(current_user, field, None)
+            new_value = getattr(pending, field, None)
         lines.append(
-            f"<b>{FIELD_LABELS[field]}:</b>\n"
-            f"— было: {html.escape(_format_value(field, old_value))}\n"
-            f"— стало: {html.escape(_format_value(field, new_value))}"
+            texts.render(
+                "moderation.change_line",
+                field_label=field_label,
+                old_value=html.escape(_format_value(field, old_value)),
+                new_value=html.escape(_format_value(field, new_value)),
+            )
         )
     return "\n\n".join(lines)
 
@@ -154,14 +159,12 @@ def _build_admin_body(pending: PendingProfile, user: User) -> str:
 
 def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
     if pending.is_new_profile:
-        base = "К сожалению, нам пришлось отклонить вашу заявку"
         if reason:
-            return f"{base}, причина: {html.escape(reason)}"
-        return base + "."
-    base = "Ваши изменения не соответствуют нашим правилам"
+            return texts.render("moderation.user_denied_new_reason", reason=html.escape(reason))
+        return texts.get("moderation.user_denied_new")
     if reason:
-        return f"{base} по причине {html.escape(reason)}."
-    return base + "."
+        return texts.render("moderation.user_denied_update_reason", reason=html.escape(reason))
+    return texts.get("moderation.user_denied_update")
 
 
 async def _apply_pending_profile(pending: PendingProfile) -> User:
@@ -173,6 +176,8 @@ async def _apply_pending_profile(pending: PendingProfile) -> User:
         user.tg_username = pending.submitted_username
     if pending.is_new_profile:
         user.status = "confirmed"
+    if "family_name" in pending.changed_fields and pending.family_name:
+        user.family_name_required = False
     await user.save()
     return user
 
@@ -239,7 +244,7 @@ async def _process_rejection(
     state: FSMContext | None = None,
 ) -> None:
     if pending.status != "rejected":
-        await message.answer("Эта заявка уже обработана")
+        await message.answer(texts.get("moderation.request_already_processed"))
         if state:
             await state.clear()
         return
@@ -248,7 +253,7 @@ async def _process_rejection(
     updated_at_local = updated_at if updated_at.tzinfo else updated_at.replace(tzinfo=settings.timezone)
     now_local = datetime.now(updated_at_local.tzinfo)
     if now_local - updated_at_local > timedelta(minutes=10):
-        await message.answer("Время на указание причины истекло")
+        await message.answer(texts.get("moderation.reason_timeout"))
         if state:
             await state.clear()
         return
@@ -259,9 +264,15 @@ async def _process_rejection(
     await pending.save()
 
     body = _build_admin_body(pending, pending.user)
-    status_line = (
-        f"❌ Отклонено {_moderator_name(message.from_user)} "
-        f"{'(без причины)' if reason is None else f'по причине {html.escape(reason)}'}"
+    reason_part = (
+        texts.get("moderation.ask_reason_placeholder")
+        if reason is None
+        else texts.render("moderation.ask_reason_prefix", reason=html.escape(reason))
+    )
+    status_line = texts.render(
+        "moderation.status_denied",
+        moderator=_moderator_name(message.from_user),
+        reason_part=reason_part,
     )
     await _edit_admin_message(
         bot,
@@ -271,7 +282,7 @@ async def _process_rejection(
     )
 
     await _notify_user_rejection(bot, pending, reason)
-    await message.answer("Причина сохранена")
+    await message.answer(texts.get("moderation.reason_saved"))
 
     if state:
         await state.clear()
@@ -280,7 +291,7 @@ async def _process_rejection(
 @router.callback_query(F.data.startswith("noop"))
 async def _disabled_keyboard_callback(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer(
-        "Никаких действий не требуется, это выключенная кнопка, не видно?",
+        texts.get("moderation.noop"),
         show_alert=True,
     )
 
@@ -293,7 +304,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
     user_id = callback.from_user.id
     user_obj = await User.get_or_none(tg_id=user_id)
     if not user_obj or not user_obj.is_admin:
-        await callback.answer("У вас нет прав для модерации профилей.", show_alert=True)
+        await callback.answer(texts.get("moderation.no_rights"), show_alert=True)
         return True
     return False
 
@@ -310,15 +321,15 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
     await state.clear()
     pending_id = _extract_pending_id(callback.data, _CONFIRM_PREFIX)
     if pending_id is None:
-        await callback.answer("Invalid payload", show_alert=True)
+        await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
     pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if pending is None:
-        await callback.answer("Запрос не найден", show_alert=True)
+        await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
     if pending.status != "pending":
-        await callback.answer("Заявка уже обработана", show_alert=True)
+        await callback.answer(texts.get("moderation.request_done"), show_alert=True)
         return
 
     body = _build_admin_body(pending, pending.user)
@@ -334,14 +345,19 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
         bot,
         pending,
         body=body,
-        status_line=f"✅ Подтверждено {_moderator_name(callback.from_user)}",
+        status_line=texts.render(
+            "moderation.status_confirmed",
+            moderator=_moderator_name(callback.from_user),
+        ),
         message=callback.message,
     )
 
-    await callback.answer("Profile confirmed", show_alert=False)
+    await callback.answer(texts.get("moderation.confirmed_alert"), show_alert=False)
 
     notify_text = (
-        "Ваш профиль подтвержден, скорее изучайте возможности бота" if pending.is_new_profile else "Изменения приняты"
+        texts.get("moderation.confirm_notify_new")
+        if pending.is_new_profile
+        else texts.get("moderation.confirm_notify_update")
     )
 
     try:
@@ -363,7 +379,13 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
             )
     except TelegramForbiddenError as e:
         if callback.message:
-            await callback.message.reply(f"Не удалось отправить уведомление пользователю {approved_user.tg_id}: {e}")
+            await callback.message.reply(
+                texts.render(
+                    "moderation.cannot_notify_user",
+                    user_id=approved_user.tg_id,
+                    error=e,
+                )
+            )
 
 
 @router.callback_query(F.data.startswith(_DENY_PREFIX))
@@ -377,15 +399,15 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         return
     pending_id = _extract_pending_id(callback.data, _DENY_PREFIX)
     if pending_id is None:
-        await callback.answer("Invalid payload", show_alert=True)
+        await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
     pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if pending is None:
-        await callback.answer("Запрос не найден", show_alert=True)
+        await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
     if pending.status != "pending":
-        await callback.answer("Заявка уже обработана", show_alert=True)
+        await callback.answer(texts.get("moderation.request_done"), show_alert=True)
         return
 
     try:
@@ -394,7 +416,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     except TelegramBadRequest:
         pass
 
-    await callback.answer("Profile denied", show_alert=False)
+    await callback.answer(texts.get("moderation.denied_alert"), show_alert=False)
 
     moderator = await User.get_or_none(tg_id=callback.from_user.id)
     pending.status = "rejected"
@@ -402,7 +424,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     pending.reason = None
     await pending.save()
 
-    status_line = f"❌ Отклонено {_moderator_name(callback.from_user)} (ожидаем причину)"
+    status_line = texts.render("moderation.status_denied_waiting", moderator=_moderator_name(callback.from_user))
     body = _build_admin_body(pending, pending.user)
     await _edit_admin_message(
         bot,
@@ -419,11 +441,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     with contextlib.suppress(TelegramForbiddenError):
         await bot.send_message(
             chat_id=callback.from_user.id,
-            text=(
-                "Укажи причину отклонения заявки.\n"
-                f"ID заявки: {pending.id}\n"
-                "Ответь на это сообщение текстом причины или словом None"
-            ),
+            text=texts.render("moderation.notify_reason", pending_id=pending.id),
         )
 
     user_state = FSMContext(
@@ -474,18 +492,18 @@ async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContex
             pending_id = None
 
     if pending_id is None:
-        await message.answer("Не удалось определить заявку. Ответь на сообщение с ID заявки")
+        await message.answer(texts.get("moderation.reason_missing_pending"))
         return
 
     pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
     if not pending:
-        await message.answer("Заявка не найдена")
+        await message.answer(texts.get("moderation.pending_not_found"))
         await state.clear()
         return
 
     reason_text = (message.text or message.caption or "").strip()
     if not reason_text:
-        await message.answer("Пришли текст причины или слово None")
+        await message.answer(texts.get("moderation.reason_empty"))
         return
 
     await _process_rejection(
