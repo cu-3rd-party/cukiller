@@ -213,9 +213,7 @@ _TEXTS: dict[str, str] = {
     "admin.rollbackkill.not_confirmed": "KillEvent в статусе {status}, откатывать нечего",
     "admin.rollbackkill.done": "KillEvent #{kill_event_id} откатан, рейтинги пересчитаны",
     "admin.rollbackkill.discussion": (
-        "Откат KillEvent #{kill_event_id}\n"
-        "{killer} vs {victim}\n"
-        "Новый рейтинг: {killer_rating} / {victim_rating}"
+        "Откат KillEvent #{kill_event_id}\n{killer} vs {victim}\nНовый рейтинг: {killer_rating} / {victim_rating}"
     ),
     "admin.game_info": (
         'Информация об игре "{game_name}" с айди {game_id}\n\n'
