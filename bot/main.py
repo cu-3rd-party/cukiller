@@ -47,7 +47,7 @@ def register_all_middlewares(dp: Dispatcher) -> None:
     dp.callback_query.middleware(GameMiddleware())
     dp.update.middleware(EnvironmentMiddleware(dispatcher=dp))
     dp.message.middleware(RegisterUserMiddleware())
-    dp.message.middleware(PrivateMessagesMiddleware("/stats"))
+    dp.message.middleware(PrivateMessagesMiddleware("/stats", "/rollbackkill"))
 
 
 def _iter_handler_modules() -> Iterable[ModuleType]:

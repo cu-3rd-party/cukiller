@@ -1,8 +1,7 @@
 import asyncio
 import contextlib
 import logging
-import math
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import UUID
 
 from aiogram import Bot, Dispatcher, Router
@@ -26,7 +25,7 @@ from tortoise.expressions import Q
 import services.ban
 from bot.filters.admin import AdminFilter
 from bot.handlers import mainloop_dialog
-from db.models import Chat, Game, Player, User, KillEvent
+from db.models import Chat, Game, KillEvent, Player, User
 from services import settings, texts
 from services.admin_chat import AdminChatService
 from services.ban import recalc_game_ratings
@@ -533,9 +532,9 @@ async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
         return
 
     try:
-        kill_event_id = int(command.args.strip())
+        kill_event_id = UUID(command.args.strip())
     except ValueError:
-        await message.answer(texts.get("admin.rollbackkill.id_must_be_int"))
+        await message.answer(texts.get("admin.rollbackkill.id_must_be_uuid"))
         return
 
     kill_event: KillEvent | None = await KillEvent.get_or_none(id=kill_event_id).prefetch_related(
