@@ -61,6 +61,10 @@ async def set_admin_commands(bot: Bot, chat_id: int):
                 command="/getservertime",
                 description=texts.get("admin.command.server_time"),
             ),
+            BotCommand(
+                command="/rollbackkill",
+                description=texts.get("admin.command.rollbackkill"),
+            ),
         ],
         scope=BotCommandScopeChat(chat_id=chat_id),
     )
@@ -520,3 +524,53 @@ async def ban(
         await message.answer(texts.get("admin.ban.user_not_found"))
         return
     await message.answer(await services.ban.ban(user, reason))
+
+
+@router.message(AdminFilter(), Command(commands=["rollbackkill"]))
+async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
+    if not command.args:
+        await message.answer(texts.get("admin.rollbackkill.ask_args"))
+        return
+
+    try:
+        kill_event_id = int(command.args.strip())
+    except ValueError:
+        await message.answer(texts.get("admin.rollbackkill.id_must_be_int"))
+        return
+
+    kill_event: KillEvent | None = await KillEvent.get_or_none(id=kill_event_id).prefetch_related(
+        "game", "killer", "victim"
+    )
+    if not kill_event:
+        await message.answer(texts.get("admin.rollbackkill.not_found"))
+        return
+
+    if kill_event.status != "confirmed":
+        await message.answer(texts.render("admin.rollbackkill.not_confirmed", status=kill_event.status))
+        return
+
+    kill_event.status = "canceled"
+    kill_event.killer_confirmed = False
+    kill_event.killer_confirmed_at = None
+    kill_event.victim_confirmed = False
+    kill_event.victim_confirmed_at = None
+    await kill_event.save()
+
+    await recalc_game_ratings(kill_event.game)
+
+    killer_player = await Player.get_or_none(user_id=kill_event.killer.id, game_id=kill_event.game.id)
+    victim_player = await Player.get_or_none(user_id=kill_event.victim.id, game_id=kill_event.game.id)
+
+    await AdminChatService(bot).send_message(
+        key="discussion",
+        text=texts.render(
+            "admin.rollbackkill.discussion",
+            kill_event_id=kill_event.id,
+            killer=kill_event.killer.mention_html(),
+            victim=kill_event.victim.mention_html(),
+            killer_rating=killer_player.rating if killer_player else texts.get("common.unknown"),
+            victim_rating=victim_player.rating if victim_player else texts.get("common.unknown"),
+        ),
+    )
+
+    await message.answer(texts.render("admin.rollbackkill.done", kill_event_id=kill_event.id))

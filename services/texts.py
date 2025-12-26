@@ -156,6 +156,7 @@ _TEXTS: dict[str, str] = {
     "admin.command.creategame": "Создать новую «Операцию»",
     "admin.command.editgame": "Посмотреть список всех «Операций»",
     "admin.command.server_time": "Получить текущее время на сервере",
+    "admin.command.rollbackkill": "Откатить KillEvent по ID",
     "admin.stats.with_game": (
         "Оперативная сводка\n\n"
         "<b>Операция: {game_name}</b>\n"
@@ -206,6 +207,16 @@ _TEXTS: dict[str, str] = {
     "admin.ban.ask_args": "Укажи tg_id пользователя и причину: /ban <tg_id> <reason>",
     "admin.ban.tg_id_must_be_int": "tg_id должен быть числом",
     "admin.ban.user_not_found": "Такого пользователя нет в базе данных",
+    "admin.rollbackkill.ask_args": "Укажи id события: /rollbackkill <kill_event_id>",
+    "admin.rollbackkill.id_must_be_int": "id KillEvent должен быть числом",
+    "admin.rollbackkill.not_found": "KillEvent с таким id не найден",
+    "admin.rollbackkill.not_confirmed": "KillEvent в статусе {status}, откатывать нечего",
+    "admin.rollbackkill.done": "KillEvent #{kill_event_id} откатан, рейтинги пересчитаны",
+    "admin.rollbackkill.discussion": (
+        "Откат KillEvent #{kill_event_id}\n"
+        "{killer} vs {victim}\n"
+        "Новый рейтинг: {killer_rating} / {victim_rating}"
+    ),
     "admin.game_info": (
         'Информация об игре "{game_name}" с айди {game_id}\n\n'
         "Начало игры: {start_date}\n"
