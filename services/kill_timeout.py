@@ -6,8 +6,7 @@ from datetime import datetime, timedelta
 from aiogram import Bot
 
 from db.models import Chat, KillEvent, Player
-from services import settings
-from services import texts
+from services import settings, texts
 from services.kills_confirmation import add_back_to_queues
 
 logger = logging.getLogger(__name__)

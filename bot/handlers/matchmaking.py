@@ -67,43 +67,46 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
         is_approved=False,
     )
 
-    await request.app["admin_chat"].send_message(
-        key="logs",
-        text=texts.render(
-            "matchmaking.admin_log",
-            killer=killer_user.profile_link(),
-            victim=victim_user.profile_link(),
-            quality=match_quality,
-            kill_event_id=ke.id,
-        ),
-    )
+    try:
+        await request.app["admin_chat"].send_message(
+            key="logs",
+            text=texts.render(
+                "matchmaking.admin_log",
+                killer=killer_user.profile_link(),
+                victim=victim_user.profile_link(),
+                quality=match_quality,
+                kill_event_id=ke.id,
+            ),
+        )
 
-    await bot.send_message(
-        chat_id=killer_user.tg_id,
-        text=texts.get("matchmaking.killer_message"),
-        parse_mode="HTML",
-    )
+        await bot.send_message(
+            chat_id=killer_user.tg_id,
+            text=texts.get("matchmaking.killer_message"),
+            parse_mode="HTML",
+        )
 
-    victim_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
-        bot=bot,
-        user_id=victim_user.tg_id,
-        chat_id=victim_user.tg_id,
-    )
-    killer_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
-        bot=bot,
-        user_id=killer_user.tg_id,
-        chat_id=killer_user.tg_id,
-    )
+        victim_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
+            bot=bot,
+            user_id=victim_user.tg_id,
+            chat_id=victim_user.tg_id,
+        )
+        killer_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
+            bot=bot,
+            user_id=killer_user.tg_id,
+            chat_id=killer_user.tg_id,
+        )
 
-    await victim_dialog_manager.start(
-        MainLoop.title,
-        data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
-        show_mode=ShowMode.AUTO,
-    )
-    await killer_dialog_manager.start(
-        MainLoop.title,
-        data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
-        show_mode=ShowMode.AUTO,
-    )
-
-    return web.StreamResponse(status=200)
+        await victim_dialog_manager.start(
+            MainLoop.title,
+            data={"game_id": game.id, "user_tg_id": victim_user.tg_id},
+            show_mode=ShowMode.AUTO,
+        )
+        await killer_dialog_manager.start(
+            MainLoop.title,
+            data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
+            show_mode=ShowMode.AUTO,
+        )
+    except Exception as e:
+        logger.exception(e)
+    finally:
+        return web.StreamResponse(status=200)  # noqa: B012
