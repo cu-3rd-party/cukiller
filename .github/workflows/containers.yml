@@ -24,6 +24,10 @@ jobs:
             dockerfile: matchmaking.Dockerfile
           - name: graphgetter
             dockerfile: graphgetter.Dockerfile
+          - name: stats
+            dockerfile: stats.Dockerfile
+          - name: stats-web
+            dockerfile: stats-web/Dockerfile
     permissions:
       contents: read
     steps:
