@@ -23,11 +23,11 @@ type TotalResponse struct {
 }
 
 func StartupHttp() {
-	http.HandleFunc("/health/", health)
-	http.HandleFunc("/api/stats/kills", statsKills)
-	http.HandleFunc("/api/stats/rating", statsRating)
-	http.HandleFunc("/api/stats/total", statsTotal)
-	http.HandleFunc("/api/stats", statsUser)
+	http.HandleFunc("/health/", corsHandler(health))
+	http.HandleFunc("/api/stats/kills", corsHandler(statsKills))
+	http.HandleFunc("/api/stats/rating", corsHandler(statsRating))
+	http.HandleFunc("/api/stats/total", corsHandler(statsTotal))
+	http.HandleFunc("/api/stats", corsHandler(statsUser))
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 	logger.Info("HTTP server starting on %s", addr)
@@ -35,6 +35,25 @@ func StartupHttp() {
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		logger.Error("HTTP server failed: %v", err)
 		os.Exit(1)
+	}
+}
+
+func corsHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		origin := os.Getenv("CORS_ALLOW_ORIGIN")
+		if origin == "" {
+			origin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next(w, r)
 	}
 }
 
