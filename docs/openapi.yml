@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: Game stats API
+  description: Stats service HTTP API for the active game
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:6545
+
+paths:
+  /health/:
+    get:
+      summary: API health check
+      operationId: health
+      responses:
+        '200':
+          description: Status info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Failed to write response
+
+  /api/stats/kills:
+    get:
+      summary: Get top killers for the active game
+      operationId: getKillsTop
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Top killers list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          description: Invalid query params
+        '404':
+          description: No active game
+        '500':
+          description: Failed to fetch stats
+
+  /api/stats/rating:
+    get:
+      summary: Get top players by rating for the active game
+      operationId: getRatingTop
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Top rating list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          description: Invalid query params
+        '404':
+          description: No active game
+        '500':
+          description: Failed to fetch stats
+
+  /api/stats/total:
+    get:
+      summary: Get total kill events count by status for the active game
+      operationId: getKillEventsTotal
+      parameters:
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+            enum: [pending, confirmed, rejected, canceled, timeout]
+          example: confirmed
+      responses:
+        '200':
+          description: Total count by status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalResponse'
+        '400':
+          description: Invalid or missing status
+        '404':
+          description: No active game
+        '500':
+          description: Failed to fetch stats
+
+  /api/stats:
+    get:
+      summary: Get stats for a specific user in the active game
+      operationId: getUserStats
+      parameters:
+        - in: query
+          name: user
+          required: true
+          schema:
+            type: string
+          example: igamamaev
+      responses:
+        '200':
+          description: User stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '400':
+          description: Missing user parameter
+        '404':
+          description: User not found or no active game
+        '500':
+          description: Failed to fetch stats
+
+components:
+  parameters:
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+    offset:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - timestamp
+
+    PlayerEntry:
+      type: object
+      properties:
+        tg_id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        given_name:
+          type: string
+        family_name:
+          type: string
+        rating:
+          type: integer
+        kills:
+          type: integer
+      required:
+        - tg_id
+        - username
+        - given_name
+        - family_name
+        - rating
+
+    ListResponse:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerEntry'
+      required:
+        - limit
+        - offset
+        - items
+
+    TotalResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        total:
+          type: integer
+      required:
+        - status
+        - total
+
+    UserStats:
+      type: object
+      properties:
+        tg_id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        given_name:
+          type: string
+        family_name:
+          type: string
+        rating:
+          type: integer
+        kills:
+          type: integer
+        deaths:
+          type: integer
+      required:
+        - tg_id
+        - username
+        - given_name
+        - family_name
+        - rating
+        - kills
+        - deaths
