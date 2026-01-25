@@ -152,139 +152,141 @@ onMounted(() => {
       <a href="#user">User stats</a>
     </nav>
 
-    <section id="rating">
-      <h2>Rating leaderboard</h2>
-      <form @submit.prevent="loadRating">
-        <label>
-          Limit
-          <input v-model.number="ratingLimit" type="number" min="1" max="100" />
-        </label>
-        <label>
-          Offset
-          <input v-model.number="ratingOffset" type="number" min="0" />
-        </label>
-        <button type="submit">Load</button>
-      </form>
-      <p v-if="ratingLoading">Loading...</p>
-      <p v-else-if="ratingError">{{ ratingError }}</p>
-      <table v-else-if="ratingItems.length">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>TG ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Rating</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(entry, index) in ratingItems" :key="entry.tg_id">
-            <td>{{ index + 1 + ratingOffset }}</td>
-            <td>{{ entry.tg_id }}</td>
-            <td>{{ formatName(entry) }}</td>
-            <td>{{ entry.username }}</td>
-            <td>{{ entry.rating }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else>No data.</p>
-    </section>
+    <div class="panel-grid">
+      <section id="rating">
+        <h2>Rating leaderboard</h2>
+        <form @submit.prevent="loadRating">
+          <label>
+            Limit
+            <input v-model.number="ratingLimit" type="number" min="1" max="100" />
+          </label>
+          <label>
+            Offset
+            <input v-model.number="ratingOffset" type="number" min="0" />
+          </label>
+          <button type="submit">Load</button>
+        </form>
+        <p v-if="ratingLoading">Loading...</p>
+        <p v-else-if="ratingError">{{ ratingError }}</p>
+        <table v-else-if="ratingItems.length">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>TG ID</th>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in ratingItems" :key="entry.tg_id">
+              <td>{{ index + 1 + ratingOffset }}</td>
+              <td>{{ entry.tg_id }}</td>
+              <td>{{ formatName(entry) }}</td>
+              <td>{{ entry.username }}</td>
+              <td>{{ entry.rating }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else>No data.</p>
+      </section>
 
-    <section id="kills">
-      <h2>Kills leaderboard</h2>
-      <form @submit.prevent="loadKills">
-        <label>
-          Limit
-          <input v-model.number="killsLimit" type="number" min="1" max="100" />
-        </label>
-        <label>
-          Offset
-          <input v-model.number="killsOffset" type="number" min="0" />
-        </label>
-        <button type="submit">Load</button>
-      </form>
-      <p v-if="killsLoading">Loading...</p>
-      <p v-else-if="killsError">{{ killsError }}</p>
-      <table v-else-if="killsItems.length">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>TG ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Kills</th>
-            <th>Rating</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(entry, index) in killsItems" :key="entry.tg_id">
-            <td>{{ index + 1 + killsOffset }}</td>
-            <td>{{ entry.tg_id }}</td>
-            <td>{{ formatName(entry) }}</td>
-            <td>{{ entry.username }}</td>
-            <td>{{ entry.kills }}</td>
-            <td>{{ entry.rating }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else>No data.</p>
-    </section>
+      <section id="kills">
+        <h2>Kills leaderboard</h2>
+        <form @submit.prevent="loadKills">
+          <label>
+            Limit
+            <input v-model.number="killsLimit" type="number" min="1" max="100" />
+          </label>
+          <label>
+            Offset
+            <input v-model.number="killsOffset" type="number" min="0" />
+          </label>
+          <button type="submit">Load</button>
+        </form>
+        <p v-if="killsLoading">Loading...</p>
+        <p v-else-if="killsError">{{ killsError }}</p>
+        <table v-else-if="killsItems.length">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>TG ID</th>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Kills</th>
+              <th>Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in killsItems" :key="entry.tg_id">
+              <td>{{ index + 1 + killsOffset }}</td>
+              <td>{{ entry.tg_id }}</td>
+              <td>{{ formatName(entry) }}</td>
+              <td>{{ entry.username }}</td>
+              <td>{{ entry.kills }}</td>
+              <td>{{ entry.rating }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else>No data.</p>
+      </section>
 
-    <section id="total">
-      <h2>Kill totals</h2>
-      <form @submit.prevent="loadTotal">
-        <label>
-          Status
-          <select v-model="totalStatus">
-            <option value="pending">pending</option>
-            <option value="confirmed">confirmed</option>
-            <option value="rejected">rejected</option>
-            <option value="canceled">canceled</option>
-            <option value="timeout">timeout</option>
-          </select>
-        </label>
-        <button type="submit">Load</button>
-      </form>
-      <p v-if="totalLoading">Loading...</p>
-      <p v-else-if="totalError">{{ totalError }}</p>
-      <p v-else-if="totalValue !== null">Total: {{ totalValue }}</p>
-      <p v-else>No data.</p>
-    </section>
+      <section id="total">
+        <h2>Kill totals</h2>
+        <form @submit.prevent="loadTotal">
+          <label>
+            Status
+            <select v-model="totalStatus">
+              <option value="pending">pending</option>
+              <option value="confirmed">confirmed</option>
+              <option value="rejected">rejected</option>
+              <option value="canceled">canceled</option>
+              <option value="timeout">timeout</option>
+            </select>
+          </label>
+          <button type="submit">Load</button>
+        </form>
+        <p v-if="totalLoading">Loading...</p>
+        <p v-else-if="totalError">{{ totalError }}</p>
+        <p v-else-if="totalValue !== null">Total: {{ totalValue }}</p>
+        <p v-else>No data.</p>
+      </section>
 
-    <section id="user">
-      <h2>User stats</h2>
-      <form @submit.prevent="loadUser">
-        <label>
-          Username
-          <input v-model.trim="userName" type="text" placeholder="igamamaev" />
-        </label>
-        <button type="submit">Load</button>
-      </form>
-      <p v-if="userLoading">Loading...</p>
-      <p v-else-if="userError">{{ userError }}</p>
-      <table v-else-if="userStats">
-        <thead>
-          <tr>
-            <th>TG ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Rating</th>
-            <th>Kills</th>
-            <th>Deaths</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{{ userStats.tg_id }}</td>
-            <td>{{ formatName(userStats) }}</td>
-            <td>{{ userStats.username }}</td>
-            <td>{{ userStats.rating }}</td>
-            <td>{{ userStats.kills }}</td>
-            <td>{{ userStats.deaths }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else>No data.</p>
-    </section>
+      <section id="user">
+        <h2>User stats</h2>
+        <form @submit.prevent="loadUser">
+          <label>
+            Username
+            <input v-model.trim="userName" type="text" placeholder="igamamaev" />
+          </label>
+          <button type="submit">Load</button>
+        </form>
+        <p v-if="userLoading">Loading...</p>
+        <p v-else-if="userError">{{ userError }}</p>
+        <table v-else-if="userStats">
+          <thead>
+            <tr>
+              <th>TG ID</th>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Rating</th>
+              <th>Kills</th>
+              <th>Deaths</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ userStats.tg_id }}</td>
+              <td>{{ formatName(userStats) }}</td>
+              <td>{{ userStats.username }}</td>
+              <td>{{ userStats.rating }}</td>
+              <td>{{ userStats.kills }}</td>
+              <td>{{ userStats.deaths }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else>No data.</p>
+      </section>
+    </div>
   </main>
 </template>

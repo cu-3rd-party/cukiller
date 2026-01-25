@@ -68,8 +68,6 @@ services:
       - "8081:80"
     environment:
       BACKEND_URL: http://localhost:6545
-    depends_on:
-      - stats
     restart: unless-stopped
     logging:
       driver: local
