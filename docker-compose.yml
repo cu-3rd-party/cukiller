@@ -61,6 +61,23 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  stats-web:
+    build:
+      context: ./stats-web
+      dockerfile: Dockerfile
+    ports:
+      - "8081:80"
+    environment:
+      BACKEND_URL: http://localhost:6545
+    depends_on:
+      - stats
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   db:
     image: postgres:18-alpine
     ports:
