@@ -45,6 +45,22 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  stats:
+    build:
+      context: .
+      dockerfile: stats.Dockerfile
+    ports:
+      - "6545:6545"
+    env_file: .env
+    depends_on:
+      - db
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   db:
     image: postgres:18-alpine
     ports:
