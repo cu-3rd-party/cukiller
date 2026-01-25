@@ -20,14 +20,19 @@ jobs:
         include:
           - name: bot
             dockerfile: bot.Dockerfile
+            context: .
           - name: matchmaking
             dockerfile: matchmaking.Dockerfile
+            context: .
           - name: graphgetter
             dockerfile: graphgetter.Dockerfile
+            context: .
           - name: stats
             dockerfile: stats.Dockerfile
+            context: .
           - name: stats-web
             dockerfile: stats-web/Dockerfile
+            context: stats-web
     permissions:
       contents: read
     steps:
@@ -46,7 +51,7 @@ jobs:
       - name: Build and push ${{ matrix.name }} image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
