@@ -6,6 +6,7 @@ import os
 from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urlparse
 from uuid import UUID
 
 from aiogram import Bot, Dispatcher
@@ -15,6 +16,7 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
 from aiohttp import web
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from redis.asyncio import Redis
 
 from bot.handlers.matchmaking import setup_matchmaking_routers
@@ -77,13 +79,32 @@ def register_all_handlers(dp: Dispatcher) -> None:
 _web_server: web.AppRunner | None = None
 
 
-async def start_web_server(bot: Bot) -> None:
-    """Start the HTTP web server for metrics endpoint."""
+def _normalize_webhook_path() -> str:
+    if settings.webhook_path:
+        path = settings.webhook_path
+    elif settings.webhook_url:
+        path = urlparse(settings.webhook_url).path
+    else:
+        path = "/webhook"
+    if not path:
+        path = "/webhook"
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return path
+
+
+async def start_web_server(bot: Bot, dp: Dispatcher) -> None:
+    """Start the HTTP web server for metrics/matchmaking and webhook endpoints."""
     global _web_server
 
     app = web.Application()
     setup_metrics_routes(app)
     setup_matchmaking_routers(app, bot)
+    if settings.webhook_url:
+        webhook_path = _normalize_webhook_path()
+        SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=webhook_path)
+        setup_application(app, dp, bot=bot)
+        logger.info("Webhook endpoint registered on %s", webhook_path)
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -112,7 +133,17 @@ async def on_startup(bot: Bot) -> None:
     await init_db()
     await generate_discussion_invite_link(bot)
     await metrics_updater.start()
-    await start_web_server(bot)
+    if settings.webhook_url:
+        if settings.dispatcher is None:
+            raise RuntimeError("Dispatcher is not initialized for webhook setup")
+        await bot.set_webhook(
+            url=settings.webhook_url,
+            allowed_updates=settings.dispatcher.resolve_used_update_types(),
+        )
+    else:
+        if settings.dispatcher is None:
+            raise RuntimeError("Dispatcher is not initialized for polling setup")
+        await start_web_server(bot, settings.dispatcher)
     await MatchmakingService().healthcheck()
     await MatchmakingService().reset_queues()
     await kill_timeout_monitor.start(bot)
@@ -121,7 +152,10 @@ async def on_startup(bot: Bot) -> None:
 async def on_shutdown(bot: Bot) -> None:
     await kill_timeout_monitor.stop()
     await revoke_discussion_invite_link(bot)
-    await stop_web_server()
+    if settings.webhook_url:
+        await bot.delete_webhook()
+    else:
+        await stop_web_server()
     await metrics_updater.stop()
     await close_db()
 
@@ -182,11 +216,20 @@ async def run_bot() -> None:
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
-    try:
-        await dp.start_polling(bot)
-    finally:
-        await dp.storage.close()
-        await bot.session.close()
+    if settings.webhook_url:
+        try:
+            await start_web_server(bot, dp)
+            await asyncio.Event().wait()
+        finally:
+            await stop_web_server()
+            await dp.storage.close()
+            await bot.session.close()
+    else:
+        try:
+            await dp.start_polling(bot)
+        finally:
+            await dp.storage.close()
+            await bot.session.close()
 
 
 async def main() -> None:
