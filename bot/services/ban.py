@@ -5,12 +5,10 @@ from datetime import datetime, timedelta
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from tortoise.expressions import Q
 
-from db.models import User
-from db.models import Game, Player, KillEvent
+from db.models import Game, KillEvent, Player, User
 from services import settings, texts
 from services.admin_chat import AdminChatService
 from services.matchmaking import MatchmakingService
-
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +108,7 @@ async def ban(user: User, reason: str) -> str:
 
         await recalc_game_ratings(game)
 
-    await settings.bot.send_message(
+    await settings.send_message(
         user.tg_id,
         text=texts.get("ban.user_notification"),
     )

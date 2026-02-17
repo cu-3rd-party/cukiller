@@ -22,17 +22,22 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, Select
 from aiogram_dialog.widgets.text import Const, Format
 from tortoise.expressions import Q
 
-import services.ban
-from bot.filters.admin import AdminFilter
-from bot.handlers import mainloop_dialog
 from db.models import Chat, Game, KillEvent, Player, User
-from services import settings, texts
-from services.admin_chat import AdminChatService
-from services.ban import recalc_game_ratings
+from filters.admin import AdminFilter
+from handlers import mainloop_dialog
+from services import (
+    AdminChatService,
+    EditGame,
+    EndGame,
+    MainLoop,
+    MatchmakingService,
+    StartGame,
+    log_dialog_action,
+    recalc_game_ratings,
+    settings,
+    texts,
+)
 from services.credits import CreditsInfo
-from services.logging import log_dialog_action
-from services.matchmaking import MatchmakingService
-from services.states import EditGame, EndGame, MainLoop, StartGame
 from services.states.participation import ParticipationForm
 
 logger = logging.getLogger(__name__)
@@ -41,7 +46,7 @@ router = Router()
 
 
 async def set_admin_commands(bot: Bot, chat_id: int):
-    await bot.set_my_commands(
+    await set_my_commands(
         commands=[
             BotCommand(command="/start", description=texts.get("admin.command.start")),
             BotCommand(
@@ -111,7 +116,7 @@ async def on_description_input(message: Message, message_input: MessageInput, ma
 
 
 async def send_notification(bot: Bot, user: User, text: str):
-    msg = await bot.send_message(
+    msg = await send_message(
         user.tg_id,
         text=text,
         parse_mode="HTML",
@@ -122,7 +127,7 @@ async def send_notification(bot: Bot, user: User, text: str):
 async def delete_later(bot: Bot, chat_id: int, msg_id: int):
     await asyncio.sleep(10)
     try:
-        await bot.delete_message(chat_id, msg_id)
+        await delete_message(chat_id, msg_id)
     except Exception as e:
         logger.warning(f"Failed to delete message {msg_id}: {e}")
 
@@ -342,7 +347,7 @@ async def send_game_credits(
     """Send game credits message to a specific user."""
     personal_stats = get_personal_stats(user_id, info) if user_id else ""
     try:
-        await bot.send_message(
+        await send_message(
             chat_id=chat_id,
             text=texts.render(
                 "admin.game_credits",

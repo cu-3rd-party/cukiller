@@ -3,8 +3,8 @@ import logging
 from aiogram import Router
 from aiogram.types import ChatJoinRequest
 
-from bot.filters.group_key import GroupKeyFilter
 from db.models import User
+from filters.group_key import GroupKeyFilter
 
 logger = logging.getLogger(__name__)
 

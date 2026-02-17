@@ -8,25 +8,24 @@ from aiogram_dialog.widgets.kbd import Back, Button, Column, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
-from bot.filters.confirmed import ConfirmedFilter
-from bot.filters.user import UserFilter
-from bot.handlers.admin import set_admin_commands
-from bot.handlers.mainloop.button_handlers import (
+from db.models import Game, User
+from filters.confirmed import ConfirmedFilter
+from filters.user import UserFilter
+from handlers.admin import set_admin_commands
+from handlers.mainloop.button_handlers import (
     confirm_participation,
     on_get_target,
     on_i_killed,
     on_i_was_killed,
     on_leave_game,
     on_reroll,
-    open_profile,
-    open_rules,
     open_gameplay_rules,
+    open_profile,
     open_profile_rules,
+    open_rules,
 )
-from bot.handlers.mainloop.getters import get_main_menu_info, get_target_info
-from db.models import Game, User
-from services import texts
-from services.states import MainLoop
+from handlers.mainloop.getters import get_main_menu_info, get_target_info
+from services import MainLoop, texts
 
 logger = logging.getLogger(__name__)
 

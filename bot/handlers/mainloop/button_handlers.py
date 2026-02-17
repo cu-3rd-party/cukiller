@@ -5,21 +5,18 @@ from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button
 
-from bot.handlers import participation
-from bot.handlers.kills_confirmation import (
+from db.models import Game, KillEvent, Player, User
+from handlers import participation
+from handlers.kills_confirmation import (
     ConfirmKillKiller,
     ConfirmKillVictim,
 )
-from db.models import Game, KillEvent, Player, User
-from services import texts
-from services.logging import log_dialog_action
-from services.matchmaking import MatchmakingService
+from services import MatchmakingService, format_exit_cooldown, is_exit_cooldown_active, log_dialog_action, texts
+from services.states.leave_game import LeaveGame
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
-from services.states.leave_game import LeaveGame
 from services.states.reroll import Reroll
 from services.states.rules import RulesStates
-from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
 

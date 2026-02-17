@@ -55,7 +55,7 @@ class AdminChatService:
     async def send_message(self, key: str, text: str, tag: str | None = None) -> None:
         """Send a text message to a chat by key"""
         chat = await self._get_chat(key)
-        await self.bot.send_message(
+        await self.send_message(
             chat_id=chat.chat_id,
             text=_build_body(text, tag),
             parse_mode="HTML",
@@ -65,7 +65,7 @@ class AdminChatService:
         chat = await self._get_chat(key)
         body = _build_body(text, tag)
 
-        await self.bot.send_photo(
+        await self.send_photo(
             chat_id=chat.chat_id,
             photo=photo,
             caption=body,
@@ -93,14 +93,14 @@ class AdminChatService:
 
         try:
             if photo:
-                return await self.bot.send_photo(
+                return await self.send_photo(
                     chat_id=chat.chat_id,
                     photo=photo,
                     caption=body,
                     reply_markup=reply_markup,
                     parse_mode="HTML",
                 )
-            return await self.bot.send_message(
+            return await self.send_message(
                 chat_id=chat.chat_id,
                 text=body,
                 reply_markup=reply_markup,
@@ -114,7 +114,7 @@ class AdminChatService:
             )
             fallback_markup = _pending_buttons(pending_id, tg_id, with_inspect=False)
             try:
-                return await self.bot.send_message(
+                return await self.send_message(
                     chat_id=chat.chat_id,
                     text=body,
                     reply_markup=fallback_markup,

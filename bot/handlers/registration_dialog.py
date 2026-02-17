@@ -10,14 +10,19 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Column, Group
 from aiogram_dialog.widgets.text import Const, Format
 
-from bot.filters.confirmed import PendingFilter, ProfileNonexistentFilter
 from db.models import PendingProfile, User
-from services import texts
-from services.admin_chat import AdminChatService
-from services.logging import log_dialog_action
-from services.states import RegisterForm
+from filters.confirmed import PendingFilter, ProfileNonexistentFilter
+from services import (
+    AdminChatService,
+    RegisterForm,
+    SafeStringConfig,
+    build_full_name,
+    is_safe,
+    log_dialog_action,
+    normalize_name_component,
+    texts,
+)
 from services.states.rules import RulesStates
-from services.strings import SafeStringConfig, build_full_name, is_safe, normalize_name_component
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 """
-Prometheus metrics collection for the bot.
+Prometheus metrics collection for the
 """
 
 import logging

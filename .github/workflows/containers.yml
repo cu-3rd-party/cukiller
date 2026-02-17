@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - name: bot
-            dockerfile: bot.Dockerfile
+            dockerfile: Dockerfile
             context: .
           - name: matchmaking
             dockerfile: matchmaking.Dockerfile

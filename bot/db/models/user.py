@@ -2,7 +2,7 @@ import html
 
 from tortoise import fields
 
-from services.strings import trim_name
+from services import trim_name
 
 from .base import ProfileBase, TimestampedModel
 from .constants import PLAYER_STATUS

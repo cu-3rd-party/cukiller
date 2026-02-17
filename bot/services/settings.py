@@ -1,7 +1,7 @@
-from typing import Any, Optional
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from aiogram import Dispatcher, Bot
+from aiogram import Bot, Dispatcher
 from aiogram.types import ChatInviteLink
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,8 +55,8 @@ class Settings(BaseSettings):
 
     matchmaking_service_url: str = Field(default="http://matchmaking:6543", alias="MATCHMAKING_URL")
 
-    bot: Optional[Bot] = None
-    dispatcher: Optional[Dispatcher] = None
+    bot: Bot | None = None
+    dispatcher: Dispatcher | None = None
 
     @computed_field
     @property

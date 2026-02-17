@@ -6,12 +6,11 @@ import aiohttp
 
 from services import settings
 
-
 # ---------- SERVICE ----------
 
 
 class MatchmakingService:
-    logger = logging.getLogger("bot.matchmaking")
+    logger = logging.getLogger("matchmaking")
     base_url = settings.matchmaking_service_url.rstrip("/")
 
     async def healthcheck(self):

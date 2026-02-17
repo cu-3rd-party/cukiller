@@ -7,14 +7,17 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Column
 from aiogram_dialog.widgets.text import Const
 
-from bot.handlers import mainloop_dialog
 from db.models import Game, Player, User
-from services import texts
-from services.logging import log_dialog_action
-from services.matchmaking import MatchmakingService
-from services.states import MainLoop
+from handlers import mainloop_dialog
+from services import (
+    MainLoop,
+    MatchmakingService,
+    format_exit_cooldown,
+    is_exit_cooldown_active,
+    log_dialog_action,
+    texts,
+)
 from services.states.participation import ParticipationForm
-from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
 
 logger = logging.getLogger(__name__)
 

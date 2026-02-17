@@ -10,15 +10,10 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
-from bot.handlers import mainloop_dialog
 from db.models import Chat, KillEvent, Player, User
-from services import settings
-from services import texts
-from services.ban import modify_rating
-from services.kills_confirmation import add_back_to_queues
-from services.states import MainLoop
+from handlers import mainloop_dialog
+from services import MainLoop, add_back_to_queues, modify_rating, settings, texts, trim_name
 from services.states.reroll import Reroll
-from services.strings import trim_name
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +21,7 @@ router = Router()
 
 
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: float):
-    await bot.send_message(
+    await send_message(
         chat_id=user.tg_id,
         text=texts.render(
             "reroll.player_notified",
@@ -60,7 +55,7 @@ async def notify_chat(
     reason = random.choice(texts.get_list("reroll.fail_reasons"))
     killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
     victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
-    await bot.send_message(
+    await send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
             "reroll.chat_notified",

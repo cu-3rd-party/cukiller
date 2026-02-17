@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from db.models import User
 from services import settings
+
+if TYPE_CHECKING:
+    from db.models import User
 
 # !!! Сколько пользователь не может участвовать в играх
 EXIT_COOLDOWN_DURATION = timedelta(days=7)

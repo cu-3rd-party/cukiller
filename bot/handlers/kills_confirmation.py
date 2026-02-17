@@ -12,14 +12,9 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
-from bot.handlers import mainloop_dialog
 from db.models import Chat, KillEvent, Player, User
-from services import settings
-from services.ban import modify_rating
-from services.kills_confirmation import add_back_to_queues
-from services.states import MainLoop
-from services.strings import trim_name
-from services import texts
+from handlers import mainloop_dialog
+from services import MainLoop, add_back_to_queues, modify_rating, settings, texts, trim_name
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -46,7 +41,7 @@ async def send_double_confirm_dialog(manager: DialogManager, user: User, state):
 
 
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
-    await bot.send_message(
+    await send_message(
         chat_id=user.tg_id,
         text=texts.render(
             "kills.player_notified",
@@ -80,7 +75,7 @@ async def notify_chat(
     killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
     victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
 
-    await bot.send_message(
+    await send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
             "kills.chat_notified",

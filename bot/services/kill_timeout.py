@@ -100,7 +100,7 @@ class KillTimeoutMonitor:
         victim = event.victim
 
         try:
-            await self._bot.send_message(
+            await self._send_message(
                 chat_id=victim.tg_id,
                 text=texts.render("timeout.victim", days=self.deadline.days),
             )
@@ -108,7 +108,7 @@ class KillTimeoutMonitor:
             logger.warning("Ошибка уведомления жертвы (%s) о таймауте, ошибка: %s", victim.id, exc)
 
         try:
-            await self._bot.send_message(
+            await self._send_message(
                 chat_id=killer.tg_id,
                 text=texts.render("timeout.killer", days=self.deadline.days),
             )
@@ -117,7 +117,7 @@ class KillTimeoutMonitor:
 
         if discussion_chat:
             try:
-                await self._bot.send_message(
+                await self._send_message(
                     chat_id=discussion_chat.chat_id,
                     text=texts.render(
                         "timeout.discussion",

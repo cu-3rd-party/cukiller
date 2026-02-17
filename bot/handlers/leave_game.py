@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime
 import random
+from datetime import datetime
 
 from aiogram import Router
 from aiogram.types import CallbackQuery
@@ -8,16 +8,18 @@ from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
-from bot.handlers import mainloop_dialog
 from db.models import Game, KillEvent, Player, User
-from services import settings
-from services import texts
-from services.ban import modify_rating
-from services.logging import log_dialog_action
-from services.matchmaking import MatchmakingService
-from services.states import MainLoop
+from services import (
+    MainLoop,
+    MatchmakingService,
+    calculate_leave_penalty,
+    compute_exit_cooldown_until,
+    log_dialog_action,
+    modify_rating,
+    settings,
+    texts,
+)
 from services.states.leave_game import LeaveGame
-from services.user_exit import calculate_leave_penalty, compute_exit_cooldown_until
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -71,7 +73,7 @@ async def _confirm_pending_victim_event(
     return penalty, killer_user
 
 
-async def _cancel_killer_events(user: User, game: Game):
+async def _cancel_killer_events(user: User, game: Game) -> None:
     killer_events = await KillEvent.filter(game_id=game.id, killer_id=user.id, status="pending").all()
     for event in killer_events:
         event.status = "canceled"
@@ -98,10 +100,10 @@ async def _apply_leave_penalty(user: User, game: Game | None, now: datetime) -> 
     return penalty, killer_user
 
 
-async def _notify_killer(bot, killer: User):
+async def _notify_killer(bot, killer: User) -> None:
     try:
         killer_notification = random.choice(texts.get_list("leave.killer_notification"))
-        await bot.send_message(
+        await send_message(
             killer.tg_id,
             killer_notification,
         )

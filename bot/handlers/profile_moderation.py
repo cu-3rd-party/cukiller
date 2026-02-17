@@ -22,11 +22,10 @@ from aiogram.types import (
 from aiogram_dialog import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
-from bot.handlers import mainloop_dialog
-from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, PendingProfile, User
-from services import settings, texts
-from services.states import MainLoop, ProfileModeration
+from handlers import mainloop_dialog
+from handlers.registration_dialog import COURSE_TYPES
+from services import MainLoop, ProfileModeration, settings, texts
 
 router = Router(name="profile_moderation")
 
@@ -197,7 +196,7 @@ async def _edit_admin_message(
     full_body = f"{status_line}\n\n{_wrap_with_tag(body)}"
 
     try:
-        await bot.edit_message_caption(
+        await edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
             caption=full_body,
@@ -205,7 +204,7 @@ async def _edit_admin_message(
             parse_mode="HTML",
         )
     except TelegramBadRequest:
-        await bot.edit_message_text(
+        await edit_message_text(
             chat_id=chat_id,
             message_id=message_id,
             text=full_body,
@@ -217,7 +216,7 @@ async def _edit_admin_message(
 async def _notify_user_rejection(bot: Bot, pending: PendingProfile, reason: str | None) -> None:
     text = _build_user_denied_text(pending, reason)
     try:
-        await bot.send_message(chat_id=pending.user.tg_id, text=text)
+        await send_message(chat_id=pending.user.tg_id, text=text)
     except TelegramForbiddenError:
         return
 
@@ -361,7 +360,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
     )
 
     try:
-        await bot.send_message(chat_id=approved_user.tg_id, text=notify_text)
+        await send_message(chat_id=approved_user.tg_id, text=notify_text)
         if pending.is_new_profile:
             user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
                 bot=bot,
@@ -439,7 +438,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         await pending.user.save(update_fields=["status"])
 
     with contextlib.suppress(TelegramForbiddenError):
-        await bot.send_message(
+        await send_message(
             chat_id=callback.from_user.id,
             text=texts.render("moderation.notify_reason", pending_id=pending.id),
         )
@@ -447,7 +446,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     user_state = FSMContext(
         storage=state.storage,
         key=StorageKey(
-            bot_id=bot.id,
+            bot_id=id,
             chat_id=callback.from_user.id,
             user_id=callback.from_user.id,
         ),

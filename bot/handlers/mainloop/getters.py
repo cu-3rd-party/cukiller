@@ -7,13 +7,17 @@ from aiogram.enums import ContentType
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
-from bot.handlers.registration_dialog import COURSE_TYPES
 from db.models import Game, KillEvent, Player, User
-from services import settings, texts
-from services.logging import log_getter
-from services.matchmaking import MatchmakingService
-from services.strings import trim_name
-from services.user_exit import format_exit_cooldown, is_exit_cooldown_active
+from handlers.registration_dialog import COURSE_TYPES
+from services import (
+    MatchmakingService,
+    format_exit_cooldown,
+    is_exit_cooldown_active,
+    log_getter,
+    settings,
+    texts,
+    trim_name,
+)
 
 logger = logging.getLogger(__name__)
 

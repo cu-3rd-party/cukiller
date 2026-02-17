@@ -14,31 +14,29 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram_dialog import setup_dialogs
 from aiohttp import web
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from redis.asyncio import Redis
 
-from bot.handlers.matchmaking import setup_matchmaking_routers
-from bot.handlers.metrics import metrics_updater, setup_metrics_routes
-from bot.middlewares.environment import EnvironmentMiddleware
-from bot.middlewares.game import GameMiddleware
-from bot.middlewares.logging import VerboseLoggingMiddleware
-from bot.middlewares.private_messages import PrivateMessagesMiddleware
-from bot.middlewares.register import RegisterUserMiddleware
-from bot.middlewares.user import UserMiddleware
 from db.main import close_db, init_db
-from services import settings
+from handlers.matchmaking import setup_matchmaking_routers
+from handlers.metrics import metrics_updater, setup_metrics_routes
+from middlewares.environment import EnvironmentMiddleware
+from middlewares.game import GameMiddleware
+from middlewares.logging import VerboseLoggingMiddleware
+from middlewares.private_messages import PrivateMessagesMiddleware
+from middlewares.register import RegisterUserMiddleware
+from middlewares.user import UserMiddleware
+from services import MatchmakingService, kill_timeout_monitor, settings
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
-from services.kill_timeout import kill_timeout_monitor
-from services.matchmaking import MatchmakingService
 
 logger = logging.getLogger(__name__)
 
-HANDLERS_PACKAGE = "bot.handlers"
+HANDLERS_PACKAGE = "handlers"
 HANDLERS_PATH = Path(__file__).parent / "handlers"
 
 
@@ -135,14 +133,16 @@ async def on_startup(bot: Bot) -> None:
     await metrics_updater.start()
     if settings.webhook_url:
         if settings.dispatcher is None:
-            raise RuntimeError("Dispatcher is not initialized for webhook setup")
+            msg = "Dispatcher is not initialized for webhook setup"
+            raise RuntimeError(msg)
         await bot.set_webhook(
             url=settings.webhook_url,
             allowed_updates=settings.dispatcher.resolve_used_update_types(),
         )
     else:
         if settings.dispatcher is None:
-            raise RuntimeError("Dispatcher is not initialized for polling setup")
+            msg = "Dispatcher is not initialized for polling setup"
+            raise RuntimeError(msg)
         await start_web_server(bot, settings.dispatcher)
     await MatchmakingService().healthcheck()
     await MatchmakingService().reset_queues()

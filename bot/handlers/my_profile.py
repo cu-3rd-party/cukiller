@@ -11,23 +11,20 @@ from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
-from bot.handlers.mainloop.getters import get_advanced_info, get_user
-from bot.handlers.registration_dialog import (
+from db.models import PendingProfile, User
+from handlers.mainloop.getters import get_advanced_info, get_user
+from handlers.registration_dialog import (
     COURSE_TYPES,
     btns_course_types,
     btns_groups,
     course_buttons,
     course_number_required,
     group_required,
-    reg_getter,
     hugging_allowed_label,
+    reg_getter,
 )
-from db.models import PendingProfile, User
-from services import texts
-from services.admin_chat import AdminChatService
-from services.logging import log_dialog_action
+from services import AdminChatService, SafeStringConfig, is_safe, log_dialog_action, normalize_name_component, texts
 from services.states.my_profile import EditProfile, MyProfile
-from services.strings import SafeStringConfig, is_safe, normalize_name_component
 
 logger = logging.getLogger(__name__)
 

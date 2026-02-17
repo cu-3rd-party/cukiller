@@ -5,11 +5,9 @@ from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiohttp import web
 
-from bot.handlers import mainloop_dialog
 from db.models import Game, KillEvent, User
-from services import settings, texts
-from services.admin_chat import AdminChatService
-from services.states import MainLoop
+from handlers import mainloop_dialog
+from services import AdminChatService, MainLoop, settings, texts
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -79,7 +77,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
             ),
         )
 
-        await bot.send_message(
+        await send_message(
             chat_id=killer_user.tg_id,
             text=texts.get("matchmaking.killer_message"),
             parse_mode="HTML",

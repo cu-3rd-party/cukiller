@@ -7,8 +7,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
 from db.models import User
-from services import settings
-from services.strings import normalize_name_component
+from services import normalize_name_component, settings
 
 logger = logging.getLogger(__name__)
 

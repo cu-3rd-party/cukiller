@@ -2,7 +2,7 @@ from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
 from db.models import User
-from services.logging import log_filter
+from services import log_filter
 
 
 class AdminFilter(BaseFilter):

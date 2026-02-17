@@ -5,8 +5,7 @@ from typing import Any
 from aiogram import BaseMiddleware, types
 from aiogram.types import TelegramObject
 
-from services.events import extract_user
-from services.user import get_or_create_user
+from services import extract_user, get_or_create_user
 
 logger = logging.getLogger(__name__)
 
