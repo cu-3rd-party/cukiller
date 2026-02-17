@@ -61,6 +61,8 @@ async def get_pending_events(game: Game, user: User):
 
 
 def get_advanced_info(user: User):
+    if user is None or user.type is None:
+        return "Внутренняя ошибка, user == None"
     ret = [f"{FIELD_LABELS['type']}: {COURSE_TYPES[user.type]}"]
     if user.course_number:
         ret.append(f"{FIELD_LABELS['course_number']}: {user.course_number}")
