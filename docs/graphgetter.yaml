@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:6544
+  - url: http://localhost:8000
 
 paths:
   /health/:
@@ -36,7 +36,7 @@ paths:
 
         ```python
         import pandas as pd
-        df = pd.read_csv("http://localhost:6544/connections.csv")
+        df = pd.read_csv("http://localhost:8000/connections.csv")
         ```
       operationId: getConnectionsCsv
       responses:

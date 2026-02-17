@@ -6,7 +6,10 @@ services:
     expose:
       - "8000"
     env_file:
-      - .env
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/redis.env
+      - ./env/bot.env
     depends_on:
       - db
       - matchmaking
@@ -29,8 +32,11 @@ services:
       context: ./backend/matchmaking
       dockerfile: Dockerfile
     expose:
-      - "6543"
-    env_file: .env
+      - "8000"
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/matchmaking.env
     depends_on:
       - db
     restart: unless-stopped
@@ -52,13 +58,15 @@ services:
       context: ./backend/graphgetter
       dockerfile: Dockerfile
     expose:
-      - "6544"
+      - "8000"
     deploy:
       resources:
         limits:
           cpus: 0.25
           memory: 64MB
-    env_file: .env
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
     depends_on:
       - db
     restart: unless-stopped
@@ -75,12 +83,16 @@ services:
       context: ./backend/stats
       dockerfile: Dockerfile
     expose:
-      - "6545"
+      - "8000"
     deploy:
       resources:
         limits:
           cpus: 0.25
           memory: 64MB
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/stats.env
     depends_on:
       - db
     restart: unless-stopped
@@ -97,7 +109,9 @@ services:
       context: ./frontend/stats-web
       dockerfile: Dockerfile
     environment:
-      BACKEND_URL: http://stats:6545
+      BACKEND_URL: http://stats:8000
+    env_file:
+      - ./env/stats-web.env
     deploy:
       resources:
         limits:
@@ -124,7 +138,7 @@ services:
           cpus: 0.5
           memory: 256MB
     env_file:
-      - .env
+      - ./env/db.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./schema:/docker-entrypoint-initdb.d:ro
@@ -136,6 +150,8 @@ services:
     image: redis:8.2.2-alpine3.22
     expose:
       - "6379"
+    env_file:
+      - ./env/redis.env
     volumes:
       - redis_data:/data
     deploy:
@@ -198,6 +214,8 @@ services:
           memory: 256MB
     volumes:
       - grafana_data:/var/lib/grafana
+    env_file:
+      - ./env/grafana.env
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}

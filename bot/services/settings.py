@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     tortoise_models: tuple[str, ...] = Field(default=("db.models", "aerich.models"), alias="TORTOISE_MODELS")
     tortoise_generate_schemas: bool = Field(default=False, alias="TORTOISE_GENERATE_SCHEMAS")
 
-    matchmaking_service_url: str = Field(default="http://matchmaking:6543", alias="MATCHMAKING_URL")
+    matchmaking_service_url: str = Field(default="http://matchmaking:8000", alias="MATCHMAKING_URL")
 
     bot: Bot | None = None
     dispatcher: Dispatcher | None = None

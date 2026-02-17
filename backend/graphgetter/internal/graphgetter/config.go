@@ -17,7 +17,7 @@ type Config struct {
 
 func getConfig() Config {
 	return Config{
-		Port:           shared.GetEnvInt("PORT", 6544),
+		Port:           shared.GetEnvInt("PORT", 8000),
 		SecretKey:      shared.GetEnvString("SECRET_KEY", ""),
 		LogLevel:       shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
 		ConfigDatabase: shared.GetDbConfig(),

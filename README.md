@@ -10,16 +10,16 @@ Telegram бот для игры в Killer для Центрального Уни
 git clone <>
 ```
 
--   Скопируйте и измените настройки .env
+-   Скопируйте и измените настройки env
 
 ```bash
-cp .env.example .env
+./env/setup_env.sh
 ```
 
--   Поднимите контейнер
+-   Поднимите контейнеры
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 -   Чтобы остановить
@@ -28,14 +28,5 @@ docker compose up -d
 docker compose down
 ```
 
-## Просмотр БД через Adminer
-
-Посетите http://localhost:8080/ и введите следующие параметры:
-
--   System: PostgreSQL
--   Server: db
--   Username: admin
--   Password: admin
--   Database: db
-
-Если вы меняли свой .env файл, то берите из него значения
+## Этот проект лицензирован под CreativeCommons 4.0 ND
+Полный текст лицензии вы можете найти в [LICENSE](https://github.com/cu-3rd-party/cukiller/blob/master/LICENSE)

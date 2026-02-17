@@ -13,7 +13,7 @@ type Config struct {
 
 func getConfig() Config {
 	return Config{
-		Port:           shared.GetEnvInt("PORT", 6545),
+		Port:           shared.GetEnvInt("PORT", 8000),
 		LogLevel:       shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
 		ConfigDatabase: shared.GetDbConfig(),
 	}

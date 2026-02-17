@@ -38,7 +38,7 @@ type ConfigMatchmaking struct {
 
 func getConfig() Config {
 	return Config{
-		Port:          shared.GetEnvInt("PORT", 6543),
+		Port:          shared.GetEnvInt("PORT", 8000),
 		BotUrl:        shared.GetEnvString("BOT_URL", "http://localhost:8000"),
 		SecretKey:     shared.GetEnvString("SECRET_KEY", ""),
 		LogLevel:      shared.ParseLogLevel(shared.GetEnvString("LOGLEVEL", "INFO")),
