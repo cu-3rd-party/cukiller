@@ -83,10 +83,13 @@ class BotMetrics:
             self.user_total.labels(status="pending").set(pending_users)
 
             logger.debug(
-                f"Updated user metrics: total={total_users}, confirmed={confirmed_users}, pending={pending_users}"
+                "Updated user metrics: total=%s, confirmed=%s, pending=%s",
+                total_users,
+                confirmed_users,
+                pending_users,
             )
-        except Exception as e:
-            logger.exception(f"Failed to update user metrics: {e}")
+        except Exception:
+            logger.exception("Failed to update user metrics")
 
     async def update_game_metrics(self):
         """Update game-related metrics from the database."""
@@ -100,10 +103,13 @@ class BotMetrics:
             self.games_total.labels(status="completed").set(completed_games)
 
             logger.debug(
-                f"Updated game metrics: total={total_games}, active={active_games}, completed={completed_games}"
+                "Updated game metrics: total=%s, active=%s, completed=%s",
+                total_games,
+                active_games,
+                completed_games,
             )
-        except Exception as e:
-            logger.exception(f"Failed to update game metrics: {e}")
+        except Exception:
+            logger.exception("Failed to update game metrics")
 
     async def update_player_metrics(self):
         """Update player-related metrics from the database."""
@@ -115,9 +121,9 @@ class BotMetrics:
 
                 self.players_total.labels(game_id=str(game.id), game_status=game_status).set(players_count)
 
-            logger.debug(f"Updated player metrics for {len(games)} games")
-        except Exception as e:
-            logger.exception(f"Failed to update player metrics: {e}")
+            logger.debug("Updated player metrics for %s games", len(games))
+        except Exception:
+            logger.exception("Failed to update player metrics")
 
     async def update_all_metrics(self):
         """Update all metrics from the database."""
@@ -138,27 +144,27 @@ class BotMetrics:
     def increment_player_join(self, game_id: int):
         """Increment the player join counter for a specific game."""
         self.players_joined.labels(game_id=str(game_id)).inc()
-        logger.debug(f"Incremented player join counter for game {game_id}")
+        logger.debug("Incremented player join counter for game %s", game_id)
 
     def increment_message_processed(self, handler_type: str):
         """Increment the message processed counter."""
         self.messages_processed.labels(handler_type=handler_type).inc()
-        logger.debug(f"Incremented message processed counter for {handler_type}")
+        logger.debug("Incremented message processed counter for %s", handler_type)
 
     def increment_command_executed(self, command: str):
         """Increment the command executed counter."""
         self.commands_executed.labels(command=command).inc()
-        logger.debug(f"Incremented command executed counter for {command}")
+        logger.debug("Incremented command executed counter for %s", command)
 
     def increment_admin_action(self, action_type: str):
         """Increment the admin action counter."""
         self.admin_actions.labels(action_type=action_type).inc()
-        logger.debug(f"Incremented admin action counter for {action_type}")
+        logger.debug("Incremented admin action counter for %s", action_type)
 
     def record_response_time(self, operation_type: str, duration: float):
         """Record response time for an operation."""
         self.response_time.labels(operation_type=operation_type).observe(duration)
-        logger.debug(f"Recorded response time for {operation_type}: {duration}s")
+        logger.debug("Recorded response time for %s: %ss", operation_type, duration)
 
     @staticmethod
     def get_metrics() -> bytes:

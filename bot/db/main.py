@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 async def init_db() -> None:
-    """Инициализация подключения к Tortoise ORM"""
+    """Initialize Tortoise ORM connection."""
 
     await Tortoise.init(config=settings.tortoise_config)
     if settings.tortoise_generate_schemas:
@@ -22,7 +22,7 @@ async def init_db() -> None:
 
 
 async def close_db() -> None:
-    """Закрываем все соединения с базой данных для Tortoise ORM"""
+    """Close all Tortoise ORM connections."""
 
     await Tortoise.close_connections()
     logger.info("Tortoise ORM соединения закрыты")
@@ -39,7 +39,8 @@ async def _ensure_default_admin_chat() -> None:
     _, created = await Chat.get_or_create(key="logs", defaults=defaults)
     if created:
         logger.info(
-            f"Создан системный чат 'logs' c айди {settings.admin_chat_id}",
+            "Created system chat 'logs' with id %s",
+            settings.admin_chat_id,
         )
 
 
@@ -54,12 +55,13 @@ async def _ensure_default_discussion_group() -> None:
     _, created = await Chat.get_or_create(key="discussion", defaults=defaults)
     if created:
         logger.info(
-            f"Создан системный чат 'discussion' c айди {settings.discussion_chat_id}",
+            "Created system chat 'discussion' with id %s",
+            settings.discussion_chat_id,
         )
 
 
 async def _ensure_default_admins() -> None:
-    # Выдаем админки тем, кто указан
+    # Grant admin role to configured users.
     admins = [int(i) for i in settings.admin_ids_raw.split(",")]
     for admin_id in admins:
         user, _created = await User.get_or_create(
@@ -69,15 +71,20 @@ async def _ensure_default_admins() -> None:
             user.is_admin = True
             await user.save()
             logger.info(
-                f"Админ {admin_id} получил права администратора!",
+                "Admin %s granted admin rights.",
+                admin_id,
             )
-    # Забираем админки у тех, кто больше не указан
+    # Revoke admin role from users not listed anymore.
     for user in await User.filter(is_admin=True).all():
         if user.tg_id in admins:
             continue
         user.is_admin = False
         logger.info(
-            f"Админ {user.tg_id} лишился права администратора!",
+            "Admin %s lost admin rights.",
+            user.tg_id,
         )
         await user.save()
-    assert len(admins) == await User.filter(is_admin=True).count()
+    admin_count = await User.filter(is_admin=True).count()
+    if len(admins) != admin_count:
+        msg = "Admin sync mismatch: expected %s, got %s"
+        raise RuntimeError(msg % (len(admins), admin_count))

@@ -19,6 +19,9 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+from aiogram.types import (
+    User as TgUser,
+)
 from aiogram_dialog import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
@@ -33,11 +36,12 @@ _CONFIRM_PREFIX = "confirm_pending:"
 _DENY_PREFIX = "deny_pending:"
 _TAG = "profile_confirm"
 
+_BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
 
 FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
-def _moderator_name(tg_user) -> str:
+def _moderator_name(tg_user: TgUser) -> str:
     if tg_user.username:
         return f"@{tg_user.username}"
     full_name = tg_user.full_name or str(tg_user.id)
@@ -91,7 +95,7 @@ def _wrap_with_tag(text: str) -> str:
     return f"#{_TAG}\n\n{text}"
 
 
-def _format_value(field: str, value) -> str:
+def _format_value(field: str, value: object) -> str:
     if value is None:
         return "-"
     if field == "type":
@@ -196,7 +200,7 @@ async def _edit_admin_message(
     full_body = f"{status_line}\n\n{_wrap_with_tag(body)}"
 
     try:
-        await edit_message_caption(
+        await bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
             caption=full_body,
@@ -204,7 +208,7 @@ async def _edit_admin_message(
             parse_mode="HTML",
         )
     except TelegramBadRequest:
-        await edit_message_text(
+        await bot.edit_message_text(
             chat_id=chat_id,
             message_id=message_id,
             text=full_body,
@@ -216,7 +220,7 @@ async def _edit_admin_message(
 async def _notify_user_rejection(bot: Bot, pending: PendingProfile, reason: str | None) -> None:
     text = _build_user_denied_text(pending, reason)
     try:
-        await send_message(chat_id=pending.user.tg_id, text=text)
+        await bot.send_message(chat_id=pending.user.tg_id, text=text)
     except TelegramForbiddenError:
         return
 
@@ -233,7 +237,7 @@ def _disabled_keyboard(label_left: str, label_right: str) -> InlineKeyboardMarku
     )
 
 
-async def _process_rejection(
+async def _process_rejection(  # noqa: PLR0913
     *,
     message: Message,
     bot: Bot,
@@ -360,7 +364,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
     )
 
     try:
-        await send_message(chat_id=approved_user.tg_id, text=notify_text)
+        await bot.send_message(chat_id=approved_user.tg_id, text=notify_text)
         if pending.is_new_profile:
             user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(
                 bot=bot,
@@ -388,7 +392,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
 
 
 @router.callback_query(F.data.startswith(_DENY_PREFIX))
-async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
+async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):  # noqa: C901
     """
     Admin pressed 'deny {user_id}'.
     - Notifies the user about denial.
@@ -438,7 +442,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         await pending.user.save(update_fields=["status"])
 
     with contextlib.suppress(TelegramForbiddenError):
-        await send_message(
+        await bot.send_message(
             chat_id=callback.from_user.id,
             text=texts.render("moderation.notify_reason", pending_id=pending.id),
         )
@@ -469,7 +473,9 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
             return
         await _notify_user_rejection(bot, fresh, None)
 
-    asyncio.create_task(_timeout_notify())
+    _timeout_task = asyncio.create_task(_timeout_notify())
+    _BACKGROUND_TASKS.add(_timeout_task)
+    _timeout_task.add_done_callback(_BACKGROUND_TASKS.discard)
 
 
 @router.message(

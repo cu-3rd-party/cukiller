@@ -1,5 +1,6 @@
 import html
 import logging
+from collections.abc import Awaitable, Callable
 
 from aiogram import Bot, Router
 from aiogram.enums import ContentType
@@ -59,7 +60,7 @@ def group_required(course_type: str) -> bool:
     return course_type == "bachelor"
 
 
-def hugging_allowed_label(value: bool | None) -> str:
+def hugging_allowed_label(*, value: bool | None) -> str:
     if value is None:
         return "-"
     return "Да" if value else "Нет"
@@ -72,7 +73,7 @@ def hugging_allowed_label(value: bool | None) -> str:
 
 @log_dialog_action("REG_NAME_INPUT")
 @log_dialog_action("REG_FAMILY_NAME_INPUT")
-async def on_family_name_input(m: Message, _, manager: DialogManager):
+async def on_family_name_input(m: Message, _: MessageInput, manager: DialogManager):
     if not is_safe(m.text):
         return
     value = normalize_name_component(m.text)
@@ -83,7 +84,7 @@ async def on_family_name_input(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("REG_GIVEN_NAME_INPUT")
-async def on_given_name_input(m: Message, _, manager: DialogManager):
+async def on_given_name_input(m: Message, _: MessageInput, manager: DialogManager):
     if not is_safe(m.text):
         return
     value = normalize_name_component(m.text)
@@ -94,17 +95,17 @@ async def on_given_name_input(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("REG_OPEN_PROFILE_RULES")
-async def open_profile_rules(_, __, manager: DialogManager):
+async def open_profile_rules(_: CallbackQuery, __: Button, manager: DialogManager):
     await manager.start(RulesStates.profile_rules, show_mode=ShowMode.AUTO)
 
 
 @log_dialog_action("REG_WELCOME_NEXT")
-async def on_welcome_next(c: CallbackQuery, _, manager: DialogManager):
+async def on_welcome_next(c: CallbackQuery, _: Button, manager: DialogManager):
     await manager.switch_to(RegisterForm.family_name)
 
 
 @log_dialog_action("REG_TYPE_SELECTED")
-async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_type: str):
+async def on_type_selected(c: CallbackQuery, _: Button, manager: DialogManager, course_type: str):
     manager.dialog_data["course_type"] = course_type
 
     if course_number_required(course_type):
@@ -114,7 +115,7 @@ async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_t
 
 
 @log_dialog_action("REG_COURSE_NUMBER_SELECTED")
-async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager, num: str):
+async def on_course_number_selected(c: CallbackQuery, _: Button, manager: DialogManager, num: str):
     manager.dialog_data["course_number"] = int(num)
 
     if group_required(manager.dialog_data["course_type"]):
@@ -124,13 +125,13 @@ async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager,
 
 
 @log_dialog_action("REG_GROUP_SELECTED")
-async def on_group_selected(c: CallbackQuery, _, manager: DialogManager, group: str):
+async def on_group_selected(c: CallbackQuery, _: Button, manager: DialogManager, group: str):
     manager.dialog_data["group_name"] = group
     await manager.next()
 
 
 @log_dialog_action("REG_ABOUT_INPUT")
-async def on_about_input(m: Message, _, manager: DialogManager):
+async def on_about_input(m: Message, _: MessageInput, manager: DialogManager):
     if not is_safe(m.text, SafeStringConfig(allow_newline=True, max_len=0)):
         return
     manager.dialog_data["about"] = m.text.strip()
@@ -138,13 +139,19 @@ async def on_about_input(m: Message, _, manager: DialogManager):
 
 
 @log_dialog_action("REG_HUGGING_SELECTED")
-async def on_hugging_selected(c: CallbackQuery, _: Button, manager: DialogManager, allowed: bool):
+async def on_hugging_selected(
+    c: CallbackQuery,
+    _: Button,
+    manager: DialogManager,
+    *,
+    allowed: bool,
+):
     manager.dialog_data["allow_hugging_on_kill"] = allowed
     await manager.switch_to(RegisterForm.confirm)
 
 
 @log_dialog_action("REG_PHOTO_INPUT")
-async def on_photo_input(m: Message, _, manager: DialogManager):
+async def on_photo_input(m: Message, _: MessageInput, manager: DialogManager):
     if not m.photo:
         return await m.answer(texts.get("registration.photo_required"))
     manager.dialog_data["photo"] = m.photo[-1].file_id
@@ -152,7 +159,7 @@ async def on_photo_input(m: Message, _, manager: DialogManager):
     return None
 
 
-async def reg_confirm_getter(dialog_manager: DialogManager, **_):
+async def reg_confirm_getter(dialog_manager: DialogManager, **_: object):
     d = dialog_manager.dialog_data
     full_name = build_full_name(d.get("given_name"), d.get("family_name"))
     return {
@@ -165,7 +172,7 @@ async def reg_confirm_getter(dialog_manager: DialogManager, **_):
         "about": d.get("about") or "-",
         "photo": d.get("photo"),
         "has_photo": bool(d.get("photo")),
-        "allow_hugging_on_kill_label": hugging_allowed_label(d.get("allow_hugging_on_kill")),
+        "allow_hugging_on_kill_label": hugging_allowed_label(value=d.get("allow_hugging_on_kill")),
     }
 
 
@@ -221,7 +228,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         course_number=html.escape(str(d.get("course_number") or "-")),
         group_name=html.escape(d.get("group_name") or "-"),
         about_user=html.escape(d["about"]),
-        allow_hugging_on_kill=html.escape(hugging_allowed_label(d.get("allow_hugging_on_kill"))),
+        allow_hugging_on_kill=html.escape(hugging_allowed_label(value=d.get("allow_hugging_on_kill"))),
         submitted_username=tg_user.username or texts.get("common.username_unknown"),
         user_id=tg_user.id,
     )
@@ -229,11 +236,13 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     admin_service = AdminChatService(bot)
     admin_message = await admin_service.send_pending_profile_request(
         chat_key="logs",
-        pending_id=str(pending.id),
-        tg_id=tg_user.id,
-        text=text,
-        photo=d["photo"],
-        tag="profile_confirm",
+        request=AdminChatService.PendingProfileRequest(
+            pending_id=str(pending.id),
+            tg_id=tg_user.id,
+            text=text,
+            photo=d["photo"],
+            tag="profile_confirm",
+        ),
     )
     if admin_message:
         pending.chat_id = admin_message.chat.id
@@ -248,8 +257,10 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
 # BUTTON FACTORIES
 # ---------------------------------------------
 
+RegistrationCallback = Callable[[CallbackQuery, Button, DialogManager, str], Awaitable[None]]
 
-def btns_course_types(callback=on_type_selected):
+
+def btns_course_types(callback: RegistrationCallback = on_type_selected):
     return Column(
         *[
             Button(
@@ -262,7 +273,7 @@ def btns_course_types(callback=on_type_selected):
     )
 
 
-def btns_groups(callback=on_group_selected):
+def btns_groups(callback: RegistrationCallback = on_group_selected):
     return Column(
         *[
             Button(
@@ -275,8 +286,7 @@ def btns_groups(callback=on_group_selected):
     )
 
 
-def course_buttons(callback=on_course_number_selected):
-    # bachelor: 1–4
+def course_buttons(callback: RegistrationCallback = on_course_number_selected):
     bachelor_btns = [
         Button(
             Const(num),
@@ -287,7 +297,6 @@ def course_buttons(callback=on_course_number_selected):
         for num in ["1", "2", "3", "4"]
     ]
 
-    # master: 1–2
     master_btns = [
         Button(
             Const(num),
@@ -301,7 +310,7 @@ def course_buttons(callback=on_course_number_selected):
     return Group(*bachelor_btns, *master_btns, width=2)
 
 
-async def reg_getter(dialog_manager: DialogManager, **_):
+async def reg_getter(dialog_manager: DialogManager, **_: object):
     course_type = dialog_manager.dialog_data.get("course_type")
     return {
         "course_type": course_type,
@@ -406,12 +415,12 @@ router.include_router(
             Button(
                 Const(texts.get("buttons.hug_yes")),
                 id="hug_yes",
-                on_click=lambda c, b, m: on_hugging_selected(c, b, m, True),
+                on_click=lambda c, b, m: on_hugging_selected(c, b, m, allowed=True),
             ),
             Button(
                 Const(texts.get("buttons.hug_no")),
                 id="hug_no",
-                on_click=lambda c, b, m: on_hugging_selected(c, b, m, False),
+                on_click=lambda c, b, m: on_hugging_selected(c, b, m, allowed=False),
             ),
             Button(
                 Const(texts.get("buttons.back")),

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, alias="DEBUG")
     secret_key: str = Field(default="very_secret_key", alias="SECRET_KEY")
     web_server_port: int = Field(default="8000", alias="BOT_WEB_SERVER_PORT")
+    web_server_host: str = Field(default="127.0.0.1", alias="BOT_WEB_SERVER_HOST")
     webhook_url: str | None = Field(default=None, alias="BOT_WEBHOOK_URL")
     webhook_path: str | None = Field(default=None, alias="BOT_WEBHOOK_PATH")
 

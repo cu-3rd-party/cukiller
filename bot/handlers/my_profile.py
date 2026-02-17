@@ -34,7 +34,7 @@ router = Router()
 FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
-def _format_value(field: str, value):
+def _format_value(field: str, value: object) -> str:
     if value is None:
         return "-"
     if field == "type":
@@ -44,7 +44,7 @@ def _format_value(field: str, value):
     return str(value)
 
 
-def _format_change_arrow(field: str, old, new) -> str:
+def _format_change_arrow(field: str, old: object, new: object) -> str:
     return texts.render(
         "profile.change_arrow",
         field_label=FIELD_LABELS[field],
@@ -130,7 +130,7 @@ def _build_profile_preview(user: User, changes: dict) -> str:
     )
 
 
-async def get_profile_info(dialog_manager: DialogManager, **kwargs):
+async def get_profile_info(dialog_manager: DialogManager, **kwargs: dict[str, object]):
     user = await get_user(dialog_manager)
     return {
         "family_name": user.family_name or "-",
@@ -143,7 +143,7 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs):
     }
 
 
-async def confirm_preview_getter(dialog_manager: DialogManager, **kwargs):
+async def confirm_preview_getter(dialog_manager: DialogManager, **kwargs: dict[str, object]):
     user = await get_user(dialog_manager)
     changes, changed_fields = _collect_changes(dialog_manager.dialog_data, user)
     preview_photo_id = changes.get("photo") or user.photo
@@ -199,7 +199,7 @@ router.include_router(
 
 
 @log_dialog_action("EDIT_TYPE_SELECTED")
-async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_type: str):
+async def on_type_selected(c: CallbackQuery, _: Button, manager: DialogManager, course_type: str):
     manager.dialog_data["academics_edited"] = True
     manager.dialog_data["course_type"] = course_type
 
@@ -210,7 +210,7 @@ async def on_type_selected(c: CallbackQuery, _, manager: DialogManager, course_t
 
 
 @log_dialog_action("EDIT_COURSE_NUMBER_SELECTED")
-async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager, num: str):
+async def on_course_number_selected(c: CallbackQuery, _: Button, manager: DialogManager, num: str):
     manager.dialog_data["course_number"] = int(num)
 
     if group_required(manager.dialog_data["course_type"]):
@@ -220,7 +220,7 @@ async def on_course_number_selected(c: CallbackQuery, _, manager: DialogManager,
 
 
 @log_dialog_action("EDIT_GROUP_SELECTED")
-async def on_group_selected(c: CallbackQuery, _, manager: DialogManager, group: str):
+async def on_group_selected(c: CallbackQuery, _: Button, manager: DialogManager, group: str):
     manager.dialog_data["group_name"] = group
     await manager.switch_to(EditProfile.confirm)
 
@@ -256,7 +256,7 @@ async def on_about(message: Message, message_input: MessageInput, manager: Dialo
 
 
 @log_dialog_action("EDIT_PHOTO_INPUT")
-async def on_photo(m: Message, _, manager: DialogManager):
+async def on_photo(m: Message, _: MessageInput, manager: DialogManager):
     if not m.photo:
         return
     manager.dialog_data["photo"] = m.photo[-1].file_id
@@ -315,11 +315,13 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     admin_service = AdminChatService(bot)
     admin_message = await admin_service.send_pending_profile_request(
         chat_key="logs",
-        pending_id=str(pending.id),
-        tg_id=tg_user.id,
-        text=text,
-        photo=photo_to_send,
-        tag="profile_edit",
+        request=AdminChatService.PendingProfileRequest(
+            pending_id=str(pending.id),
+            tg_id=tg_user.id,
+            text=text,
+            photo=photo_to_send,
+            tag="profile_edit",
+        ),
     )
     if admin_message:
         pending.chat_id = admin_message.chat.id

@@ -26,6 +26,7 @@ from handlers.mainloop.button_handlers import (
 )
 from handlers.mainloop.getters import get_main_menu_info, get_target_info
 from services import MainLoop, texts
+from services.states.my_profile import MyProfile
 
 logger = logging.getLogger(__name__)
 
@@ -174,8 +175,6 @@ async def confirmed_start(
 
     if user.family_name_required:
         await message.answer(texts.get("profile.family_name_required"))
-        from services.states.my_profile import MyProfile
-
         await dialog_manager.start(
             MyProfile.profile,
             data={

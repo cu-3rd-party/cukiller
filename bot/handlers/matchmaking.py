@@ -22,8 +22,8 @@ def setup_matchmaking_routers(app: web.Application, bot: Bot) -> None:
 
 
 async def get_queue_info(request: web.Request) -> web.StreamResponse:
-    # по сути все игроки которые is_in_game, но у которых нету цели/нет убийцы подлежат помещению в очередь на матчмейкинг
-    # можно сделать уебищную логику через все кто не в KillEvent, но надо TODO: добавить схему очереди в дб
+    # All players that are is_in_game but have no target/killer should be queued.
+    # A dedicated DB queue schema would be more reliable than filtering by KillEvent.
     if request.headers.get("secret-key") != request.app["settings"].secret_key:
         return web.StreamResponse(status=403)
     game = await Game.filter(end_date=None).first()
@@ -77,7 +77,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
             ),
         )
 
-        await send_message(
+        await bot.send_message(
             chat_id=killer_user.tg_id,
             text=texts.get("matchmaking.killer_message"),
             parse_mode="HTML",
@@ -104,7 +104,7 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
             data={"game_id": game.id, "user_tg_id": killer_user.tg_id},
             show_mode=ShowMode.AUTO,
         )
-    except Exception as e:
-        logger.exception(e)
+    except Exception:
+        logger.exception("Failed to process matchmaking notification")
     finally:
         return web.StreamResponse(status=200)  # noqa: B012

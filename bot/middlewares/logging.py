@@ -1,13 +1,21 @@
 import logging
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject, Update
 
 logger = logging.getLogger("user_actions")
+T = TypeVar("T")
 
 
 class VerboseLoggingMiddleware(BaseMiddleware):
-    async def __call__(self, handler, event: TelegramObject, data: dict):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[T]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> T:
         if isinstance(event, Message):
             logger.info(
                 "MESSAGE: user=%s chat=%s text=%r",

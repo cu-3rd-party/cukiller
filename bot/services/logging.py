@@ -1,16 +1,22 @@
 import contextlib
 import logging
+from collections.abc import Awaitable, Callable
 
 from aiogram.types import CallbackQuery, Message
 
 logger = logging.getLogger("dialog_actions")
 
 
-def log_dialog_action(action_name: str):
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
+_MANAGER_ARG_INDEX = 2
+
+
+def log_dialog_action(
+    action_name: str,
+) -> Callable[[Callable[..., Awaitable[object]]], Callable[..., Awaitable[object]]]:
+    def decorator(func: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:
+        async def wrapper(*args: object, **kwargs: object) -> object:
             event = args[0] if args else None
-            manager = args[2] if len(args) > 2 else kwargs.get("manager")
+            manager = args[_MANAGER_ARG_INDEX] if len(args) > _MANAGER_ARG_INDEX else kwargs.get("manager")
 
             user_id = None
             if isinstance(event, CallbackQuery):
@@ -42,9 +48,9 @@ def log_dialog_action(action_name: str):
     return decorator
 
 
-def log_filter(call_name: str):
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
+def log_filter(call_name: str) -> Callable[[Callable[..., Awaitable[object]]], Callable[..., Awaitable[object]]]:
+    def decorator(func: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:
+        async def wrapper(*args: object, **kwargs: object) -> object:
             ret = await func(*args, **kwargs)
             logger.debug(
                 "FILTER: %s called on user=%s and returned %s",
@@ -59,9 +65,9 @@ def log_filter(call_name: str):
     return decorator
 
 
-def log_getter(call_name: str):
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
+def log_getter(call_name: str) -> Callable[[Callable[..., Awaitable[object]]], Callable[..., Awaitable[object]]]:
+    def decorator(func: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:
+        async def wrapper(*args: object, **kwargs: object) -> object:
             ret = await func(*args, **kwargs)
             logger.debug(
                 "GETTER: %s called and returned %s",

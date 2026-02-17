@@ -5,7 +5,7 @@ from services import texts
 
 
 class UserFilter(BaseFilter):
-    async def __call__(self, message: Message, **kwargs) -> bool:
+    async def __call__(self, message: Message, **kwargs: object) -> bool:
         telegram_user = message.from_user
 
         if telegram_user is None:

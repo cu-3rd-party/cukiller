@@ -5,5 +5,5 @@ from db.models import User
 
 
 class InGameFilter(BaseFilter):
-    async def __call__(self, message: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, message: Message, user: User, **kwargs: object) -> bool:
         return user is not None and user.is_in_game

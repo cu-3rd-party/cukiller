@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
@@ -23,12 +24,12 @@ def _build_body(text: str, tag: str | None) -> str:
     return f"#{tag}\n\n{text}" if tag else text
 
 
-def _pending_buttons(pending_id: str, tg_id: int, with_inspect: bool) -> InlineKeyboardMarkup:
+def _pending_buttons(pending_id: str, tg_id: int, *, with_inspect: bool) -> InlineKeyboardMarkup:
     rows = []
     if with_inspect:
         rows.append([InlineKeyboardButton(text="inspect", url=f"tg://user?id={tg_id}")])
     else:
-        logger.warning(f"User {tg_id} has forced us to disable inspect")
+        logger.warning("User %s has forced us to disable inspect", tg_id)
     rows.append(
         [
             InlineKeyboardButton(
@@ -55,17 +56,24 @@ class AdminChatService:
     async def send_message(self, key: str, text: str, tag: str | None = None) -> None:
         """Send a text message to a chat by key"""
         chat = await self._get_chat(key)
-        await self.send_message(
+        await self.bot.send_message(
             chat_id=chat.chat_id,
             text=_build_body(text, tag),
             parse_mode="HTML",
         )
 
-    async def send_message_photo(self, photo, tg_id: int, key: str, text: str, tag: str | None = None):
+    async def send_message_photo(
+        self,
+        photo: object,
+        tg_id: int,
+        key: str,
+        text: str,
+        tag: str | None = None,
+    ):
         chat = await self._get_chat(key)
         body = _build_body(text, tag)
 
-        await self.send_photo(
+        await self.bot.send_photo(
             chat_id=chat.chat_id,
             photo=photo,
             caption=body,
@@ -75,32 +83,36 @@ class AdminChatService:
             parse_mode="HTML",
         )
 
+    @dataclass(slots=True)
+    class PendingProfileRequest:
+        pending_id: str
+        tg_id: int
+        text: str
+        photo: str | None = None
+        tag: str | None = None
+
     async def send_pending_profile_request(
         self,
         *,
         chat_key: str,
-        pending_id: str,
-        tg_id: int,
-        text: str,
-        photo: str | None = None,
-        tag: str | None = None,
-    ) -> Message:
+        request: "AdminChatService.PendingProfileRequest",
+    ) -> Message | None:
         chat = await self._get_chat(chat_key)
-        await User.get_or_create(tg_id=tg_id)
+        await User.get_or_create(tg_id=request.tg_id)
 
-        body = _build_body(text, tag)
-        reply_markup = _pending_buttons(pending_id, tg_id, with_inspect=True)
+        body = _build_body(request.text, request.tag)
+        reply_markup = _pending_buttons(request.pending_id, request.tg_id, with_inspect=True)
 
         try:
-            if photo:
-                return await self.send_photo(
+            if request.photo:
+                return await self.bot.send_photo(
                     chat_id=chat.chat_id,
-                    photo=photo,
+                    photo=request.photo,
                     caption=body,
                     reply_markup=reply_markup,
                     parse_mode="HTML",
                 )
-            return await self.send_message(
+            return await self.bot.send_message(
                 chat_id=chat.chat_id,
                 text=body,
                 reply_markup=reply_markup,
@@ -112,17 +124,17 @@ class AdminChatService:
                 chat.chat_id,
                 e,
             )
-            fallback_markup = _pending_buttons(pending_id, tg_id, with_inspect=False)
+            fallback_markup = _pending_buttons(request.pending_id, request.tg_id, with_inspect=False)
             try:
-                return await self.send_message(
+                return await self.bot.send_message(
                     chat_id=chat.chat_id,
                     text=body,
                     reply_markup=fallback_markup,
                     parse_mode="HTML",
                 )
-            except TelegramBadRequest as e2:
-                logger.exception("Ошибка при отправке профиля: %s", e2)
+            except TelegramBadRequest:
+                logger.exception("Ошибка при отправке профиля")
                 return None
-        except Exception as e:
-            logger.exception("Произошла ошибка: %s", e)
+        except Exception:
+            logger.exception("Произошла ошибка")
             return None

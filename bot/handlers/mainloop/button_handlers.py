@@ -1,5 +1,6 @@
 import logging
 
+from aiogram.fsm.state import State
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
@@ -31,7 +32,7 @@ async def _get_user_and_game(manager: DialogManager) -> tuple[User, Game]:
 async def _start_kill_confirmation(
     manager: DialogManager,
     kill_event: KillEvent,
-    state,
+    state: State,
 ) -> None:
     await manager.start(
         state,
@@ -40,7 +41,7 @@ async def _start_kill_confirmation(
     )
 
 
-async def _get_pending_event(user_id: int, game_id: int, role: str):
+async def _get_pending_event(user_id: int, game_id: int, role: str) -> KillEvent | None:
     """role: 'victim' | 'killer'"""
     filters = {
         "victim": {"victim_id": user_id},
@@ -69,6 +70,9 @@ async def on_i_killed(callback: CallbackQuery, button: Button, manager: DialogMa
 
     user, game = await _get_user_and_game(manager)
     kill_event = await _get_pending_event(user.id, game.id, role="killer")
+
+    if not kill_event:
+        return
 
     await _start_kill_confirmation(manager, kill_event, ConfirmKillKiller.confirm)
 

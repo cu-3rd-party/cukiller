@@ -2,23 +2,34 @@ services:
   bot:
     build:
       context: ./bot
-      dockerfile: bot/Dockerfile
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
     env_file:
       - .env
     depends_on:
       - db
       - matchmaking
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 128MB
     restart: unless-stopped
     logging:
       driver: local
       options:
         max-size: "50m"
         max-file: "3"
+    networks:
+      - cukiller
 
   matchmaking:
     build:
-      context: .
-      dockerfile: matchmaking.Dockerfile
+      context: ./backend/matchmaking
+      dockerfile: Dockerfile
+    expose:
+      - "6543"
     env_file: .env
     depends_on:
       - db
@@ -28,13 +39,25 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    networks:
+      - cukiller
 
   graphgetter:
     build:
-      context: .
-      dockerfile: graphgetter.Dockerfile
-    ports:
-      - "6544:6544"
+      context: ./backend/graphgetter
+      dockerfile: Dockerfile
+    expose:
+      - "6544"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
     env_file: .env
     depends_on:
       - db
@@ -44,13 +67,20 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    networks:
+      - cukiller
 
   stats:
     build:
-      context: .
-      dockerfile: stats.Dockerfile
-    ports:
-      - "6545:6545"
+      context: ./backend/stats
+      dockerfile: Dockerfile
+    expose:
+      - "6545"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
     depends_on:
       - db
     restart: unless-stopped
@@ -59,55 +89,95 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    networks:
+      - cukiller
 
   stats-web:
     build:
-      context: ./stats-web
+      context: ./frontend/stats-web
       dockerfile: Dockerfile
-    ports:
-      - "8081:80"
     environment:
-      BACKEND_URL: http://localhost:6545
+      BACKEND_URL: http://stats:6545
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    expose:
+      - "80"
     restart: unless-stopped
     logging:
       driver: local
       options:
         max-size: "50m"
         max-file: "3"
+    networks:
+      - cukiller
 
   db:
     image: postgres:18-alpine
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./schema:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
+    networks:
+      - cukiller
 
   redis:
     image: redis:8.2.2-alpine3.22
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    command: >
+      sh -c "redis-server
+      --bind 0.0.0.0
+      --port \"$${REDIS_PORT:-6379}\"
+      $${REDIS_REQUIREPASS:+--requirepass \"$${REDIS_REQUIREPASS}\"}
+      --appendonly \"$${REDIS_APPENDONLY:-yes}\""
     restart: unless-stopped
+    networks:
+      - cukiller
 
   adminer:
     image: adminer
     depends_on:
       - db
-    ports:
-      - "8999:8080"
+    expose:
+      - "8080"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
     restart: unless-stopped
+    networks:
+      - cukiller
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.52.0
     volumes:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -116,22 +186,58 @@ services:
     depends_on:
       - bot
     restart: unless-stopped
+    networks:
+      - cukiller
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.2.0
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-    ports:
-      - "3999:3000"
+    expose:
+      - "3000"
     depends_on:
       - prometheus
     restart: unless-stopped
+    networks:
+      - cukiller
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    depends_on:
+      - bot
+      - matchmaking
+      - graphgetter
+      - stats
+      - stats-web
+      - adminer
+      - grafana
+    restart: unless-stopped
+    networks:
+      - cukiller
 
 volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
   redis_data:
+
+networks:
+  cukiller:
+    driver: bridge

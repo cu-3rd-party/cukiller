@@ -1,6 +1,7 @@
 import logging
 import math
-import random
+import secrets
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Router
@@ -21,7 +22,7 @@ router = Router()
 
 
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: float):
-    await send_message(
+    await bot.send_message(
         chat_id=user.tg_id,
         text=texts.render(
             "reroll.player_notified",
@@ -43,31 +44,33 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: flo
     )
 
 
-async def notify_chat(
-    bot: Bot,
-    killer: User,
-    victim: User,
-    killer_player: Player,
-    victim_player: Player,
-    killer_delta: float,
-    victim_delta: float,
-):
-    reason = random.choice(texts.get_list("reroll.fail_reasons"))
-    killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
-    victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
-    await send_message(
+@dataclass(frozen=True, slots=True)
+class RerollNotification:
+    killer: User
+    victim: User
+    killer_player: Player
+    victim_player: Player
+    killer_delta: float
+    victim_delta: float
+
+
+async def notify_chat(bot: Bot, notification: RerollNotification) -> None:
+    reason = secrets.choice(texts.get_list("reroll.fail_reasons"))
+    killer_display = notification.killer.full_name or notification.killer.tg_username or texts.get("common.unknown")
+    victim_display = notification.victim.full_name or notification.victim.tg_username or texts.get("common.unknown")
+    await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
             "reroll.chat_notified",
-            killer=killer.mention_html(),
-            victim=victim.mention_html(),
+            killer=notification.killer.mention_html(),
+            victim=notification.victim.mention_html(),
             reason=reason,
             killer_name=trim_name(killer_display, 25),
-            killer_rating=killer_player.rating,
-            killer_delta=f"{'+' if killer_delta >= 0 else '-'}{abs(round(killer_delta))}",
+            killer_rating=notification.killer_player.rating,
+            killer_delta=f"{'+' if notification.killer_delta >= 0 else '-'}{abs(round(notification.killer_delta))}",
             victim_name=trim_name(victim_display, 25),
-            victim_rating=victim_player.rating,
-            victim_delta=f"{'+' if victim_delta >= 0 else '-'}{abs(round(victim_delta))}",
+            victim_rating=notification.victim_player.rating,
+            victim_delta=f"{'+' if notification.victim_delta >= 0 else '-'}{abs(round(notification.victim_delta))}",
         ),
     )
 
@@ -110,12 +113,14 @@ async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     await add_back_to_queues(kill_event.killer, kill_event.victim, killer_player, victim_player)
     await notify_chat(
         c.bot,
-        kill_event.killer,
-        kill_event.victim,
-        killer_player,
-        victim_player,
-        killer_delta,
-        victim_delta,
+        RerollNotification(
+            killer=kill_event.killer,
+            victim=kill_event.victim,
+            killer_player=killer_player,
+            victim_player=victim_player,
+            killer_delta=killer_delta,
+            victim_delta=victim_delta,
+        ),
     )
     await notify_player(kill_event.killer, c.bot, m, killer_delta)
     await notify_player(kill_event.victim, c.bot, m, victim_delta)

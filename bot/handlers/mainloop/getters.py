@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 FIELD_LABELS = texts.PROFILE_FIELD_LABELS
 
 
-def _safe_url(value: str | None, allow_tg: bool = False) -> str | None:
+def _safe_url(value: str | None, *, allow_tg: bool = False) -> str | None:
     if not value:
         return None
     parsed = urlparse(value)
@@ -35,9 +35,15 @@ def _safe_url(value: str | None, allow_tg: bool = False) -> str | None:
         return None
     if parsed.scheme in {"http", "https"} and not parsed.netloc:
         return None
-    if parsed.scheme in {"http", "https"} and parsed.netloc:
-        if not re.match(r"^[A-Za-z0-9.-]+(:\d+)?$", parsed.netloc):
-            return None
+    if (
+        parsed.scheme in {"http", "https"}
+        and parsed.netloc
+        and not re.match(
+            r"^[A-Za-z0-9.-]+(:\d+)?$",
+            parsed.netloc,
+        )
+    ):
+        return None
     if parsed.scheme == "tg" and not parsed.netloc:
         return None
     return value
@@ -60,7 +66,7 @@ async def get_pending_events(game: Game, user: User):
 
     killer_event = await KillEvent.filter(game=game, killer_id=user.id, status="pending").first()
 
-    logger.debug(f"Found killer event {killer_event} and {victim_event}")
+    logger.debug("Found killer event %s and %s", killer_event, victim_event)
     return killer_event, victim_event
 
 
@@ -75,10 +81,12 @@ def get_advanced_info(user: User):
     if user.about_user:
         ret.append(f"{FIELD_LABELS['about_user']}: {user.about_user}")
     if user.allow_hugging_on_kill is not None:
-        ret.append(
-            f"{FIELD_LABELS['allow_hugging_on_kill']}: "
-            f"{texts.get('profile.hugs_allowed_yes') if user.allow_hugging_on_kill else texts.get('profile.hugs_allowed_no')}"
+        hugs_label = (
+            texts.get("profile.hugs_allowed_yes")
+            if user.allow_hugging_on_kill
+            else texts.get("profile.hugs_allowed_no")
         )
+        ret.append(f"{FIELD_LABELS['allow_hugging_on_kill']}: {hugs_label}")
     return "\n".join(ret)
 
 
@@ -169,7 +177,11 @@ async def get_user_rating(user: User, game: Game):
 
 
 @log_getter("GET_MAIN_MENU_INFO")
-async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
+async def get_main_menu_info(
+    dialog_manager: DialogManager,
+    dispatcher: Dispatcher,
+    **kwargs: dict[str, object],
+):
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()
 
@@ -189,7 +201,11 @@ async def get_main_menu_info(dialog_manager: DialogManager, dispatcher: Dispatch
     }
 
 
-async def get_target_info(dialog_manager: DialogManager, dispatcher: Dispatcher, **kwargs):
+async def get_target_info(
+    dialog_manager: DialogManager,
+    dispatcher: Dispatcher,
+    **kwargs: dict[str, object],
+):
     """Getter for target info window."""
     user, game = await get_user_and_game(dialog_manager)
     matchmaking = MatchmakingService()

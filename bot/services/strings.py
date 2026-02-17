@@ -32,7 +32,9 @@ class SafeStringConfig:
     safe_pattern: bool = False
 
 
-def is_safe(string: str, config: SafeStringConfig = SafeStringConfig()) -> bool:
+def is_safe(string: str, config: SafeStringConfig | None = None) -> bool:
+    if config is None:
+        config = SafeStringConfig()
     raw = unescape(string)
 
     # Проверка перевода строк

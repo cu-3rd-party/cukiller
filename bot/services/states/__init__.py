@@ -1,9 +1,9 @@
-from .confirm_profile import ConfirmProfileForm
-from .editgame import EditGame
-from .endgame import EndGame
-from .mainloop import MainLoop
-from .moderation import ProfileModeration
-from .my_profile import MyProfile
-from .participation import ParticipationForm
-from .register import RegisterForm
-from .startgame import StartGame
+from .confirm_profile import ConfirmProfileForm as ConfirmProfileForm
+from .editgame import EditGame as EditGame
+from .endgame import EndGame as EndGame
+from .mainloop import MainLoop as MainLoop
+from .moderation import ProfileModeration as ProfileModeration
+from .my_profile import MyProfile as MyProfile
+from .participation import ParticipationForm as ParticipationForm
+from .register import RegisterForm as RegisterForm
+from .startgame import StartGame as StartGame

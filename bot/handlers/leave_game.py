@@ -1,8 +1,10 @@
 import logging
-import random
+import secrets
 from datetime import datetime
 
 from aiogram import Router
+from aiogram.client.bot import Bot
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.kbd import Button, Cancel
@@ -100,14 +102,11 @@ async def _apply_leave_penalty(user: User, game: Game | None, now: datetime) -> 
     return penalty, killer_user
 
 
-async def _notify_killer(bot, killer: User) -> None:
+async def _notify_killer(bot: Bot, killer: User) -> None:
     try:
-        killer_notification = random.choice(texts.get_list("leave.killer_notification"))
-        await send_message(
-            killer.tg_id,
-            killer_notification,
-        )
-    except Exception as exc:
+        killer_notification = secrets.choice(texts.get_list("leave.killer_notification"))
+        await bot.send_message(killer.tg_id, killer_notification)
+    except (TelegramForbiddenError, TelegramBadRequest) as exc:
         logger.warning("Не можем оповестить клиллера %s о том что жертва вышла из игры: %s", killer.id, exc)
 
 

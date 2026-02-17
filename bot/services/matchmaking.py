@@ -40,8 +40,8 @@ class MatchmakingService:
                 if "application/json" in resp.headers.get("Content-Type", ""):
                     return resp.status, await resp.json()
                 return resp.status, None
-        except Exception as e:
-            self.logger.exception(f"Failed {method} {url}: {e}")
+        except Exception:
+            self.logger.exception("Failed %s %s", method, url)
             return None, None
 
     # -------------------- QUEUE OPS --------------------
@@ -49,7 +49,7 @@ class MatchmakingService:
     async def add_player_to_queue(self, player_id: int, player_data: dict[str, Any], queue_type: str) -> bool:
         """Add player to Go service queue"""
         if queue_type not in {"killer", "victim"}:
-            self.logger.error(f"Invalid queue type: {queue_type}")
+            self.logger.error("Invalid queue type: %s", queue_type)
             return False
 
         await self._request("POST", f"/add/{queue_type}/", json_data=player_data)

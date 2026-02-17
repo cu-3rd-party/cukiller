@@ -74,7 +74,7 @@ def register_all_handlers(dp: Dispatcher) -> None:
 
 
 # Global web server instance
-_web_server: web.AppRunner | None = None
+_web_server_state: dict[str, web.AppRunner | None] = {"runner": None}
 
 
 def _normalize_webhook_path() -> str:
@@ -93,8 +93,6 @@ def _normalize_webhook_path() -> str:
 
 async def start_web_server(bot: Bot, dp: Dispatcher) -> None:
     """Start the HTTP web server for metrics/matchmaking and webhook endpoints."""
-    global _web_server
-
     app = web.Application()
     setup_metrics_routes(app)
     setup_matchmaking_routers(app, bot)
@@ -107,10 +105,10 @@ async def start_web_server(bot: Bot, dp: Dispatcher) -> None:
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, "0.0.0.0", settings.web_server_port)
+    site = web.TCPSite(runner, settings.web_server_host, settings.web_server_port)
     await site.start()
 
-    _web_server = runner
+    _web_server_state["runner"] = runner
     logger.info(
         "HTTP web server started on port %d for metrics endpoint",
         settings.web_server_port,
@@ -119,11 +117,10 @@ async def start_web_server(bot: Bot, dp: Dispatcher) -> None:
 
 async def stop_web_server() -> None:
     """Stop the HTTP web server."""
-    global _web_server
-
-    if _web_server:
-        await _web_server.cleanup()
-        _web_server = None
+    runner = _web_server_state["runner"]
+    if runner:
+        await runner.cleanup()
+        _web_server_state["runner"] = None
         logger.info("HTTP web server stopped")
 
 
@@ -163,24 +160,24 @@ async def on_shutdown(bot: Bot) -> None:
 class EnhancedJSONEncoder(json.JSONEncoder):
     """JSON encoder that supports UUID."""
 
-    def default(self, obj):
+    def default(self, obj: object) -> object:
         if isinstance(obj, UUID):
             return {"__uuid__": str(obj)}
         return super().default(obj)
 
 
-def enhanced_json_loader(data: str):
+def enhanced_json_loader(data: str) -> object:
     """JSON loader that restores UUIDs."""
 
-    def object_hook(obj):
+    def object_hook(obj: dict[str, object]) -> object:
         if "__uuid__" in obj:
-            return UUID(obj["__uuid__"])
+            return UUID(str(obj["__uuid__"]))
         return obj
 
     return json.loads(data, object_hook=object_hook)
 
 
-def enhanced_json_dumper(obj) -> str:
+def enhanced_json_dumper(obj: object) -> str:
     """JSON dumper that serializes UUIDs."""
     return json.dumps(obj, cls=EnhancedJSONEncoder)
 
@@ -236,7 +233,6 @@ async def main() -> None:
     logging.basicConfig(
         level=os.environ.get("LOGLEVEL", "INFO").upper(),
         format="%(levelname)s:\t[%(asctime)s] - %(message)s",
-        # format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
     )
     logger.info("Запущен бот в проекте: %s", settings.project_name)
 

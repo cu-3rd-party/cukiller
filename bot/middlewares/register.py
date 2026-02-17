@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypeVar
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
@@ -10,18 +10,11 @@ from db.models import User
 from services import normalize_name_component, settings
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 class RegisterUserMiddleware(BaseMiddleware):
-    """
-    Используется, чтоб дополнять информацию о пользователе, когда он с нами взаимодействует.
-
-    Важно: оно не должно при каждом взаимодействии делать множество запросов в базу данных, также как
-    и не должно обновлять информацию после подтверждения профиля пользователя. В кеше должно храниться
-    ключ: telegram_id юзера
-    значение: telegram_username и имя фамилия в случае если status пользователя не является confirmed, если профиль
-            пользователя подтвержден, то мы не должны никак его менять
-    """
+    """Update user details on interaction, with a short-lived cache to avoid extra DB reads."""
 
     def __init__(self, cache_ttl: int = 300) -> None:
         super().__init__()
@@ -30,10 +23,10 @@ class RegisterUserMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[T]],
         event: Message,
         data: dict[str, Any],
-    ):
+    ) -> T:
         user = event.from_user
 
         cache_key = user.id
@@ -87,7 +80,7 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "timestamp": datetime.now(settings.timezone),
             }
             data["user_tg_id"] = db_user.tg_id
-            logger.info(f"New user with telegram id: {user.id}")
+            logger.info("New user with telegram id: %s", user.id)
 
         self._clean_cache()
         return await handler(event, data)

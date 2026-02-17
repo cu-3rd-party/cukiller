@@ -32,7 +32,7 @@ async def metrics_endpoint(request: Request) -> Response:
             content_type="text/plain; version=0.0.4",
         )
     except Exception as e:
-        logger.exception(f"Error generating metrics: {e}")
+        logger.exception("Error generating metrics")
         return Response(
             text=f"Error generating metrics: {e}",
             status=500,
@@ -57,7 +57,7 @@ async def health_check(request: Request) -> Response:
 
         return web.json_response(health_data)
     except Exception as e:
-        logger.exception(f"Health check failed: {e}")
+        logger.exception("Health check failed")
         return web.json_response(
             {
                 "status": "unhealthy",
@@ -95,7 +95,7 @@ class MetricsUpdater:
 
         self._running = True
         self._task = asyncio.create_task(self._update_loop())
-        logger.info(f"Metrics updater started with {self.update_interval}s interval")
+        logger.info("Metrics updater started with %ss interval", self.update_interval)
 
     async def stop(self):
         """Stop the metrics updater task."""
@@ -116,8 +116,8 @@ class MetricsUpdater:
                 await asyncio.sleep(self.update_interval)
             except asyncio.CancelledError:
                 break
-            except Exception as e:
-                logger.exception(f"Error in metrics update loop: {e}")
+            except Exception:
+                logger.exception("Error in metrics update loop")
                 await asyncio.sleep(self.update_interval)
 
 

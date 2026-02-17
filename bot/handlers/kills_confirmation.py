@@ -30,7 +30,7 @@ class ConfirmKillKiller(StatesGroup):
     double_confirm = State()
 
 
-async def send_double_confirm_dialog(manager: DialogManager, user: User, state):
+async def send_double_confirm_dialog(manager: DialogManager, user: User, state: State):
     """Send double-confirm dialog to another participant."""
     dialog_manager = BgManagerFactoryImpl(router=router).bg(
         bot=manager.event.bot,
@@ -41,7 +41,7 @@ async def send_double_confirm_dialog(manager: DialogManager, user: User, state):
 
 
 async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int):
-    await send_message(
+    await bot.send_message(
         chat_id=user.tg_id,
         text=texts.render(
             "kills.player_notified",
@@ -63,7 +63,7 @@ async def notify_player(user: User, bot: Bot, manager: DialogManager, delta: int
     )
 
 
-async def notify_chat(
+async def notify_chat(  # noqa: PLR0913
     bot: Bot,
     killer: User,
     victim: User,
@@ -75,7 +75,7 @@ async def notify_chat(
     killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
     victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
 
-    await send_message(
+    await bot.send_message(
         chat_id=(await Chat.get(key="discussion")).chat_id,
         text=texts.render(
             "kills.chat_notified",
@@ -91,7 +91,7 @@ async def notify_chat(
     )
 
 
-async def handle_confirm(
+async def handle_confirm(  # noqa: PLR0913
     bot: Bot,
     manager: DialogManager,
     role: str,
@@ -147,7 +147,7 @@ async def handle_confirm(
     )
 
 
-async def handle_deny(
+async def handle_deny(  # noqa: PLR0913
     bot: Bot,
     manager: DialogManager,
     opposite_role: str,

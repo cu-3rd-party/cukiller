@@ -13,7 +13,13 @@ from services.matchmaking import MatchmakingService
 logger = logging.getLogger(__name__)
 
 
-async def modify_rating(killer_player: Player, victim_player: Player, killer_k=1, victim_k=0, p=1):
+async def modify_rating(
+    killer_player: Player,
+    victim_player: Player,
+    killer_k: float = 1.0,
+    victim_k: float = 0.0,
+    p: float = 1.0,
+):
     """After successful kill, update ELO ratings of killer and victim."""
     killer_rating = killer_player.rating
     victim_rating = victim_player.rating

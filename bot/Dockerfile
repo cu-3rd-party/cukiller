@@ -13,13 +13,11 @@ ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
 
 WORKDIR /app
 
-COPY ../pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-COPY bot/ ./bot/
-COPY ../db ./db/
-COPY services ./services/
+COPY . ./
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl --fail --silent http://localhost:8000/health || exit 1

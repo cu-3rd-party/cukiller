@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 
 from db.models import Chat, KillEvent, Player
 from services import settings, texts
@@ -53,8 +54,8 @@ class KillTimeoutMonitor:
                 await self._process_timeouts()
             except asyncio.CancelledError:
                 break
-            except Exception as exc:
-                logger.exception("Проверка дедлайна, вызвало ошибку: %s", exc)
+            except Exception:
+                logger.exception("Проверка дедлайна, вызвало ошибку")
             await asyncio.sleep(self.interval_seconds)
 
     async def _process_timeouts(self) -> None:
@@ -104,7 +105,7 @@ class KillTimeoutMonitor:
                 chat_id=victim.tg_id,
                 text=texts.render("timeout.victim", days=self.deadline.days),
             )
-        except Exception as exc:
+        except TelegramAPIError as exc:
             logger.warning("Ошибка уведомления жертвы (%s) о таймауте, ошибка: %s", victim.id, exc)
 
         try:
@@ -112,7 +113,7 @@ class KillTimeoutMonitor:
                 chat_id=killer.tg_id,
                 text=texts.render("timeout.killer", days=self.deadline.days),
             )
-        except Exception as exc:
+        except TelegramAPIError as exc:
             logger.warning("Ошибка уведомления киллера (%s) о таймауте, ошибка: %s", killer.id, exc)
 
         if discussion_chat:
@@ -126,7 +127,7 @@ class KillTimeoutMonitor:
                         days=self.deadline.days,
                     ),
                 )
-            except Exception as exc:
+            except TelegramAPIError as exc:
                 logger.warning("Ошибка уведомления в дисскусию (%s) о таймауте, ошибка: %s", event.id, exc)
         else:
             logger.warning("Чат для обсуждений не настроен; пропуск уведомления о таймауте публичного сообщения")

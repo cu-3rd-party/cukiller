@@ -39,6 +39,6 @@ class User(TimestampedModel, ProfileBase):
     def profile_link(self):
         return f"tg://user?id={self.tg_id}"
 
-    def mention_html(self, max_len=25) -> str:
+    def mention_html(self, max_len: int = 25) -> str:
         display_name = self.full_name or self.tg_username or f"user:{self.tg_id}"
         return f'<a href="{self.profile_link()}">{trim_name(html.escape(display_name), max_len)}</a>'

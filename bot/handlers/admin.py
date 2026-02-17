@@ -6,7 +6,7 @@ from uuid import UUID
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ContentType
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     BotCommand,
@@ -37,6 +37,7 @@ from services import (
     settings,
     texts,
 )
+from services.ban import ban as ban_user
 from services.credits import CreditsInfo
 from services.states.participation import ParticipationForm
 
@@ -46,7 +47,7 @@ router = Router()
 
 
 async def set_admin_commands(bot: Bot, chat_id: int):
-    await set_my_commands(
+    await bot.set_my_commands(
         commands=[
             BotCommand(command="/start", description=texts.get("admin.command.start")),
             BotCommand(
@@ -116,20 +117,20 @@ async def on_description_input(message: Message, message_input: MessageInput, ma
 
 
 async def send_notification(bot: Bot, user: User, text: str):
-    msg = await send_message(
-        user.tg_id,
+    msg = await bot.send_message(
+        chat_id=user.tg_id,
         text=text,
         parse_mode="HTML",
     )
-    asyncio.create_task(delete_later(bot, msg.chat.id, msg.message_id))
+    return asyncio.create_task(delete_later(bot, msg.chat.id, msg.message_id))
 
 
 async def delete_later(bot: Bot, chat_id: int, msg_id: int):
     await asyncio.sleep(10)
     try:
-        await delete_message(chat_id, msg_id)
-    except Exception as e:
-        logger.warning(f"Failed to delete message {msg_id}: {e}")
+        await bot.delete_message(chat_id=chat_id, message_id=msg_id)
+    except TelegramAPIError as exc:
+        logger.warning("Failed to delete message %s: %s", msg_id, exc)
 
 
 @log_dialog_action("ADMIN_CAMPAIGN_FINAL_CONFIRMATION")
@@ -137,7 +138,7 @@ async def on_final_confirmation(
     callback: CallbackQuery,
     button: Button,
     manager: DialogManager,
-    **kwargs,
+    **kwargs: object,
 ):
     bot = manager.event.bot
     manager.dialog_data["confirm"] = True
@@ -155,7 +156,7 @@ async def on_final_confirmation(
         .all()
     )
 
-    logger.debug(f"Notifying {len(users)} about new game {game.id}")
+    logger.debug("Notifying %s about new game %s", len(users), game.id)
 
     tasks = []
     factory = BgManagerFactoryImpl(router=router)
@@ -189,7 +190,7 @@ async def on_final_confirmation(
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
-                    logger.error(f"Task {i} failed: {result}")
+                    logger.error("Task %s failed: %s", i, result)
 
     await manager.done()
     await callback.answer(
@@ -258,7 +259,7 @@ def parse_game_stage(game: Game) -> str:
     return texts.get("admin.game_stage.error")
 
 
-async def get_games_data(**kwargs):
+async def get_games_data(**kwargs: object):
     games = await Game().filter(end_date=None).all()
     return {
         "games": [
@@ -271,7 +272,7 @@ async def get_games_data(**kwargs):
     }
 
 
-async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
+async def get_selected_game_data(dialog_manager: DialogManager, **kwargs: object):
     game_id = dialog_manager.dialog_data.get("game_id")
     if not game_id:
         return {}
@@ -283,14 +284,14 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs):
 
 
 @log_dialog_action("ADMIN_GAME_SELECTED")
-async def on_game_selected(callback: CallbackQuery, widget, manager: DialogManager, item_id: str):
+async def on_game_selected(callback: CallbackQuery, widget: Select, manager: DialogManager, item_id: str):
     await callback.answer(texts.render("admin.game_selected", item_id=item_id))
     manager.dialog_data["game_id"] = item_id
     await manager.next()
 
 
 @log_dialog_action("ADMIN_GAME_ACTION_CLICKED")
-async def on_action_clicked(callback: CallbackQuery, widget, manager: DialogManager):
+async def on_action_clicked(callback: CallbackQuery, widget: Button, manager: DialogManager):
     action = widget.widget_id
     game = await Game.get(id=manager.dialog_data["game_id"])
     logger.info(action)
@@ -328,7 +329,7 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
 
     for user, result in zip(participants, results, strict=False):
         if isinstance(result, Exception):
-            logger.error(f"Failed to send credits to user {user.id}: {result}")
+            logger.error("Failed to send credits to user %s: %s", user.id, result)
 
     await User().filter(is_in_game=True).update(is_in_game=False)
 
@@ -347,7 +348,7 @@ async def send_game_credits(
     """Send game credits message to a specific user."""
     personal_stats = get_personal_stats(user_id, info) if user_id else ""
     try:
-        await send_message(
+        await bot.send_message(
             chat_id=chat_id,
             text=texts.render(
                 "admin.game_credits",
@@ -360,9 +361,9 @@ async def send_game_credits(
             ),
             parse_mode="HTML",
         )
-    except Exception as e:
+    except TelegramAPIError as exc:
         msg = f"Failed to send message to chat {chat_id}"
-        raise Exception(msg) from e
+        raise RuntimeError(msg) from exc
 
 
 def get_personal_stats(user_id: UUID, info: CreditsInfo):
@@ -388,7 +389,7 @@ async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
     )
 
 
-async def game_info_getter(dialog_manager: DialogManager, **kwargs):
+async def game_info_getter(dialog_manager: DialogManager, **kwargs: object):
     game_id = dialog_manager.dialog_data["game_id"]
     game = await Game().get(id=game_id)
     participants_count = await Player().filter(game=game_id).count()
@@ -527,7 +528,7 @@ async def ban(
     if not user:
         await message.answer(texts.get("admin.ban.user_not_found"))
         return
-    await message.answer(await services.ban.ban(user, reason))
+    await message.answer(await ban_user(user, reason))
 
 
 @router.message(AdminFilter(), Command(commands=["rollbackkill"]))
