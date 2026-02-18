@@ -1,0 +1,1429 @@
+openapi: 3.1.0
+info:
+  title: CU Killer Backend API
+  description: |
+    Backend HTTP API consumed by the Telegram bot.
+    This spec was derived from all "# TODO: API CALL" placeholders in ./bot
+    and represents the expected operations for users, games, players, kill events,
+    pending profile moderation, and admin chat configuration.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+
+security:
+  - SecretKeyAuth: []
+
+paths:
+  /health/:
+    get:
+      summary: API health check
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Status info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Failed to write response
+
+  /system/bootstrap:
+    post:
+      summary: Ensure default chats/admins exist (bootstrap)
+      operationId: bootstrap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BootstrapRequest'
+      responses:
+        '200':
+          description: Defaults ensured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BootstrapResponse'
+
+  /users/get-or-create:
+    post:
+      summary: Get or create user by Telegram ID
+      operationId: getOrCreateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetOrCreateUserRequest'
+      responses:
+        '200':
+          description: Existing user returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrCreateUserResponse'
+        '201':
+          description: New user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrCreateUserResponse'
+
+  /users:
+    get:
+      summary: List users with optional filters
+      operationId: listUsers
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, pending, confirmed, rejected, banned]
+        - in: query
+          name: is_in_game
+          schema:
+            type: boolean
+        - in: query
+          name: is_admin
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+    post:
+      summary: Create user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/count:
+    get:
+      summary: Count users
+      operationId: countUsers
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, pending, confirmed, rejected, banned]
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+
+  /users/bulk:
+    post:
+      summary: Fetch users by IDs
+      operationId: getUsersBulk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkIdsRequest'
+      responses:
+        '200':
+          description: Users map
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMapResponse'
+
+  /users/by-tg/{tg_id}:
+    get:
+      summary: Get user by Telegram ID
+      operationId: getUserByTgId
+      parameters:
+        - $ref: '#/components/parameters/tg_id'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    patch:
+      summary: Update user by Telegram ID
+      operationId: updateUserByTgId
+      parameters:
+        - $ref: '#/components/parameters/tg_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{user_id}:
+    get:
+      summary: Get user by internal ID
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/user_id'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    patch:
+      summary: Update user
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/user_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /games:
+    get:
+      summary: List games
+      operationId: listGames
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [scheduled, active, completed]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Games list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameListResponse'
+    post:
+      summary: Create game
+      operationId: createGame
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameCreate'
+      responses:
+        '201':
+          description: Game created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+
+  /games/count:
+    get:
+      summary: Count games
+      operationId: countGames
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [scheduled, active, completed]
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+
+  /games/active:
+    get:
+      summary: Get active game (started, not ended)
+      operationId: getActiveGame
+      responses:
+        '200':
+          description: Active game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: No active game
+
+  /games/{game_id}:
+    get:
+      summary: Get game by ID
+      operationId: getGameById
+      parameters:
+        - $ref: '#/components/parameters/game_id'
+      responses:
+        '200':
+          description: Game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: Game not found
+    patch:
+      summary: Update game
+      operationId: updateGame
+      parameters:
+        - $ref: '#/components/parameters/game_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameUpdate'
+      responses:
+        '200':
+          description: Updated game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+
+  /games/{game_id}/participants:
+    get:
+      summary: List game participants (users)
+      operationId: listGameParticipants
+      parameters:
+        - $ref: '#/components/parameters/game_id'
+      responses:
+        '200':
+          description: Participants list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+  /games/{game_id}/participants/count:
+    get:
+      summary: Count game participants
+      operationId: countGameParticipants
+      parameters:
+        - $ref: '#/components/parameters/game_id'
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+
+  /players:
+    get:
+      summary: List players
+      operationId: listPlayers
+      parameters:
+        - in: query
+          name: game_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: user_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Players list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerListResponse'
+    post:
+      summary: Create player for a game
+      operationId: createPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerCreate'
+      responses:
+        '201':
+          description: Player created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+
+  /players/count:
+    get:
+      summary: Count players
+      operationId: countPlayers
+      parameters:
+        - in: query
+          name: game_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+
+  /players/{player_id}:
+    get:
+      summary: Get player by ID
+      operationId: getPlayerById
+      parameters:
+        - $ref: '#/components/parameters/player_id'
+      responses:
+        '200':
+          description: Player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found
+    patch:
+      summary: Update player
+      operationId: updatePlayer
+      parameters:
+        - $ref: '#/components/parameters/player_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerUpdate'
+      responses:
+        '200':
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+
+  /kill-events:
+    get:
+      summary: List kill events with filters
+      operationId: listKillEvents
+      parameters:
+        - in: query
+          name: game_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: killer_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: victim_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, rejected, canceled, timeout]
+        - in: query
+          name: updated_before
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Kill events list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillEventListResponse'
+    post:
+      summary: Create kill event
+      operationId: createKillEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KillEventCreate'
+      responses:
+        '201':
+          description: Kill event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillEvent'
+
+  /kill-events/{kill_event_id}:
+    get:
+      summary: Get kill event by ID
+      operationId: getKillEventById
+      parameters:
+        - $ref: '#/components/parameters/kill_event_id'
+      responses:
+        '200':
+          description: Kill event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillEvent'
+        '404':
+          description: Kill event not found
+    patch:
+      summary: Update kill event
+      operationId: updateKillEvent
+      parameters:
+        - $ref: '#/components/parameters/kill_event_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KillEventUpdate'
+      responses:
+        '200':
+          description: Updated kill event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillEvent'
+
+  /kill-events/bulk-update:
+    post:
+      summary: Bulk update kill events (status/flags)
+      operationId: bulkUpdateKillEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KillEventBulkUpdateRequest'
+      responses:
+        '200':
+          description: Updated count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+
+  /pending-profiles:
+    get:
+      summary: List pending profiles
+      operationId: listPendingProfiles
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - in: query
+          name: user_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Pending profiles list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingProfileListResponse'
+    post:
+      summary: Create pending profile request
+      operationId: createPendingProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PendingProfileCreate'
+      responses:
+        '201':
+          description: Pending profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingProfile'
+
+  /pending-profiles/{pending_id}:
+    get:
+      summary: Get pending profile by ID
+      operationId: getPendingProfileById
+      parameters:
+        - $ref: '#/components/parameters/pending_id'
+      responses:
+        '200':
+          description: Pending profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingProfile'
+        '404':
+          description: Pending profile not found
+    patch:
+      summary: Update pending profile
+      operationId: updatePendingProfile
+      parameters:
+        - $ref: '#/components/parameters/pending_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PendingProfileUpdate'
+      responses:
+        '200':
+          description: Updated pending profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingProfile'
+
+  /chats/by-key/{key}:
+    get:
+      summary: Get chat by key
+      operationId: getChatByKey
+      parameters:
+        - $ref: '#/components/parameters/chat_key'
+      responses:
+        '200':
+          description: Chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '404':
+          description: Chat not found
+
+  /chats/by-id/{chat_id}:
+    get:
+      summary: Get chat by Telegram chat ID
+      operationId: getChatByChatId
+      parameters:
+        - $ref: '#/components/parameters/chat_id'
+      responses:
+        '200':
+          description: Chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '404':
+          description: Chat not found
+
+  /chats:
+    post:
+      summary: Create chat binding
+      operationId: createChat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCreate'
+      responses:
+        '201':
+          description: Chat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+
+components:
+  securitySchemes:
+    SecretKeyAuth:
+      type: apiKey
+      in: header
+      name: secret-key
+
+  parameters:
+    tg_id:
+      in: path
+      name: tg_id
+      required: true
+      schema:
+        type: integer
+        format: int64
+    user_id:
+      in: path
+      name: user_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    game_id:
+      in: path
+      name: game_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    player_id:
+      in: path
+      name: player_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    kill_event_id:
+      in: path
+      name: kill_event_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    pending_id:
+      in: path
+      name: pending_id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    chat_id:
+      in: path
+      name: chat_id
+      required: true
+      schema:
+        type: integer
+        format: int64
+    chat_key:
+      in: path
+      name: key
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+      required: [status, timestamp]
+
+    CountResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+      required: [total]
+
+    BulkIdsRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required: [ids]
+
+    BootstrapRequest:
+      type: object
+      properties:
+        admin_chat_id:
+          type: integer
+          format: int64
+        discussion_chat_id:
+          type: integer
+          format: int64
+        admin_tg_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+      required: [admin_chat_id, discussion_chat_id, admin_tg_ids]
+
+    BootstrapResponse:
+      type: object
+      properties:
+        admin_chat:
+          $ref: '#/components/schemas/Chat'
+        discussion_chat:
+          $ref: '#/components/schemas/Chat'
+        admins:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    UserBase:
+      type: object
+      properties:
+        tg_id:
+          type: integer
+          format: int64
+        tg_username:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        course_number:
+          type: integer
+          nullable: true
+        group_name:
+          type: string
+          nullable: true
+        photo:
+          type: string
+          nullable: true
+        about_user:
+          type: string
+          nullable: true
+        allow_hugging_on_kill:
+          type: boolean
+        family_name_required:
+          type: boolean
+        is_in_game:
+          type: boolean
+        is_admin:
+          type: boolean
+        exit_cooldown_until:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [active, pending, confirmed, rejected, banned]
+
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    UserCreate:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+      required:
+        - tg_id
+
+    UserUpdate:
+      type: object
+      properties:
+        tg_username:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        course_number:
+          type: integer
+          nullable: true
+        group_name:
+          type: string
+          nullable: true
+        photo:
+          type: string
+          nullable: true
+        about_user:
+          type: string
+          nullable: true
+        allow_hugging_on_kill:
+          type: boolean
+        family_name_required:
+          type: boolean
+        is_in_game:
+          type: boolean
+        is_admin:
+          type: boolean
+        exit_cooldown_until:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [active, pending, confirmed, rejected, banned]
+
+    GetOrCreateUserRequest:
+      type: object
+      properties:
+        tg_id:
+          type: integer
+          format: int64
+        tg_username:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+      required: [tg_id]
+
+    GetOrCreateUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        created:
+          type: boolean
+      required: [user, created]
+
+    UserListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, limit, offset]
+
+    UserMapResponse:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/User'
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, name, created_at, updated_at]
+
+    GameCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+      required: [name]
+
+    GameUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+
+    GameListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Game'
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, limit, offset]
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, user_id, game_id, rating]
+
+    PlayerCreate:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+      required: [user_id, game_id]
+
+    PlayerUpdate:
+      type: object
+      properties:
+        rating:
+          type: integer
+
+    PlayerListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, limit, offset]
+
+    KillEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        killer_id:
+          type: string
+          format: uuid
+        victim_id:
+          type: string
+          format: uuid
+        killer_confirmed:
+          type: boolean
+        killer_confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        victim_confirmed:
+          type: boolean
+        victim_confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, canceled, timeout]
+        moderator_id:
+          type: string
+          format: uuid
+          nullable: true
+        moderated_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_approved:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        killer:
+          $ref: '#/components/schemas/User'
+        victim:
+          $ref: '#/components/schemas/User'
+        game:
+          $ref: '#/components/schemas/Game'
+      required:
+        - id
+        - game_id
+        - killer_id
+        - victim_id
+        - status
+
+    KillEventCreate:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        killer_id:
+          type: string
+          format: uuid
+        victim_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, canceled, timeout]
+      required: [game_id, killer_id, victim_id]
+
+    KillEventUpdate:
+      type: object
+      properties:
+        killer_confirmed:
+          type: boolean
+        killer_confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        victim_confirmed:
+          type: boolean
+        victim_confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, canceled, timeout]
+        moderator_id:
+          type: string
+          format: uuid
+          nullable: true
+        moderated_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_approved:
+          type: boolean
+
+    KillEventListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/KillEvent'
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, limit, offset]
+
+    KillEventBulkUpdateRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        update:
+          $ref: '#/components/schemas/KillEventUpdate'
+      required: [ids, update]
+
+    PendingProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        is_new_profile:
+          type: boolean
+        moderator_id:
+          type: string
+          format: uuid
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        changed_fields:
+          type: array
+          items:
+            type: string
+        chat_id:
+          type: integer
+          format: int64
+          nullable: true
+        message_id:
+          type: integer
+          format: int64
+          nullable: true
+        submitted_username:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        course_number:
+          type: integer
+          nullable: true
+        group_name:
+          type: string
+          nullable: true
+        photo:
+          type: string
+          nullable: true
+        about_user:
+          type: string
+          nullable: true
+        allow_hugging_on_kill:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+      required: [id, user_id, status, is_new_profile, created_at, updated_at]
+
+    PendingProfileCreate:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        is_new_profile:
+          type: boolean
+        changed_fields:
+          type: array
+          items:
+            type: string
+        submitted_username:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        course_number:
+          type: integer
+          nullable: true
+        group_name:
+          type: string
+          nullable: true
+        photo:
+          type: string
+          nullable: true
+        about_user:
+          type: string
+          nullable: true
+        allow_hugging_on_kill:
+          type: boolean
+        chat_id:
+          type: integer
+          format: int64
+          nullable: true
+        message_id:
+          type: integer
+          format: int64
+          nullable: true
+      required: [user_id, is_new_profile]
+
+    PendingProfileUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        moderator_id:
+          type: string
+          format: uuid
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        chat_id:
+          type: integer
+          format: int64
+          nullable: true
+        message_id:
+          type: integer
+          format: int64
+          nullable: true
+        submitted_username:
+          type: string
+          nullable: true
+
+    PendingProfileListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingProfile'
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, limit, offset]
+
+    Chat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        chat_id:
+          type: integer
+          format: int64
+        key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, chat_id, key]
+
+    ChatCreate:
+      type: object
+      properties:
+        chat_id:
+          type: integer
+          format: int64
+        key:
+          type: string
+      required: [chat_id, key]
