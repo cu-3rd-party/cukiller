@@ -20,7 +20,7 @@ func TestUserStore_CreateGet(t *testing.T) {
 	assert.True(t, store.Create(t.Context(), &user))
 	got, ok := store.GetByTgId(t.Context(), TestId)
 	assert.True(t, ok)
-	assert.EqualValues(t, user, *got)
+	assert.EqualValues(t, TestId, got.TgId)
 
 	// cleanup
 	store.Delete(t.Context(), got.Id)

@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,6 +59,13 @@ type UserStore struct {
 	db *sql.DB
 }
 
+func nullableString(value string) sql.NullString {
+	if value == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: value, Valid: true}
+}
+
 func (s *UserStore) Create(ctx context.Context, entry *User) bool {
 	const query = `
 		INSERT INTO users (
@@ -89,7 +97,7 @@ func (s *UserStore) Create(ctx context.Context, entry *User) bool {
 		query,
 		entry.Id,
 		entry.TgId,
-		entry.TgUsername,
+		nullableString(entry.TgUsername),
 		entry.Type,
 		entry.CourseNumber,
 		entry.GroupName,
@@ -137,12 +145,13 @@ type userRowScanner interface {
 
 func scanUser(row userRowScanner) (User, error) {
 	var entry User
+	var tgUsername sql.NullString
 	err := row.Scan(
 		&entry.Id,
 		&entry.CreatedAt,
 		&entry.UpdatedAt,
 		&entry.TgId,
-		&entry.TgUsername,
+		&tgUsername,
 		&entry.Type,
 		&entry.CourseNumber,
 		&entry.GroupName,
@@ -157,6 +166,11 @@ func scanUser(row userRowScanner) (User, error) {
 		&entry.FamilyName,
 		&entry.FamilyNameRequired,
 	)
+	if tgUsername.Valid {
+		entry.TgUsername = tgUsername.String
+	} else {
+		entry.TgUsername = ""
+	}
 	return entry, err
 }
 
@@ -164,7 +178,7 @@ func (s *UserStore) GetById(ctx context.Context, id uuid.UUID) (*User, bool) {
 	row := s.db.QueryRowContext(ctx, userSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanUser(row)
-	if err == sql.ErrNoRows || err != nil {
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
 		return nil, false
 	}
 	return &entry, true
@@ -174,7 +188,7 @@ func (s *UserStore) GetByTgId(ctx context.Context, tgId uint64) (*User, bool) {
 	row := s.db.QueryRowContext(ctx, userSelectQuery+`
 	WHERE tg_id = $1`, tgId)
 	entry, err := scanUser(row)
-	if err == sql.ErrNoRows || err != nil {
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
 		return nil, false
 	}
 	return &entry, true
@@ -206,7 +220,7 @@ func (s *UserStore) Update(ctx context.Context, entry *User) bool {
 		ctx,
 		query,
 		entry.TgId,
-		entry.TgUsername,
+		nullableString(entry.TgUsername),
 		entry.Type,
 		entry.CourseNumber,
 		entry.GroupName,
