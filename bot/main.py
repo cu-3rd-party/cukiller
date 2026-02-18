@@ -20,6 +20,7 @@ from aiohttp import web
 from redis.asyncio import Redis
 
 from db.main import close_db, init_db
+from handlers import router as handlers_router
 from handlers.matchmaking import setup_matchmaking_routers
 from handlers.metrics import metrics_updater, setup_metrics_routes
 from middlewares.environment import EnvironmentMiddleware
@@ -50,22 +51,10 @@ def register_all_middlewares(dp: Dispatcher) -> None:
     dp.message.middleware(PrivateMessagesMiddleware("/stats", "/rollbackkill"))
 
 
-def _iter_handler_modules() -> Iterable[ModuleType]:
-    for module in sorted(HANDLERS_PATH.rglob("*.py")):
-        if module.name == "__init__.py":
-            continue
-        relative = module.relative_to(HANDLERS_PATH).with_suffix("")
-        dotted = ".".join((HANDLERS_PACKAGE, *relative.parts))
-        yield importlib.import_module(dotted)
-
-
 def register_all_handlers(dp: Dispatcher) -> None:
     routers = []
-    for module in _iter_handler_modules():
-        router = getattr(module, "router", None)
-        if router is None:
-            continue
-        routers.append(router)
+
+    dp.include_router(handlers_router)
 
     if routers:
         dp.include_routers(*routers)
