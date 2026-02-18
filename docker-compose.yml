@@ -110,8 +110,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_BASE: /stats/
-    environment:
-      BACKEND_URL: ""
     env_file:
       - ./env/stats-web.env
     deploy:
@@ -242,14 +240,6 @@ services:
         limits:
           cpus: 0.5
           memory: 256MB
-    depends_on:
-      - bot
-      - matchmaking
-      - graphgetter
-      - stats
-      - stats-web
-      - adminer
-      - grafana
     restart: unless-stopped
     networks:
       - cukiller
