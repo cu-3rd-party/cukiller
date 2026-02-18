@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration name="launch db" type="docker-deploy" factoryName="docker-image" server-name="Docker">
+  <configuration default="false" name="launch db" type="docker-deploy" factoryName="docker-image" server-name="Docker">
     <deployment type="docker-image">
       <settings>
         <option name="imageTag" value="postgres:18-alpine" />
@@ -7,15 +7,15 @@
         <option name="envVars">
           <list>
             <DockerEnvVarImpl>
-              <option name="name" value="POSTGRES_USER" />
-              <option name="value" value="admin" />
-            </DockerEnvVarImpl>
-            <DockerEnvVarImpl>
               <option name="name" value="POSTGRES_DB" />
               <option name="value" value="db" />
             </DockerEnvVarImpl>
             <DockerEnvVarImpl>
               <option name="name" value="POSTGRES_PASSWORD" />
+              <option name="value" value="admin" />
+            </DockerEnvVarImpl>
+            <DockerEnvVarImpl>
+              <option name="name" value="POSTGRES_USER" />
               <option name="value" value="admin" />
             </DockerEnvVarImpl>
           </list>
@@ -28,6 +28,7 @@
             </DockerPortBindingImpl>
           </list>
         </option>
+        <option name="commandLineOptions" value="--health-cmd &quot;pg_isready -h localhost -p 5432 -U admin&quot; --health-interval 500m --health-retries 10 --health-start-period 500m" />
         <option name="volumeBindings">
           <list>
             <DockerVolumeBindingImpl>
