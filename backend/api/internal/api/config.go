@@ -1,11 +1,15 @@
 package api
 
-import "cukiller/api/pkg/db/store"
+import (
+	"context"
+	"cukiller/api/pkg/db/store"
+)
 
 // Config controls HTTP API routing behavior.
 type Config struct {
 	BasePath string
 
+	HealthCheck func(context.Context) bool
 	// Database stores
 	User           *store.UserStore
 	Chat           *store.ChatStore

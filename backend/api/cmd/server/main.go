@@ -28,7 +28,8 @@ func main() {
 	go api.Metrics(cfg.EnableMetrics)
 
 	router := api.NewRouter(api.Config{
-		BasePath: cfg.APIBasePath,
+		BasePath:    cfg.APIBasePath,
+		HealthCheck: db.GetHealthcheck(dbConn),
 	})
 
 	addr := ":" + cfg.Port
