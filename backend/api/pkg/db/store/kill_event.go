@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -224,4 +226,156 @@ func (s *KillEventStore) Delete(ctx context.Context, id uuid.UUID) bool {
 	}
 	rows, err := res.RowsAffected()
 	return err == nil && rows > 0
+}
+
+type KillEventFilters struct {
+	GameId        *uuid.UUID
+	KillerId      *uuid.UUID
+	VictimId      *uuid.UUID
+	Status        *string
+	UpdatedBefore *time.Time
+	Limit         int
+	Offset        int
+}
+
+func (s *KillEventStore) List(ctx context.Context, filters KillEventFilters) ([]KillEvent, bool) {
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "list").
+		Msg("db operation")
+
+	query := killEventSelectQuery + `
+	WHERE 1=1`
+	args := []any{}
+
+	if filters.GameId != nil {
+		args = append(args, *filters.GameId)
+		query += "\n	AND game_id = $" + strconv.Itoa(len(args))
+	}
+	if filters.KillerId != nil {
+		args = append(args, *filters.KillerId)
+		query += "\n	AND killer_id = $" + strconv.Itoa(len(args))
+	}
+	if filters.VictimId != nil {
+		args = append(args, *filters.VictimId)
+		query += "\n	AND victim_id = $" + strconv.Itoa(len(args))
+	}
+	if filters.Status != nil {
+		args = append(args, *filters.Status)
+		query += "\n	AND status = $" + strconv.Itoa(len(args))
+	}
+	if filters.UpdatedBefore != nil {
+		args = append(args, *filters.UpdatedBefore)
+		query += "\n	AND updated_at < $" + strconv.Itoa(len(args))
+	}
+
+	query += "\n	ORDER BY updated_at DESC"
+
+	if filters.Limit <= 0 {
+		filters.Limit = 100
+	}
+	if filters.Offset < 0 {
+		filters.Offset = 0
+	}
+	args = append(args, filters.Limit)
+	query += "\n	LIMIT $" + strconv.Itoa(len(args))
+	args = append(args, filters.Offset)
+	query += "\n	OFFSET $" + strconv.Itoa(len(args))
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	var entries []KillEvent
+	for rows.Next() {
+		entry, err := scanKillEvent(rows)
+		if err != nil {
+			return nil, false
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return entries, true
+}
+
+type KillEventUpdateFields struct {
+	KillerConfirmed   *bool
+	KillerConfirmedAt *time.Time
+	VictimConfirmed   *bool
+	VictimConfirmedAt *time.Time
+	Status            *string
+	ModeratorId       *uuid.UUID
+	ModeratedAt       *time.Time
+	IsApproved        *bool
+}
+
+func (s *KillEventStore) BulkUpdate(ctx context.Context, ids []uuid.UUID, update KillEventUpdateFields) (int64, bool) {
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "bulk_update").
+		Int("ids", len(ids)).
+		Msg("db operation")
+
+	if len(ids) == 0 {
+		return 0, false
+	}
+
+	setParts := []string{}
+	args := []any{}
+
+	if update.KillerConfirmed != nil {
+		args = append(args, *update.KillerConfirmed)
+		setParts = append(setParts, "killer_confirmed = $"+strconv.Itoa(len(args)))
+	}
+	if update.KillerConfirmedAt != nil {
+		args = append(args, *update.KillerConfirmedAt)
+		setParts = append(setParts, "killer_confirmed_at = $"+strconv.Itoa(len(args)))
+	}
+	if update.VictimConfirmed != nil {
+		args = append(args, *update.VictimConfirmed)
+		setParts = append(setParts, "victim_confirmed = $"+strconv.Itoa(len(args)))
+	}
+	if update.VictimConfirmedAt != nil {
+		args = append(args, *update.VictimConfirmedAt)
+		setParts = append(setParts, "victim_confirmed_at = $"+strconv.Itoa(len(args)))
+	}
+	if update.Status != nil {
+		args = append(args, *update.Status)
+		setParts = append(setParts, "status = $"+strconv.Itoa(len(args)))
+	}
+	if update.ModeratorId != nil {
+		args = append(args, *update.ModeratorId)
+		setParts = append(setParts, "moderator_id = $"+strconv.Itoa(len(args)))
+	}
+	if update.ModeratedAt != nil {
+		args = append(args, *update.ModeratedAt)
+		setParts = append(setParts, "moderated_at = $"+strconv.Itoa(len(args)))
+	}
+	if update.IsApproved != nil {
+		args = append(args, *update.IsApproved)
+		setParts = append(setParts, "is_approved = $"+strconv.Itoa(len(args)))
+	}
+
+	if len(setParts) == 0 {
+		return 0, false
+	}
+
+	setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
+	query := `
+		UPDATE kill_events SET
+			` + strings.Join(setParts, ", ") + `
+		WHERE id = ANY($` + strconv.Itoa(len(args)+1) + `)
+	`
+	args = append(args, ids)
+
+	res, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, false
+	}
+	rows, err := res.RowsAffected()
+	return rows, err == nil
 }

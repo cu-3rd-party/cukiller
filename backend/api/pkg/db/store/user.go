@@ -297,10 +297,31 @@ func (s *UserStore) ListByGameID(ctx context.Context, gameID uuid.UUID) ([]User,
 		Str("game_id", gameID.String()).
 		Msg("db operation")
 
-	rows, err := s.db.QueryContext(ctx, userSelectQuery+`
+	const query = `
+	SELECT
+		users.id,
+		users.created_at,
+		users.updated_at,
+		users.tg_id,
+		users.tg_username,
+		users.type,
+		users.course_number,
+		users.group_name,
+		users.is_in_game::text,
+		users.is_admin,
+		users.photo,
+		users.about_user,
+		users.status,
+		users.allow_hugging_on_kill,
+		users.exit_cooldown_until,
+		users.given_name,
+		users.family_name,
+		users.family_name_required
+	FROM users
 	JOIN players p ON p.user_id = users.id
 	WHERE p.game_id = $1
-	ORDER BY users.created_at`, gameID)
+	ORDER BY users.created_at`
+	rows, err := s.db.QueryContext(ctx, query, gameID)
 	if err != nil {
 		return nil, false
 	}

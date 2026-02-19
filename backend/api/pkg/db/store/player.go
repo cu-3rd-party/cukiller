@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -133,6 +135,77 @@ func (s *PlayerStore) GetByUserIdAndGameId(ctx context.Context, userId, gameId u
 	return &entry, true
 }
 
+type PlayerFilters struct {
+	GameId *uuid.UUID
+	UserId *uuid.UUID
+	Limit  int
+	Offset int
+}
+
+func (s *PlayerStore) List(ctx context.Context, filters PlayerFilters) ([]Player, bool) {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "list").
+		Msg("db operation")
+
+	limit := filters.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	offset := filters.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	whereClause, args := buildPlayerWhereClause(filters)
+	limitIndex := len(args) + 1
+	offsetIndex := len(args) + 2
+	query := fmt.Sprintf(
+		"%s%s ORDER BY created_at DESC LIMIT $%d OFFSET $%d",
+		playerSelectQuery,
+		whereClause,
+		limitIndex,
+		offsetIndex,
+	)
+	args = append(args, limit, offset)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	items := make([]Player, 0)
+	for rows.Next() {
+		entry, err := scanPlayer(rows)
+		if err != nil {
+			return nil, false
+		}
+		items = append(items, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return items, true
+}
+
+func (s *PlayerStore) Count(ctx context.Context, filters PlayerFilters) (int, bool) {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "count").
+		Msg("db operation")
+
+	whereClause, args := buildPlayerWhereClause(filters)
+	query := "SELECT COUNT(*) FROM players" + whereClause
+
+	var total int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, false
+	}
+	return total, true
+}
+
 func (s *PlayerStore) Update(ctx context.Context, entry *Player) bool {
 	const query = `
 		UPDATE players SET
@@ -177,4 +250,37 @@ func (s *PlayerStore) Delete(ctx context.Context, id uuid.UUID) bool {
 	}
 	rows, err := res.RowsAffected()
 	return err == nil && rows > 0
+}
+
+func (s *PlayerStore) CountByGameID(ctx context.Context, gameID uuid.UUID) (int, bool) {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "count_by_game_id").
+		Str("game_id", gameID.String()).
+		Msg("db operation")
+
+	var total int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM players WHERE game_id = $1`, gameID).Scan(&total); err != nil {
+		return 0, false
+	}
+	return total, true
+}
+
+func buildPlayerWhereClause(filters PlayerFilters) (string, []any) {
+	clauses := make([]string, 0, 2)
+	args := make([]any, 0, 2)
+
+	if filters.GameId != nil {
+		args = append(args, *filters.GameId)
+		clauses = append(clauses, fmt.Sprintf("game_id = $%d", len(args)))
+	}
+	if filters.UserId != nil {
+		args = append(args, *filters.UserId)
+		clauses = append(clauses, fmt.Sprintf("user_id = $%d", len(args)))
+	}
+
+	if len(clauses) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(clauses, " AND "), args
 }

@@ -139,6 +139,38 @@ func (s *ChatStore) GetByChatIdAndKey(ctx context.Context, chatId int64, key str
 	return &entry, true
 }
 
+func (s *ChatStore) GetByKey(ctx context.Context, key string) (*Chat, bool) {
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "get_by_key").
+		Str("key", key).
+		Msg("db operation")
+
+	row := s.db.QueryRowContext(ctx, chatSelectQuery+`
+	WHERE key = $1`, key)
+	entry, err := scanChat(row)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return nil, false
+	}
+	return &entry, true
+}
+
+func (s *ChatStore) GetByChatId(ctx context.Context, chatId int64) (*Chat, bool) {
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "get_by_chat_id").
+		Int64("chat_id", chatId).
+		Msg("db operation")
+
+	row := s.db.QueryRowContext(ctx, chatSelectQuery+`
+	WHERE chat_id = $1`, chatId)
+	entry, err := scanChat(row)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return nil, false
+	}
+	return &entry, true
+}
+
 func (s *ChatStore) Update(ctx context.Context, entry *Chat) bool {
 	const query = `
 		UPDATE chats SET

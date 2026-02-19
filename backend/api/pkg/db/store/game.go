@@ -115,6 +115,85 @@ func (s *GameStore) GetById(ctx context.Context, id uuid.UUID) (*Game, bool) {
 	return &entry, true
 }
 
+func (s *GameStore) List(ctx context.Context, status *string, limit, offset int) ([]Game, bool) {
+	query := gameSelectQuery
+	args := []any{}
+	if status != nil {
+		filter, ok := gameStatusFilter(*status)
+		if !ok {
+			return nil, false
+		}
+		query += " WHERE " + filter
+	}
+	query += " ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+	args = append(args, limit, offset)
+
+	log.Debug().
+		Str("store", "game").
+		Str("op", "list").
+		Int("limit", limit).
+		Int("offset", offset).
+		Msg("db operation")
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	games := []Game{}
+	for rows.Next() {
+		entry, err := scanGame(rows)
+		if err != nil {
+			return nil, false
+		}
+		games = append(games, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return games, true
+}
+
+func (s *GameStore) Count(ctx context.Context, status *string) (int, bool) {
+	query := "SELECT COUNT(*) FROM games"
+	if status != nil {
+		filter, ok := gameStatusFilter(*status)
+		if !ok {
+			return 0, false
+		}
+		query += " WHERE " + filter
+	}
+
+	log.Debug().
+		Str("store", "game").
+		Str("op", "count").
+		Msg("db operation")
+
+	var total int
+	if err := s.db.QueryRowContext(ctx, query).Scan(&total); err != nil {
+		return 0, false
+	}
+	return total, true
+}
+
+func (s *GameStore) GetActive(ctx context.Context) (*Game, bool) {
+	log.Debug().
+		Str("store", "game").
+		Str("op", "get_active").
+		Msg("db operation")
+
+	row := s.db.QueryRowContext(ctx, gameSelectQuery+`
+	WHERE start_date IS NOT NULL AND end_date IS NULL
+	ORDER BY start_date DESC
+	LIMIT 1`)
+	entry, err := scanGame(row)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return nil, false
+	}
+	return &entry, true
+}
+
 func (s *GameStore) Update(ctx context.Context, entry *Game) bool {
 	const query = `
 		UPDATE games SET
@@ -159,4 +238,17 @@ func (s *GameStore) Delete(ctx context.Context, id uuid.UUID) bool {
 	}
 	rows, err := res.RowsAffected()
 	return err == nil && rows > 0
+}
+
+func gameStatusFilter(status string) (string, bool) {
+	switch status {
+	case "scheduled":
+		return "start_date IS NULL", true
+	case "active":
+		return "start_date IS NOT NULL AND end_date IS NULL", true
+	case "completed":
+		return "end_date IS NOT NULL", true
+	default:
+		return "", false
+	}
 }

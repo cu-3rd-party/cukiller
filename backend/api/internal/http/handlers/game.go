@@ -76,10 +76,10 @@ type GameUpdateRequest struct {
 	EndDate   OptionalTime `json:"end_date"`
 }
 
-type UserListResponse struct {
-	Items  []UserResponse `json:"items"`
-	Limit  int            `json:"limit"`
-	Offset int            `json:"offset"`
+type GameUserListResponse struct {
+	Items  []GameUserResponse `json:"items"`
+	Limit  int                `json:"limit"`
+	Offset int                `json:"offset"`
 }
 
 func (h *GameHandler) ListGames(c *gin.Context) {
@@ -88,8 +88,9 @@ func (h *GameHandler) ListGames(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	limit, offset, ok := parseLimitOffset(c)
-	if !ok {
+	limit, offset, err := parseLimitOffset(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	games, ok := h.GameStore.List(c, status, limit, offset)
@@ -155,8 +156,9 @@ func (h *GameHandler) GetActiveGame(c *gin.Context) {
 }
 
 func (h *GameHandler) GetGameById(c *gin.Context) {
-	gameID, ok := parseUUIDParam(c, "game_id")
-	if !ok {
+	gameID, err := parseUUIDParam(c, "game_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	game, ok := h.GameStore.GetById(c, gameID)
@@ -168,8 +170,9 @@ func (h *GameHandler) GetGameById(c *gin.Context) {
 }
 
 func (h *GameHandler) UpdateGame(c *gin.Context) {
-	gameID, ok := parseUUIDParam(c, "game_id")
-	if !ok {
+	gameID, err := parseUUIDParam(c, "game_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	game, ok := h.GameStore.GetById(c, gameID)
@@ -199,8 +202,9 @@ func (h *GameHandler) UpdateGame(c *gin.Context) {
 }
 
 func (h *GameHandler) ListGameParticipants(c *gin.Context) {
-	gameID, ok := parseUUIDParam(c, "game_id")
-	if !ok {
+	gameID, err := parseUUIDParam(c, "game_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if _, ok := h.GameStore.GetById(c, gameID); !ok {
@@ -212,11 +216,11 @@ func (h *GameHandler) ListGameParticipants(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list participants"})
 		return
 	}
-	items := make([]UserResponse, 0, len(users))
+	items := make([]GameUserResponse, 0, len(users))
 	for _, user := range users {
-		items = append(items, toUserResponse(user))
+		items = append(items, toGameUserResponse(user))
 	}
-	c.JSON(http.StatusOK, UserListResponse{
+	c.JSON(http.StatusOK, GameUserListResponse{
 		Items:  items,
 		Limit:  len(items),
 		Offset: 0,
@@ -224,8 +228,9 @@ func (h *GameHandler) ListGameParticipants(c *gin.Context) {
 }
 
 func (h *GameHandler) CountGameParticipants(c *gin.Context) {
-	gameID, ok := parseUUIDParam(c, "game_id")
-	if !ok {
+	gameID, err := parseUUIDParam(c, "game_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if _, ok := h.GameStore.GetById(c, gameID); !ok {
@@ -268,7 +273,7 @@ func toGameResponse(game store.Game) GameResponse {
 	return resp
 }
 
-type UserResponse struct {
+type GameUserResponse struct {
 	Id                 uuid.UUID  `json:"id"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
@@ -289,8 +294,8 @@ type UserResponse struct {
 	FamilyNameRequired bool       `json:"family_name_required"`
 }
 
-func toUserResponse(user store.User) UserResponse {
-	resp := UserResponse{
+func toGameUserResponse(user store.User) GameUserResponse {
+	resp := GameUserResponse{
 		Id:                 user.Id,
 		CreatedAt:          user.CreatedAt,
 		UpdatedAt:          user.UpdatedAt,
