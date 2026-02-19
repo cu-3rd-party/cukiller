@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // Player represents player object in the database
@@ -21,11 +22,11 @@ type Player struct {
 
 func DefaultPlayer() Player {
 	return Player{
-		Id:        uuid.Nil,
+		Id:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		GameId:    uuid.Nil,
-		UserId:    uuid.Nil,
+		GameId:    uuid.New(),
+		UserId:    uuid.New(),
 		Rating:    600,
 	}
 }
@@ -33,6 +34,10 @@ func DefaultPlayer() Player {
 // PlayerStore provides CRUD access to database
 type PlayerStore struct {
 	db *sql.DB
+}
+
+func NewPlayerStore(db *sql.DB) PlayerStore {
+	return PlayerStore{db: db}
 }
 
 func (s *PlayerStore) Create(ctx context.Context, entry *Player) bool {
@@ -47,6 +52,13 @@ func (s *PlayerStore) Create(ctx context.Context, entry *Player) bool {
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	log.Debug().
+		Str("store", "player").
+		Str("op", "create").
+		Str("game_id", entry.GameId.String()).
+		Str("user_id", entry.UserId.String()).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -89,6 +101,12 @@ func scanPlayer(row playerRowScanner) (Player, error) {
 }
 
 func (s *PlayerStore) GetById(ctx context.Context, id uuid.UUID) (*Player, bool) {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, playerSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanPlayer(row)
@@ -99,6 +117,13 @@ func (s *PlayerStore) GetById(ctx context.Context, id uuid.UUID) (*Player, bool)
 }
 
 func (s *PlayerStore) GetByUserIdAndGameId(ctx context.Context, userId, gameId uuid.UUID) (*Player, bool) {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "get_by_user_id_and_game_id").
+		Str("user_id", userId.String()).
+		Str("game_id", gameId.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, playerSelectQuery+`
 	WHERE user_id = $1 AND game_id = $2`, userId, gameId)
 	entry, err := scanPlayer(row)
@@ -118,6 +143,12 @@ func (s *PlayerStore) Update(ctx context.Context, entry *Player) bool {
 		WHERE id = $4
 	`
 
+	log.Debug().
+		Str("store", "player").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -134,6 +165,12 @@ func (s *PlayerStore) Update(ctx context.Context, entry *Player) bool {
 }
 
 func (s *PlayerStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "player").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM players WHERE id = $1`, id)
 	if err != nil {
 		return false

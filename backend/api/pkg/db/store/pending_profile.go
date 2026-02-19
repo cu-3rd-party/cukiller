@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // PendingProfile represents pending profile object in the database
@@ -35,7 +36,7 @@ type PendingProfile struct {
 
 func DefaultPendingProfile() PendingProfile {
 	return PendingProfile{
-		Id:                 uuid.Nil,
+		Id:                 uuid.New(),
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 		GivenName:          "",
@@ -52,8 +53,8 @@ func DefaultPendingProfile() PendingProfile {
 		ChatId:             0,
 		MessageId:          0,
 		SubmittedUsername:  "",
-		UserId:             uuid.Nil,
-		ModeratorId:        uuid.Nil,
+		UserId:             uuid.New(),
+		ModeratorId:        uuid.New(),
 		AllowHuggingOnKill: false,
 	}
 }
@@ -61,6 +62,10 @@ func DefaultPendingProfile() PendingProfile {
 // PendingProfileStore provides CRUD access to database
 type PendingProfileStore struct {
 	db *sql.DB
+}
+
+func NewPendingProfileStore(db *sql.DB) PendingProfileStore {
+	return PendingProfileStore{db: db}
 }
 
 func (s *PendingProfileStore) Create(ctx context.Context, entry *PendingProfile) bool {
@@ -90,6 +95,12 @@ func (s *PendingProfileStore) Create(ctx context.Context, entry *PendingProfile)
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "create").
+		Str("user_id", entry.UserId.String()).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -174,6 +185,12 @@ func scanPendingProfile(row pendingProfileRowScanner) (PendingProfile, error) {
 }
 
 func (s *PendingProfileStore) GetById(ctx context.Context, id uuid.UUID) (*PendingProfile, bool) {
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, pendingProfileSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanPendingProfile(row)
@@ -184,6 +201,12 @@ func (s *PendingProfileStore) GetById(ctx context.Context, id uuid.UUID) (*Pendi
 }
 
 func (s *PendingProfileStore) GetByUserId(ctx context.Context, userId uuid.UUID) (*PendingProfile, bool) {
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "get_by_user_id").
+		Str("user_id", userId.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, pendingProfileSelectQuery+`
 	WHERE user_id = $1
 	ORDER BY created_at DESC
@@ -219,6 +242,12 @@ func (s *PendingProfileStore) Update(ctx context.Context, entry *PendingProfile)
 		WHERE id = $18
 	`
 
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -249,6 +278,12 @@ func (s *PendingProfileStore) Update(ctx context.Context, entry *PendingProfile)
 }
 
 func (s *PendingProfileStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM pending_profiles WHERE id = $1`, id)
 	if err != nil {
 		return false

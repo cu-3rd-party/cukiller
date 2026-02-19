@@ -2,11 +2,11 @@ package api
 
 import (
 	"cukiller/api/pkg/middleware"
-	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog/log"
 )
 
 const MetricsPort = 6969
@@ -18,7 +18,7 @@ func Metrics(enable bool) {
 	router := NewMetricsRouter()
 	addr := ":" + strconv.Itoa(MetricsPort)
 	if err := router.Run(addr); err != nil {
-		log.Fatalf("metrics server error: %v", err)
+		log.Fatal().Err(err).Msg("metrics server error")
 	}
 }
 

@@ -17,7 +17,7 @@ func TestChatStore_CreateGet(t *testing.T) {
 	chat.ChatId = TestChatId
 	chat.Key = TestChatKey
 
-	assert.True(t, store.Create(t.Context(), &chat))
+	assert.True(t, store.Create(t.Context(), chat))
 	got, ok := store.GetByChatIdAndKey(t.Context(), TestChatId, TestChatKey)
 	assert.True(t, ok)
 	assert.EqualValues(t, TestChatKey, got.Key)
@@ -35,11 +35,11 @@ func TestChatStore_CreateUpdateGet(t *testing.T) {
 	chat.ChatId = TestChatId
 	chat.Key = TestChatKey
 
-	assert.True(t, store.Create(t.Context(), &chat))
+	assert.True(t, store.Create(t.Context(), chat))
 
 	const TestOtherKey = "other_key"
 	chat.Key = TestOtherKey
-	assert.True(t, store.Update(t.Context(), &chat))
+	assert.True(t, store.Update(t.Context(), chat))
 	got, ok := store.GetByChatIdAndKey(t.Context(), TestChatId, TestOtherKey)
 	assert.True(t, ok)
 	assert.Equal(t, TestOtherKey, got.Key)

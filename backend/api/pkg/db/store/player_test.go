@@ -24,13 +24,13 @@ func createTestGame(t *testing.T, dbConn *sql.DB) uuid.UUID {
 	return gameId
 }
 
-func createTestUser(t *testing.T, store UserStore) User {
+func createTestUser(t *testing.T, store UserStore) *User {
 	t.Helper()
 	user := DefaultUser()
 	user.Id = uuid.New()
-	user.TgId = uint64(time.Now().UnixNano())
+	user.TgId = time.Now().UnixNano()
 	user.TgUsername = fmt.Sprintf("test_user_%d", user.TgId)
-	assert.True(t, store.Create(t.Context(), &user))
+	assert.True(t, store.Create(t.Context(), user))
 	return user
 }
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // Game represents game object in the database
@@ -21,7 +22,7 @@ type Game struct {
 
 func DefaultGame() Game {
 	return Game{
-		Id:        uuid.Nil,
+		Id:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Name:      "",
@@ -33,6 +34,10 @@ func DefaultGame() Game {
 // GameStore provides CRUD access to database
 type GameStore struct {
 	db *sql.DB
+}
+
+func NewGameStore(db *sql.DB) GameStore {
+	return GameStore{db: db}
 }
 
 func (s *GameStore) Create(ctx context.Context, entry *Game) bool {
@@ -47,6 +52,12 @@ func (s *GameStore) Create(ctx context.Context, entry *Game) bool {
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	log.Debug().
+		Str("store", "game").
+		Str("op", "create").
+		Str("name", entry.Name).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -89,6 +100,12 @@ func scanGame(row gameRowScanner) (Game, error) {
 }
 
 func (s *GameStore) GetById(ctx context.Context, id uuid.UUID) (*Game, bool) {
+	log.Debug().
+		Str("store", "game").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, gameSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanGame(row)
@@ -108,6 +125,12 @@ func (s *GameStore) Update(ctx context.Context, entry *Game) bool {
 		WHERE id = $4
 	`
 
+	log.Debug().
+		Str("store", "game").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -124,6 +147,12 @@ func (s *GameStore) Update(ctx context.Context, entry *Game) bool {
 }
 
 func (s *GameStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "game").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM games WHERE id = $1`, id)
 	if err != nil {
 		return false

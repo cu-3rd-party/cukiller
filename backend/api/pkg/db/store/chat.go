@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // Chat represents chat object in the database
@@ -18,9 +19,9 @@ type Chat struct {
 	Key       string
 }
 
-func DefaultChat() Chat {
-	return Chat{
-		Id:        uuid.Nil,
+func DefaultChat() *Chat {
+	return &Chat{
+		Id:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		ChatId:    0,
@@ -28,9 +29,23 @@ func DefaultChat() Chat {
 	}
 }
 
+func (c *Chat) WithId(id int64) *Chat {
+	c.ChatId = id
+	return c
+}
+
+func (c *Chat) WithKey(key string) *Chat {
+	c.Key = key
+	return c
+}
+
 // ChatStore provides CRUD access to database
 type ChatStore struct {
 	db *sql.DB
+}
+
+func NewChatStore(db *sql.DB) ChatStore {
+	return ChatStore{db: db}
 }
 
 func (s *ChatStore) Create(ctx context.Context, entry *Chat) bool {
@@ -48,6 +63,12 @@ func (s *ChatStore) Create(ctx context.Context, entry *Chat) bool {
 	if entry == nil {
 		return false
 	}
+
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "create").
+		Int64("chat_id", entry.ChatId).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -87,6 +108,12 @@ func scanChat(row chatRowScanner) (Chat, error) {
 }
 
 func (s *ChatStore) GetById(ctx context.Context, id uuid.UUID) (*Chat, bool) {
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, chatSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanChat(row)
@@ -97,6 +124,12 @@ func (s *ChatStore) GetById(ctx context.Context, id uuid.UUID) (*Chat, bool) {
 }
 
 func (s *ChatStore) GetByChatIdAndKey(ctx context.Context, chatId int64, key string) (*Chat, bool) {
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "get_by_chat_id_and_key").
+		Int64("chat_id", chatId).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, chatSelectQuery+`
 	WHERE chat_id = $1 AND key = $2`, chatId, key)
 	entry, err := scanChat(row)
@@ -119,6 +152,12 @@ func (s *ChatStore) Update(ctx context.Context, entry *Chat) bool {
 		return false
 	}
 
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -134,10 +173,62 @@ func (s *ChatStore) Update(ctx context.Context, entry *Chat) bool {
 }
 
 func (s *ChatStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM chats WHERE id = $1`, id)
 	if err != nil {
 		return false
 	}
 	rows, err := res.RowsAffected()
 	return err == nil && rows > 0
+}
+
+func (s *ChatStore) Upsert(ctx context.Context, entry *Chat) bool {
+	const query = `
+		INSERT INTO chats (
+			id,
+			chat_id,
+			key
+		) VALUES (
+			$1, $2, $3
+		)
+		ON CONFLICT (chat_id, key) DO UPDATE SET
+			chat_id = EXCLUDED.chat_id,
+			key = EXCLUDED.key,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING id, created_at, updated_at
+	`
+
+	if entry == nil {
+		return false
+	}
+
+	log.Debug().
+		Str("store", "chat").
+		Str("op", "upsert").
+		Int64("chat_id", entry.ChatId).
+		Msg("db operation")
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false
+	}
+
+	err = tx.QueryRowContext(
+		ctx,
+		query,
+		entry.Id,
+		entry.ChatId,
+		entry.Key,
+	).Scan(&entry.Id, &entry.CreatedAt, &entry.UpdatedAt)
+	if err != nil {
+		_ = tx.Rollback()
+		return false
+	}
+
+	return tx.Commit() == nil
 }

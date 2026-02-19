@@ -2,7 +2,7 @@ package tests
 
 import (
 	"context"
-	"cukiller/api/internal/api"
+	"cukiller/api/internal/http"
 	. "cukiller/api/pkg/db"
 	"net/http"
 	"net/http/httptest"

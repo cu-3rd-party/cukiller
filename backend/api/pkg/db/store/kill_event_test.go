@@ -12,18 +12,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func seedKillEventDeps(t *testing.T) (UserStore, User, User, uuid.UUID) {
+func seedKillEventDeps(t *testing.T) (UserStore, *User, *User, uuid.UUID) {
 	userStore := UserStore{db: db.SetupDb(t)}
 
 	killer := DefaultUser()
 	killer.Id = uuid.New()
-	killer.TgId = uint64(time.Now().UnixNano())
-	assert.True(t, userStore.Create(t.Context(), &killer))
+	killer.TgId = time.Now().UnixNano()
+	assert.True(t, userStore.Create(t.Context(), killer))
 
 	victim := DefaultUser()
 	victim.Id = uuid.New()
-	victim.TgId = uint64(time.Now().UnixNano() + 1)
-	assert.True(t, userStore.Create(t.Context(), &victim))
+	victim.TgId = time.Now().UnixNano() + 1
+	assert.True(t, userStore.Create(t.Context(), victim))
 
 	gameId := uuid.New()
 	assert.NoError(t, insertGame(t.Context(), userStore.db, gameId, "test_game"))
@@ -31,7 +31,7 @@ func seedKillEventDeps(t *testing.T) (UserStore, User, User, uuid.UUID) {
 	return userStore, killer, victim, gameId
 }
 
-func cleanupKillEventDeps(t *testing.T, userStore UserStore, killer User, victim User, gameId uuid.UUID) {
+func cleanupKillEventDeps(t *testing.T, userStore UserStore, killer *User, victim *User, gameId uuid.UUID) {
 	_, _ = userStore.db.ExecContext(t.Context(), `DELETE FROM games WHERE id = $1`, gameId)
 	userStore.Delete(t.Context(), killer.Id)
 	userStore.Delete(t.Context(), victim.Id)

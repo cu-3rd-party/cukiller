@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // KillEvent represents kill event object in the database
@@ -29,7 +30,7 @@ type KillEvent struct {
 
 func DefaultKillEvent() KillEvent {
 	return KillEvent{
-		Id:                uuid.Nil,
+		Id:                uuid.New(),
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
 		KillerConfirmed:   false,
@@ -39,16 +40,20 @@ func DefaultKillEvent() KillEvent {
 		Status:            "pending",
 		ModeratedAt:       sql.NullTime{},
 		IsApproved:        false,
-		GameId:            uuid.Nil,
-		KillerId:          uuid.Nil,
+		GameId:            uuid.New(),
+		KillerId:          uuid.New(),
 		ModeratorId:       uuid.NullUUID{},
-		VictimId:          uuid.Nil,
+		VictimId:          uuid.New(),
 	}
 }
 
 // KillEventStore provides CRUD access to database
 type KillEventStore struct {
 	db *sql.DB
+}
+
+func NewKillEventStore(db *sql.DB) KillEventStore {
+	return KillEventStore{db: db}
 }
 
 func (s *KillEventStore) Create(ctx context.Context, entry *KillEvent) bool {
@@ -72,6 +77,12 @@ func (s *KillEventStore) Create(ctx context.Context, entry *KillEvent) bool {
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "create").
+		Str("game_id", entry.GameId.String()).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -138,6 +149,12 @@ func scanKillEvent(row killEventRowScanner) (KillEvent, error) {
 }
 
 func (s *KillEventStore) GetById(ctx context.Context, id uuid.UUID) (*KillEvent, bool) {
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, killEventSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanKillEvent(row)
@@ -165,6 +182,12 @@ func (s *KillEventStore) Update(ctx context.Context, entry *KillEvent) bool {
 		WHERE id = $12
 	`
 
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -189,6 +212,12 @@ func (s *KillEventStore) Update(ctx context.Context, entry *KillEvent) bool {
 }
 
 func (s *KillEventStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "kill_event").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM kill_events WHERE id = $1`, id)
 	if err != nil {
 		return false

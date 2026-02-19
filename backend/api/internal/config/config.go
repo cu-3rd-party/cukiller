@@ -10,6 +10,7 @@ type Config struct {
 	APIBasePath   string `env:"API_PATH" envDefault:"/"`
 	Port          string `env:"PORT" envDefault:"8080"`
 	EnableMetrics bool   `env:"API_ENABLE_METRICS" envDefault:"true"`
+	LogLevel      string `env:"LOG_LEVEL" envDefault:"info"`
 	DbHost        string `env:"DB_HOST" envDefault:"db"`
 	DbName        string `env:"DB_NAME" envDefault:"db"`
 	DbUser        string `env:"DB_USER" envDefault:"admin"`

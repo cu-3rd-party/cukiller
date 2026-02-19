@@ -17,7 +17,7 @@ func TestUserStore_CreateGet(t *testing.T) {
 	user.TgId = TestId
 	user.TgUsername = TestUsername
 
-	assert.True(t, store.Create(t.Context(), &user))
+	assert.True(t, store.Create(t.Context(), user))
 	got, ok := store.GetByTgId(t.Context(), TestId)
 	assert.True(t, ok)
 	assert.EqualValues(t, TestId, got.TgId)
@@ -35,11 +35,11 @@ func TestUserStore_CreateUpdateGet(t *testing.T) {
 	user.TgId = TestId
 	user.TgUsername = TestUsername
 
-	assert.True(t, store.Create(t.Context(), &user))
+	assert.True(t, store.Create(t.Context(), user))
 
 	const TestOtherUsername = "other_username"
 	user.TgUsername = TestOtherUsername
-	assert.True(t, store.Update(t.Context(), &user))
+	assert.True(t, store.Update(t.Context(), user))
 	got, ok := store.GetByTgId(t.Context(), TestId)
 	assert.True(t, ok)
 	assert.Equal(t, TestOtherUsername, got.TgUsername)

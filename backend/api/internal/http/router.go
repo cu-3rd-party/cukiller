@@ -1,7 +1,7 @@
 package api
 
 import (
-	"cukiller/api/internal/api/handlers"
+	"cukiller/api/internal/http/handlers"
 	"cukiller/api/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +26,13 @@ func registerRoutes(router *gin.Engine, cfg Config) {
 	group := router.Group(cfg.BasePath)
 
 	health := handlers.Healthcheck{Method: cfg.HealthCheck}
+	bootstrap := handlers.SystemHandler{
+		ChatStore: &cfg.Chat,
+		UserStore: &cfg.User,
+	}
 
 	group.GET("/ping", handlers.Ping)
 	group.GET("/echo", handlers.Echo)
 	group.GET("/health/", health.Health)
+	group.POST("/system/bootstrap", bootstrap.Bootstrap)
 }

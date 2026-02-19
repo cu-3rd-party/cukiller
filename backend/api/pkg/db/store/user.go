@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 // User represents user object in the database
@@ -14,7 +15,7 @@ type User struct {
 	Id                 uuid.UUID
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
-	TgId               uint64
+	TgId               int64
 	TgUsername         string
 	Type               string
 	CourseNumber       uint8
@@ -31,9 +32,9 @@ type User struct {
 	FamilyNameRequired bool
 }
 
-func DefaultUser() User {
-	return User{
-		Id:                 uuid.Nil,
+func DefaultUser() *User {
+	return &User{
+		Id:                 uuid.New(),
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 		TgId:               0,
@@ -54,9 +55,23 @@ func DefaultUser() User {
 	}
 }
 
+func (u *User) WithTgId(tgId int64) *User {
+	u.TgId = tgId
+	return u
+}
+
+func (u *User) WithAdmin(isAdmin bool) *User {
+	u.IsAdmin = isAdmin
+	return u
+}
+
 // UserStore provides CRUD access to database
 type UserStore struct {
 	db *sql.DB
+}
+
+func NewUserStore(db *sql.DB) UserStore {
+	return UserStore{db: db}
 }
 
 func nullableString(value string) sql.NullString {
@@ -91,6 +106,12 @@ func (s *UserStore) Create(ctx context.Context, entry *User) bool {
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	log.Debug().
+		Str("store", "user").
+		Str("op", "create").
+		Int64("tg_id", entry.TgId).
+		Msg("db operation")
 
 	err := s.db.QueryRowContext(
 		ctx,
@@ -175,6 +196,12 @@ func scanUser(row userRowScanner) (User, error) {
 }
 
 func (s *UserStore) GetById(ctx context.Context, id uuid.UUID) (*User, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "get_by_id").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, userSelectQuery+`
 	WHERE id = $1`, id)
 	entry, err := scanUser(row)
@@ -184,7 +211,13 @@ func (s *UserStore) GetById(ctx context.Context, id uuid.UUID) (*User, bool) {
 	return &entry, true
 }
 
-func (s *UserStore) GetByTgId(ctx context.Context, tgId uint64) (*User, bool) {
+func (s *UserStore) GetByTgId(ctx context.Context, tgId int64) (*User, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "get_by_tg_id").
+		Int64("tg_id", tgId).
+		Msg("db operation")
+
 	row := s.db.QueryRowContext(ctx, userSelectQuery+`
 	WHERE tg_id = $1`, tgId)
 	entry, err := scanUser(row)
@@ -216,6 +249,12 @@ func (s *UserStore) Update(ctx context.Context, entry *User) bool {
 		WHERE id = $16
 	`
 
+	log.Debug().
+		Str("store", "user").
+		Str("op", "update").
+		Str("id", entry.Id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(
 		ctx,
 		query,
@@ -244,10 +283,101 @@ func (s *UserStore) Update(ctx context.Context, entry *User) bool {
 }
 
 func (s *UserStore) Delete(ctx context.Context, id uuid.UUID) bool {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "delete").
+		Str("id", id.String()).
+		Msg("db operation")
+
 	res, err := s.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	if err != nil {
 		return false
 	}
 	rows, err := res.RowsAffected()
 	return err == nil && rows > 0
+}
+
+func (s *UserStore) Upsert(ctx context.Context, entry *User) bool {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false
+	}
+
+	const query = `
+		INSERT INTO users (
+		    id,
+			tg_id,
+			tg_username,
+			type,
+			course_number,
+			group_name,
+			is_in_game,
+			is_admin,
+			photo,
+			about_user,
+			status,
+			allow_hugging_on_kill,
+			exit_cooldown_until,
+			given_name,
+			family_name,
+			family_name_required
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8,
+			$9, $10, $11, $12, $13, $14, $15, $16
+		)
+		ON CONFLICT (tg_id) DO UPDATE SET
+			tg_username = EXCLUDED.tg_username,
+			type = EXCLUDED.type,
+			course_number = EXCLUDED.course_number,
+			group_name = EXCLUDED.group_name,
+			is_in_game = EXCLUDED.is_in_game,
+			is_admin = EXCLUDED.is_admin,
+			photo = EXCLUDED.photo,
+			about_user = EXCLUDED.about_user,
+			status = EXCLUDED.status,
+			allow_hugging_on_kill = EXCLUDED.allow_hugging_on_kill,
+			exit_cooldown_until = EXCLUDED.exit_cooldown_until,
+			given_name = EXCLUDED.given_name,
+			family_name = EXCLUDED.family_name,
+			family_name_required = EXCLUDED.family_name_required,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING id, created_at, updated_at
+	`
+
+	log.Debug().
+		Str("store", "user").
+		Str("op", "upsert").
+		Int64("tg_id", entry.TgId).
+		Msg("db operation")
+
+	err = tx.QueryRowContext(
+		ctx,
+		query,
+		entry.Id,
+		entry.TgId,
+		nullableString(entry.TgUsername),
+		entry.Type,
+		entry.CourseNumber,
+		entry.GroupName,
+		entry.IsInGame,
+		entry.IsAdmin,
+		entry.Photo,
+		entry.AboutUser,
+		entry.Status,
+		entry.AllowHuggingOnKill,
+		entry.ExitCooldownUntil,
+		entry.GivenName,
+		entry.FamilyName,
+		entry.FamilyNameRequired,
+	).Scan(&entry.Id, &entry.CreatedAt, &entry.UpdatedAt)
+	if err != nil {
+		_ = tx.Rollback()
+		return false
+	}
+
+	if err = tx.Commit(); err != nil {
+		return false
+	}
+
+	return true
 }

@@ -17,7 +17,7 @@ func TestPendingProfileStore_CreateGet(t *testing.T) {
 	user := DefaultUser()
 	user.TgId = TestPendingTgId
 	user.TgUsername = TestPendingUsername
-	assert.True(t, userStore.Create(t.Context(), &user))
+	assert.True(t, userStore.Create(t.Context(), user))
 
 	profile := DefaultPendingProfile()
 	profile.GivenName = "Test"
@@ -57,7 +57,7 @@ func TestPendingProfileStore_CreateUpdateGet(t *testing.T) {
 	user := DefaultUser()
 	user.TgId = TestPendingTgId + 1
 	user.TgUsername = TestPendingUsername + "_2"
-	assert.True(t, userStore.Create(t.Context(), &user))
+	assert.True(t, userStore.Create(t.Context(), user))
 
 	profile := DefaultPendingProfile()
 	profile.GivenName = "Test"
