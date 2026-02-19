@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -91,7 +93,9 @@ func (s *PendingProfileStore) Create(ctx context.Context, entry *PendingProfile)
 			allow_hugging_on_kill
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
-			$10, $11, $12, $13, $14, $15, $16, $17, $18
+			$10, $11, $12, $13, $14, $15, $16,
+			NULLIF($17, '00000000-0000-0000-0000-000000000000'::uuid),
+			$18
 		)
 		RETURNING id, created_at, updated_at
 	`
@@ -218,6 +222,64 @@ func (s *PendingProfileStore) GetByUserId(ctx context.Context, userId uuid.UUID)
 	return &entry, true
 }
 
+type PendingProfileFilter struct {
+	Status string
+	UserId *uuid.UUID
+	Limit  int
+	Offset int
+}
+
+func (s *PendingProfileStore) List(ctx context.Context, filter PendingProfileFilter) ([]PendingProfile, error) {
+	log.Debug().
+		Str("store", "pending_profile").
+		Str("op", "list").
+		Msg("db operation")
+
+	var builder strings.Builder
+	builder.WriteString(pendingProfileSelectQuery)
+	builder.WriteString("\nWHERE 1=1")
+
+	args := make([]any, 0, 4)
+	argPos := 1
+
+	if filter.Status != "" {
+		builder.WriteString("\nAND status = $" + strconv.Itoa(argPos))
+		args = append(args, filter.Status)
+		argPos++
+	}
+	if filter.UserId != nil {
+		builder.WriteString("\nAND user_id = $" + strconv.Itoa(argPos))
+		args = append(args, *filter.UserId)
+		argPos++
+	}
+
+	builder.WriteString("\nORDER BY created_at DESC")
+	builder.WriteString("\nLIMIT $" + strconv.Itoa(argPos))
+	args = append(args, filter.Limit)
+	argPos++
+	builder.WriteString("\nOFFSET $" + strconv.Itoa(argPos))
+	args = append(args, filter.Offset)
+
+	rows, err := s.db.QueryContext(ctx, builder.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]PendingProfile, 0)
+	for rows.Next() {
+		entry, err := scanPendingProfile(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 func (s *PendingProfileStore) Update(ctx context.Context, entry *PendingProfile) bool {
 	const query = `
 		UPDATE pending_profiles SET
@@ -236,7 +298,7 @@ func (s *PendingProfileStore) Update(ctx context.Context, entry *PendingProfile)
 			message_id = $13,
 			submitted_username = $14,
 			user_id = $15,
-			moderator_id = $16,
+			moderator_id = NULLIF($16, '00000000-0000-0000-0000-000000000000'::uuid),
 			allow_hugging_on_kill = $17,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = $18
