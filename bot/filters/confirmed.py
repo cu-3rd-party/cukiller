@@ -1,11 +1,17 @@
-from aiogram.filters import BaseFilter
-from aiogram.types import Message
+from __future__ import annotations
 
-from db.models import User
+from typing import TYPE_CHECKING
+
+from aiogram.filters import BaseFilter
+
+if TYPE_CHECKING:
+    from aiogram.types import Message
+
+    from services.backend_api import UserModel as User
 
 
 class ConfirmedFilter(BaseFilter):
-    async def __call__(self, message: Message, user: User, **kwargs: object) -> bool:
+    async def __call__(self, message: Message, user: object, **kwargs: object) -> bool:
         return user is not None and user.status == "confirmed"
 
 

@@ -32,6 +32,7 @@ def _get_field(payload: dict, *names, default=None):
             return payload[name]
     return default
 
+
 class APITestCase(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -40,7 +41,9 @@ class APITestCase(unittest.IsolatedAsyncioTestCase):
         cls.headers = {"secret-key": cls.secret_key}
 
     async def asyncSetUp(self) -> None:
-        self.client = httpx.AsyncClient(base_url=self.base_url, headers=self.headers, timeout=20.0)
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url, headers=self.headers, timeout=20.0
+        )
 
     async def asyncTearDown(self) -> None:
         await self.client.aclose()
@@ -175,7 +178,9 @@ class APITestCase(unittest.IsolatedAsyncioTestCase):
         resp = await self.client.get(f"/games/{game_id}")
         self.assertEqual(resp.status_code, 200, resp.text)
 
-        resp = await self.client.patch(f"/games/{game_id}", json={"name": "Updated Game"})
+        resp = await self.client.patch(
+            f"/games/{game_id}", json={"name": "Updated Game"}
+        )
         self.assertEqual(resp.status_code, 200, resp.text)
         updated = _first_json(resp.text)
         self.assertEqual(_get_field(updated, "name", "Name"), "Updated Game")
@@ -216,7 +221,9 @@ class APITestCase(unittest.IsolatedAsyncioTestCase):
         resp = await self.client.get("/players", params={"game_id": game_id})
         self.assertEqual(resp.status_code, 200, resp.text)
         items = _first_json(resp.text).get("items", [])
-        self.assertTrue(any(_get_field(item, "id", "Id") == player_id for item in items))
+        self.assertTrue(
+            any(_get_field(item, "id", "Id") == player_id for item in items)
+        )
 
         resp = await self.client.get("/players/count", params={"game_id": game_id})
         self.assertEqual(resp.status_code, 200, resp.text)
@@ -253,7 +260,11 @@ class APITestCase(unittest.IsolatedAsyncioTestCase):
 
         resp = await self.client.patch(
             f"/kill-events/{event_id}",
-            json={"status": "confirmed", "killer_confirmed": True, "victim_confirmed": True},
+            json={
+                "status": "confirmed",
+                "killer_confirmed": True,
+                "victim_confirmed": True,
+            },
         )
         self.assertEqual(resp.status_code, 200, resp.text)
         updated = _first_json(resp.text)
@@ -294,7 +305,9 @@ class APITestCase(unittest.IsolatedAsyncioTestCase):
         resp = await self.client.get("/pending-profiles", params={"user_id": user_id})
         self.assertEqual(resp.status_code, 200, resp.text)
         items = _first_json(resp.text).get("items", [])
-        self.assertTrue(any(_get_field(item, "id", "Id") == pending_id for item in items))
+        self.assertTrue(
+            any(_get_field(item, "id", "Id") == pending_id for item in items)
+        )
 
     async def test_chats_flow(self):
         chat = await self._create_chat()

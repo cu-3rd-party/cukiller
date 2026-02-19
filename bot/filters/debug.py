@@ -1,7 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from services import settings
+from services.settings import settings
 
 
 class DebugFilter(BaseFilter):

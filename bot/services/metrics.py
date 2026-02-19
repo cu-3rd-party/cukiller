@@ -6,7 +6,7 @@ import logging
 
 from prometheus_client import Counter, Gauge, Histogram, Info, generate_latest
 
-from db.models import Game, Player, User
+from services.backend_api import backend_api
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +74,9 @@ class BotMetrics:
     async def update_user_metrics(self):
         """Update user-related metrics from the database."""
         try:
-            # TODO: API CALL
-            total_users = None
-            # TODO: API CALL
-            confirmed_users = None
-            # TODO: API CALL
-            pending_users = None
+            total_users = await backend_api.count_users()
+            confirmed_users = await backend_api.count_users(status="confirmed")
+            pending_users = await backend_api.count_users(status="pending")
 
             self.user_total.labels(status="total").set(total_users)
             self.user_total.labels(status="confirmed").set(confirmed_users)
@@ -97,12 +94,9 @@ class BotMetrics:
     async def update_game_metrics(self):
         """Update game-related metrics from the database."""
         try:
-            # TODO: API CALL
-            total_games = None
-            # TODO: API CALL
-            active_games = None
-            # TODO: API CALL
-            completed_games = None
+            total_games = await backend_api.count_games()
+            active_games = await backend_api.count_games(status="active")
+            completed_games = await backend_api.count_games(status="completed")
 
             self.games_total.labels(status="total").set(total_games)
             self.games_total.labels(status="active").set(active_games)
@@ -120,11 +114,9 @@ class BotMetrics:
     async def update_player_metrics(self):
         """Update player-related metrics from the database."""
         try:
-            # TODO: API CALL
-            games = None
+            games = await backend_api.list_games()
             for game in games:
-                # TODO: API CALL
-                players_count = None
+                players_count = await backend_api.count_players(game_id=game.id)
                 game_status = "active" if game.end_date is None else "completed"
 
                 self.players_total.labels(game_id=str(game.id), game_status=game_status).set(players_count)

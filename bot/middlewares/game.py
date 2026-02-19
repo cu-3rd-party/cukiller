@@ -4,7 +4,7 @@ from typing import Any, TypeVar
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
-from db.models import Game
+from services.backend_api import backend_api
 
 T = TypeVar("T")
 
@@ -16,5 +16,5 @@ class GameMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> T:
-        # TODO: API CALL
-        return None
+        game = await backend_api.get_active_game()
+        return await handler(event, {**data, "game": game})

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import html
 import logging
 from collections.abc import Awaitable, Callable
@@ -11,7 +13,6 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Column, Group
 from aiogram_dialog.widgets.text import Const, Format
 
-from db.models import PendingProfile, User
 from filters.confirmed import PendingFilter, ProfileNonexistentFilter
 from services import (
     AdminChatService,
@@ -23,6 +24,7 @@ from services import (
     normalize_name_component,
     texts,
 )
+from services.backend_api import backend_api
 from services.states.rules import RulesStates
 
 logger = logging.getLogger(__name__)
@@ -182,18 +184,56 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     d = manager.dialog_data
     tg_user = c.from_user
 
-    # TODO: API CALL
-    user_obj, _ = None, None
+    user_obj, _ = await backend_api.get_or_create_user(
+        {
+            "tg_id": tg_user.id,
+            "tg_username": tg_user.username,
+            "given_name": d.get("given_name"),
+            "family_name": d.get("family_name"),
+        }
+    )
     user_obj.tg_username = tg_user.username
     user_obj.status = "pending"
     user_obj.family_name = d.get("family_name")
     user_obj.given_name = d.get("given_name")
-    # TODO: API CALL
+    await backend_api.update_user(
+        user_obj.id,
+        {
+            "tg_username": user_obj.tg_username,
+            "status": user_obj.status,
+            "family_name": user_obj.family_name,
+            "given_name": user_obj.given_name,
+        },
+    )
 
     full_name = build_full_name(d.get("given_name"), d.get("family_name"))
 
-    # TODO: API CALL
-    pending = None
+    pending = await backend_api.create_pending_profile(
+        {
+            "user_id": user_obj.id,
+            "status": "pending",
+            "is_new_profile": True,
+            "changed_fields": [
+                "family_name",
+                "given_name",
+                "type",
+                "course_number",
+                "group_name",
+                "about_user",
+                "photo",
+                "allow_hugging_on_kill",
+            ],
+            "submitted_username": tg_user.username,
+            "family_name": d.get("family_name"),
+            "given_name": d.get("given_name"),
+            "type": d.get("course_type"),
+            "course_number": d.get("course_number"),
+            "group_name": d.get("group_name"),
+            "about_user": d.get("about"),
+            "photo": d.get("photo"),
+            "allow_hugging_on_kill": d.get("allow_hugging_on_kill"),
+        }
+    )
 
     # Notify admin
     text = texts.render(
@@ -225,7 +265,10 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     if admin_message:
         pending.chat_id = admin_message.chat.id
         pending.message_id = admin_message.message_id
-        # TODO: API CALL
+        await backend_api.update_pending_profile(
+            pending.id,
+            {"chat_id": pending.chat_id, "message_id": pending.message_id},
+        )
 
     await c.message.answer(texts.get("registration.submitted"))
     await manager.done()

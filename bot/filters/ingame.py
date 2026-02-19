@@ -1,9 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from db.models import User
-
 
 class InGameFilter(BaseFilter):
-    async def __call__(self, message: Message, user: User, **kwargs: object) -> bool:
+    async def __call__(self, message: Message, user: object, **kwargs: object) -> bool:
         return user is not None and user.is_in_game

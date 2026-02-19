@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import logging
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from aiogram import Bot, Dispatcher, Router
@@ -20,9 +23,7 @@ from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, Select
 from aiogram_dialog.widgets.text import Const, Format
-from tortoise.expressions import Q
 
-from db.models import Chat, Game, KillEvent, Player, User
 from filters.admin import AdminFilter
 from handlers import mainloop_dialog
 from services import (
@@ -37,9 +38,14 @@ from services import (
     settings,
     texts,
 )
+from services.backend_api import backend_api
 from services.ban import ban as ban_user
 from services.credits import CreditsInfo
 from services.states.participation import ParticipationForm
+
+if TYPE_CHECKING:
+    from services.backend_api import Model as Game
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +83,9 @@ async def set_admin_commands(bot: Bot, chat_id: int):
 
 @router.message(AdminFilter(), Command(commands=["stats"]))
 async def stats(message: Message, bot: Bot):
-    # TODO: API CALL
-    user_count = None
-    # TODO: API CALL
-    user_confirmed_count = None
-    # TODO: API CALL
-    current_game = None
+    user_count = await backend_api.count_users()
+    user_confirmed_count = await backend_api.count_users(status="confirmed")
+    current_game = await backend_api.get_active_game()
 
     if current_game:
         # Get current game statistics
@@ -147,9 +150,8 @@ async def on_final_confirmation(
     manager.dialog_data["confirm"] = True
 
     creation_date = datetime.now(settings.timezone)
-    # TODO: API CALL
-    game = None
-    users = []
+    game = await backend_api.create_game({"name": manager.dialog_data["name"]})
+    users = await backend_api.list_users(status="confirmed")
 
     logger.debug("Notifying %s about new game %s", len(users), game.id)
 
@@ -198,7 +200,7 @@ async def on_final_confirmation(
 async def on_reset_game_creation(callback: CallbackQuery, button: Button, manager: DialogManager):
     manager.dialog_data["confirm"] = False
 
-    # TODO: API CALL
+    await backend_api.get_active_game()
 
 
 router.include_router(
@@ -230,21 +232,21 @@ router.include_router(
 
 @router.message(AdminFilter(), Command(commands=["creategame"]))
 async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
-    # TODO: API CALL
-    if False:
-        msg = await message.reply(text=texts.get("admin.creategame.already_running"))
+    active_game = await backend_api.get_active_game()
+    if active_game:
+        await message.reply(text=texts.get("admin.creategame.already_running"))
         await asyncio.sleep(10)
-        # TODO: API CALL
+        await backend_api.get_game_by_id(active_game.id)
         return
-    # TODO: API CALL
+    await backend_api.list_games(status="scheduled")
     await dialog_manager.start(StartGame.name, show_mode=ShowMode.AUTO)
 
 
 @router.message(AdminFilter(), Command(commands=["getservertime"]))
 async def getservertime(message: Message):
-    msg = await message.reply(texts.render("admin.server_time", server_time=datetime.now(settings.timezone)))
+    await message.reply(texts.render("admin.server_time", server_time=datetime.now(settings.timezone)))
     await asyncio.sleep(10)
-    # TODO: API CALL
+    await backend_api.get_active_game()
 
 
 def parse_game_stage(game: Game) -> str:
@@ -257,8 +259,7 @@ def parse_game_stage(game: Game) -> str:
 
 
 async def get_games_data(**kwargs: object):
-    # TODO: API CALL
-    games = None
+    games = await backend_api.list_games()
     return {
         "games": [
             {
@@ -274,8 +275,7 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs: object
     game_id = dialog_manager.dialog_data.get("game_id")
     if not game_id:
         return {}
-    # TODO: API CALL
-    game = None
+    game = await backend_api.get_game_by_id(game_id)
     return {
         "game_name": game.name,
         "show_end_game": game.start_date is not None and game.end_date is None,
@@ -292,37 +292,36 @@ async def on_game_selected(callback: CallbackQuery, widget: Select, manager: Dia
 @log_dialog_action("ADMIN_GAME_ACTION_CLICKED")
 async def on_action_clicked(callback: CallbackQuery, widget: Button, manager: DialogManager):
     action = widget.widget_id
-    # TODO: API CALL
-    game = None
+    game = await backend_api.get_game_by_id(manager.dialog_data["game_id"])
     logger.info(action)
     if action == "start_game":
         await handle_start_game(callback, game)
     elif action == "end_game":
         await handle_end_game(callback.bot, manager.middleware_data["dispatcher"], game)
     logger.info(game.start_date)
-    # TODO: API CALL
-    # TODO: API CALL
+    await backend_api.get_game_by_id(game.id)
+    await backend_api.count_game_participants(game.id)
 
 
 async def handle_start_game(callback: CallbackQuery, game: Game):
     game.start_date = datetime.now(settings.timezone)
-    # TODO: API CALL
+    await backend_api.update_game(game.id, {"start_date": game.start_date})
     await MatchmakingService().reset_queues()
 
 
 async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
     """Handle game ending and send credits to all participants."""
     game.end_date = datetime.now(settings.timezone)
-    # TODO: API CALL
+    await backend_api.update_game(game.id, {"end_date": game.end_date})
     await MatchmakingService().reset_queues()
 
-    # TODO: API CALL
-    participants, info, discussion = [], None, None
+    participants = await backend_api.list_game_participants(game.id)
+    info = await CreditsInfo.from_game(game)
+    discussion = await backend_api.get_chat_by_key("discussion")
 
-    send_tasks = [
-        *[user_endgame(bot, dp, user, info) for user in participants],
-        send_game_credits(bot, info, discussion.chat_id),
-    ]
+    send_tasks = [*[user_endgame(bot, dp, user, info) for user in participants]]
+    if discussion:
+        send_tasks.append(send_game_credits(bot, info, discussion.chat_id))
 
     results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
@@ -330,7 +329,7 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
         if isinstance(result, Exception):
             logger.error("Failed to send credits to user %s: %s", user.id, result)
 
-    # TODO: API CALL
+    await asyncio.gather(*(backend_api.update_user(u.id, {"is_in_game": False}) for u in participants))
 
 
 async def user_endgame(bot: Bot, dp: Dispatcher, user: User, info: CreditsInfo):
@@ -390,10 +389,8 @@ async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
 
 async def game_info_getter(dialog_manager: DialogManager, **kwargs: object):
     game_id = dialog_manager.dialog_data["game_id"]
-    # TODO: API CALL
-    game = None
-    # TODO: API CALL
-    participants_count = None
+    game = await backend_api.get_game_by_id(game_id)
+    participants_count = await backend_api.count_game_participants(game_id)
     return {
         "game_info": texts.render(
             "admin.game_info",
@@ -467,7 +464,7 @@ router.include_router(
 
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
-    # TODO: API CALL
+    await backend_api.list_games(limit=1)
     await dialog_manager.start(EditGame.game_id, show_mode=ShowMode.AUTO)
 
 
@@ -488,17 +485,16 @@ async def endgame(
     dispatcher: Dispatcher,
     dialog_manager: DialogManager,
 ):
-    # TODO: API CALL
-    active_game = None
+    active_game = await backend_api.get_active_game()
     if not active_game:
-        msg = await message.answer(texts.get("admin.no_active_games"))
+        await message.answer(texts.get("admin.no_active_games"))
         await asyncio.sleep(1)
-        # TODO: API CALL
+        await backend_api.get_active_game()
         return
     await handle_end_game(bot, dispatcher, active_game)
-    msg = await message.answer(texts.get("admin.game_finished"))
+    await message.answer(texts.get("admin.game_finished"))
     await asyncio.sleep(1)
-    # TODO: API CALL
+    await backend_api.get_active_game()
 
 
 @router.message(Command(commands=["cancel"]))
@@ -527,8 +523,7 @@ async def ban(
         await message.answer(texts.get("admin.ban.tg_id_must_be_int"))
         return
 
-    # TODO: API CALL
-    user = None
+    user = await backend_api.get_user_by_tg_id(user_id)
     if not user:
         await message.answer(texts.get("admin.ban.user_not_found"))
         return
@@ -547,8 +542,7 @@ async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
         await message.answer(texts.get("admin.rollbackkill.id_must_be_uuid"))
         return
 
-    # TODO: API CALL
-    kill_event: KillEvent | None = None
+    kill_event = await backend_api.get_kill_event(str(kill_event_id))
     if not kill_event:
         await message.answer(texts.get("admin.rollbackkill.not_found"))
         return
@@ -562,14 +556,23 @@ async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
     kill_event.killer_confirmed_at = None
     kill_event.victim_confirmed = False
     kill_event.victim_confirmed_at = None
-    # TODO: API CALL
+    await backend_api.update_kill_event(
+        kill_event.id,
+        {
+            "status": kill_event.status,
+            "killer_confirmed": False,
+            "killer_confirmed_at": None,
+            "victim_confirmed": False,
+            "victim_confirmed_at": None,
+        },
+    )
 
     await recalc_game_ratings(kill_event.game)
 
-    # TODO: API CALL
-    killer_player = None
-    # TODO: API CALL
-    victim_player = None
+    killer_players = await backend_api.list_players(game_id=kill_event.game_id, user_id=kill_event.killer_id)
+    killer_player = killer_players[0] if killer_players else None
+    victim_players = await backend_api.list_players(game_id=kill_event.game_id, user_id=kill_event.victim_id)
+    victim_player = victim_players[0] if victim_players else None
 
     await AdminChatService(bot).send_message(
         key="discussion",

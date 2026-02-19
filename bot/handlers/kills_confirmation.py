@@ -1,20 +1,29 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from aiogram import Router
-from aiogram.client.bot import Bot
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery
-from aiogram.types import User as TgUser
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.api.entities import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
-from db.models import Chat, KillEvent, Player, User
 from handlers import mainloop_dialog
-from services import MainLoop, add_back_to_queues, modify_rating, settings, texts, trim_name
+from services import MainLoop, add_back_to_queues, modify_rating, texts, trim_name
+from services.backend_api import backend_api
+from services.settings import settings
+
+if TYPE_CHECKING:
+    from aiogram.client.bot import Bot
+    from aiogram.types import CallbackQuery
+    from aiogram.types import User as TgUser
+
+    from services.backend_api import Model as Player
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -75,9 +84,13 @@ async def notify_chat(  # noqa: PLR0913
     killer_display = killer.full_name or killer.tg_username or texts.get("common.unknown")
     victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
 
+    discussion_chat = await backend_api.get_chat_by_key("discussion")
+    if not discussion_chat:
+        logger.warning("Discussion chat not configured")
+        return
+
     await bot.send_message(
-        # TODO: API CALL
-        chat_id=None,
+        chat_id=discussion_chat.chat_id,
         text=texts.render(
             "kills.chat_notified",
             killer=killer.mention_html(),
@@ -101,26 +114,42 @@ async def handle_confirm(  # noqa: PLR0913
     from_user: TgUser,
 ):
     """Shared confirmation handler for both killer and victim."""
-    # TODO: API CALL
-    kill_event: KillEvent = None
+    kill_event = await backend_api.get_kill_event(manager.start_data["kill_event_id"])
+    if not kill_event:
+        return
     setattr(kill_event, f"{role}_confirmed", True)
     setattr(kill_event, f"{role}_confirmed_at", datetime.now(settings.timezone))
-    # TODO: API CALL
+    await backend_api.update_kill_event(
+        kill_event.id,
+        {
+            f"{role}_confirmed": True,
+            f"{role}_confirmed_at": getattr(kill_event, f"{role}_confirmed_at"),
+        },
+    )
 
-    # TODO: API CALL
-    # TODO: API CALL
+    if not getattr(kill_event, "killer", None):
+        kill_event.killer = await backend_api.get_user_by_id(kill_event.killer_id)
+    if not getattr(kill_event, "victim", None):
+        kill_event.victim = await backend_api.get_user_by_id(kill_event.victim_id)
 
     if not getattr(kill_event, f"{opposite_role}_confirmed"):
-        # TODO: API CALL
-        opposite_user: User = None
-        await send_double_confirm_dialog(manager, opposite_user, opposite_state)
+        opposite_user = kill_event.killer if opposite_role == "killer" else kill_event.victim
+        if opposite_user:
+            await send_double_confirm_dialog(manager, opposite_user, opposite_state)
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
-        # TODO: API CALL
-        killer_player = None
-        # TODO: API CALL
-        victim_player = None
+        await backend_api.update_kill_event(kill_event.id, {"status": kill_event.status})
+        killer_players = await backend_api.list_players(game_id=kill_event.game_id, user_id=kill_event.killer_id)
+        killer_player = killer_players[0] if killer_players else None
+        victim_players = await backend_api.list_players(game_id=kill_event.game_id, user_id=kill_event.victim_id)
+        victim_player = victim_players[0] if victim_players else None
+        if not killer_player or not victim_player:
+            return
+        if killer_player:
+            killer_player.user = kill_event.killer
+        if victim_player:
+            victim_player.user = kill_event.victim
         killer_delta, victim_delta = await modify_rating(killer_player, victim_player)
         await add_back_to_queues(kill_event.killer, kill_event.victim, killer_player, victim_player)
         await notify_player(kill_event.killer, bot, manager, killer_delta)
@@ -154,15 +183,23 @@ async def handle_deny(  # noqa: PLR0913
     from_user: TgUser,
 ):
     """Shared denial handler for both killer and victim."""
-    # TODO: API CALL
-    kill_event: KillEvent = None
+    kill_event = await backend_api.get_kill_event(manager.start_data["kill_event_id"])
+    if not kill_event:
+        return
 
     setattr(kill_event, f"{role}_confirmed", False)
     setattr(kill_event, f"{role}_confirmed_at", None)
 
     logger.info("%d отказался признавать убийство, будучи %s", from_user.id, role)
 
-    # TODO: API CALL
+    await backend_api.update_kill_event(
+        kill_event.id,
+        {
+            f"{role}_confirmed": False,
+            f"{role}_confirmed_at": None,
+            "status": "rejected",
+        },
+    )
 
 
 async def on_victim_confirm(callback: CallbackQuery, button: Button, manager: DialogManager):

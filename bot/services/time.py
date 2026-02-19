@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from services import settings
+from services.settings import settings
 
 
 def human_time(ts: datetime) -> str:

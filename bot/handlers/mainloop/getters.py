@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from aiogram import Dispatcher
 from aiogram.enums import ContentType
-from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
-from db.models import Game, KillEvent, Player, User
 from handlers.registration_dialog import COURSE_TYPES
 from services import (
     MatchmakingService,
@@ -18,6 +18,15 @@ from services import (
     texts,
     trim_name,
 )
+from services.backend_api import backend_api
+
+if TYPE_CHECKING:
+    from aiogram import Dispatcher
+    from aiogram_dialog import DialogManager
+
+    from services.backend_api import Model as Game
+    from services.backend_api import Model as KillEvent
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -50,25 +59,29 @@ def _safe_url(value: str | None, *, allow_tg: bool = False) -> str | None:
 
 
 async def get_user(manager: DialogManager):
-    # TODO: API CALL
-    return None
+    user = manager.middleware_data.get("user")
+    if user:
+        return user
+    tg_id = manager.start_data.get("user_tg_id")
+    if not tg_id:
+        return None
+    return await backend_api.get_user_by_tg_id(tg_id)
 
 
 async def get_user_and_game(manager: DialogManager):
     """Load user and game from dialog start data."""
     game_id = manager.start_data.get("game_id")
-    # TODO: API CALL
-    game = None
+    game = await backend_api.get_game_by_id(game_id) if game_id else None
     return await get_user(manager), game
 
 
 async def get_pending_events(game: Game, user: User):
     """Return killer_event and victim_event for a user."""
-    # TODO: API CALL
-    victim_event = None
+    victim_events = await backend_api.list_kill_events(game_id=game.id, victim_id=user.id, status="pending")
+    victim_event = victim_events[0] if victim_events else None
 
-    # TODO: API CALL
-    killer_event = None
+    killer_events = await backend_api.list_kill_events(game_id=game.id, killer_id=user.id, status="pending")
+    killer_event = killer_events[0] if killer_events else None
 
     logger.debug("Found killer event %s and %s", killer_event, victim_event)
     return killer_event, victim_event
@@ -99,8 +112,11 @@ async def extract_target(killer_event: KillEvent | None):
     if not killer_event:
         return texts.get("common.unknown"), None, None, None
 
-    # TODO: API CALL
     victim: User = killer_event.victim
+    if not victim:
+        victim = await backend_api.get_user_by_id(killer_event.victim_id)
+    if not victim:
+        return texts.get("common.unknown"), None, None, None
     target_name = victim.full_name or texts.get("common.unknown")
     return (
         target_name,
@@ -134,8 +150,8 @@ def _empty_target_state() -> dict:
 
 async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
     """Compute target-related info for the main menu or target window."""
-    # TODO: API CALL
-    player = None
+    players = await backend_api.list_players(game_id=game.id, user_id=user.id) if game else []
+    player = players[0] if players else None
     if not player or not user.is_in_game:
         return _empty_target_state()
 
@@ -173,8 +189,8 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
 async def get_user_rating(user: User, game: Game):
     if not game:
         return {}
-    # TODO: API CALL
-    player = None
+    players = await backend_api.list_players(game_id=game.id, user_id=user.id)
+    player = players[0] if players else None
     if not player:
         return {}
     return {

@@ -1,8 +1,7 @@
-from db.models import Player, User
 from services.matchmaking import MatchmakingService
 
 
-async def add_back_to_queues(killer: User, victim: User, killer_player: Player, victim_player: Player):
+async def add_back_to_queues(killer: object, victim: object, killer_player: object, victim_player: object):
     """Return both players to matchmaking queues."""
     matchmaking = MatchmakingService()
     for user, player, qtype in (

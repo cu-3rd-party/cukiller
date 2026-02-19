@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
-from services import settings
-
-if TYPE_CHECKING:
-    from db.models import User
+from services.settings import settings
 
 # !!! Сколько пользователь не может участвовать в играх
 EXIT_COOLDOWN_DURATION = timedelta(days=7)
@@ -17,14 +13,14 @@ def compute_exit_cooldown_until(now: datetime | None = None) -> datetime:
     return now + EXIT_COOLDOWN_DURATION
 
 
-def is_exit_cooldown_active(user: User, now: datetime | None = None) -> bool:
+def is_exit_cooldown_active(user: object, now: datetime | None = None) -> bool:
     if user.exit_cooldown_until is None:
         return False
     now = now or datetime.now(settings.timezone)
     return user.exit_cooldown_until > now
 
 
-def format_exit_cooldown(user: User, fmt: str = "%d.%m.%Y %H:%M") -> str | None:
+def format_exit_cooldown(user: object, fmt: str = "%d.%m.%Y %H:%M") -> str | None:
     if not user.exit_cooldown_until:
         return None
 

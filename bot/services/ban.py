@@ -1,14 +1,23 @@
+from __future__ import annotations
+
+import asyncio
 import logging
 import math
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
-from tortoise.expressions import Q
 
-from db.models import Game, KillEvent, Player, User
-from services import settings, texts
+from services import texts
 from services.admin_chat import AdminChatService
+from services.backend_api import backend_api
 from services.matchmaking import MatchmakingService
+from services.settings import settings
+
+if TYPE_CHECKING:
+    from services.backend_api import Model as Game
+    from services.backend_api import Model as Player
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +45,16 @@ async def modify_rating(
     killer_player.rating = round(killer_new)
     victim_player.rating = round(victim_new)
 
-    # TODO: API CALL
-    # TODO: API CALL
+    await backend_api.update_player(killer_player.id, {"rating": killer_player.rating})
+    await backend_api.update_player(victim_player.id, {"rating": victim_player.rating})
 
     if killer_player.rating <= 0:
-        # TODO: API CALL
+        if not getattr(killer_player, "user", None):
+            killer_player.user = await backend_api.get_user_by_id(killer_player.user_id)
         await ban(killer_player.user, "Отрицательный рейтинг, game over")
     elif victim_player.rating <= 0:
-        # TODO: API CALL
+        if not getattr(victim_player, "user", None):
+            victim_player.user = await backend_api.get_user_by_id(victim_player.user_id)
         await ban(victim_player.user, "Отрицательный рейтинг, game over")
 
     return round(killer_delta), round(victim_delta)
@@ -64,18 +75,18 @@ def calculate_penalty_at(creation: datetime, at: datetime | None = None) -> floa
 
 async def recalc_game_ratings(game: Game) -> None:
     """Recalculate all player ratings for the game from scratch (without banned events)."""
-    # TODO: API CALL
-    players = []
+    players = await backend_api.list_players(game_id=game.id)
     players_map = {p.user_id: p for p in players}
 
     # reset ratings to baseline
     for player in players:
         player.rating = 600
-    # TODO: API CALL
+    if players:
+        await asyncio.gather(*(backend_api.update_player(p.id, {"rating": p.rating}) for p in players))
 
     # apply all remaining events in chronological order
-    # TODO: API CALL
-    events = []
+    events = await backend_api.list_kill_events(game_id=game.id, as_object=True)
+    events.sort(key=lambda e: e.created_at)
     for event in events:
         killer_player = players_map.get(event.killer_id)
         victim_player = players_map.get(event.victim_id)
@@ -93,7 +104,7 @@ async def recalc_game_ratings(game: Game) -> None:
 async def ban(user: User, reason: str) -> str:
     user.status = "banned"
     user.is_in_game = False
-    # TODO: API CALL
+    await backend_api.update_user(user.id, {"status": "banned", "is_in_game": False})
 
     dialog_manager = BgManagerFactoryImpl(router=settings.dispatcher).bg(
         bot=settings.bot,
@@ -103,17 +114,16 @@ async def ban(user: User, reason: str) -> str:
     await dialog_manager.done()
     await MatchmakingService().reset_queues()
 
-    # TODO: API CALL
-    game = None
+    game = await backend_api.get_active_game()
     removed_events = 0
     if game:
         # находим все килл ивенты, в которых участвовал человек, которого баним
-        # TODO: API CALL
-        evs: list[KillEvent] = []
+        killer_events = await backend_api.list_kill_events(game_id=game.id, killer_id=user.id)
+        victim_events = await backend_api.list_kill_events(game_id=game.id, victim_id=user.id)
+        evs = {e.id: e for e in killer_events + victim_events}
         removed_events = len(evs)
         if evs:
-            # TODO: API CALL
-            pass
+            await backend_api.bulk_update_kill_events(evs.keys(), {"status": "canceled"})
 
         await recalc_game_ratings(game)
 

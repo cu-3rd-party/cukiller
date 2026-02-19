@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import html
 import re
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from aiogram import Bot, F, Router
@@ -25,10 +28,15 @@ from aiogram.types import (
 from aiogram_dialog import ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
-from db.models import Game, PendingProfile, User
 from handlers import mainloop_dialog
 from handlers.registration_dialog import COURSE_TYPES
-from services import MainLoop, ProfileModeration, settings, texts
+from services import MainLoop, ProfileModeration, texts
+from services.backend_api import backend_api
+from services.settings import settings
+
+if TYPE_CHECKING:
+    from services.backend_api import PendingProfileModel as PendingProfile
+    from services.backend_api import UserModel as User
 
 router = Router(name="profile_moderation")
 
@@ -171,8 +179,7 @@ def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
 
 
 async def _apply_pending_profile(pending: PendingProfile) -> User:
-    # TODO: API CALL
-    user = pending.user
+    user = pending.user or await backend_api.get_user_by_id(pending.user_id)
     for field in pending.changed_fields:
         setattr(user, field, getattr(pending, field))
     if pending.submitted_username is not None:
@@ -181,7 +188,22 @@ async def _apply_pending_profile(pending: PendingProfile) -> User:
         user.status = "confirmed"
     if "family_name" in pending.changed_fields and pending.family_name:
         user.family_name_required = False
-    # TODO: API CALL
+    await backend_api.update_user(
+        user.id,
+        {
+            "tg_username": user.tg_username,
+            "given_name": user.given_name,
+            "family_name": user.family_name,
+            "type": user.type,
+            "course_number": user.course_number,
+            "group_name": user.group_name,
+            "photo": user.photo,
+            "about_user": user.about_user,
+            "allow_hugging_on_kill": user.allow_hugging_on_kill,
+            "family_name_required": user.family_name_required,
+            "status": user.status,
+        },
+    )
     return user
 
 
@@ -264,7 +286,10 @@ async def _process_rejection(  # noqa: PLR0913
     reason = None if reason_text.lower() == "none" else reason_text
     pending.reason = reason
     pending.moderator = moderator
-    # TODO: API CALL
+    await backend_api.update_pending_profile(
+        pending.id,
+        {"reason": reason, "moderator_id": moderator.id},
+    )
 
     body = _build_admin_body(pending, pending.user)
     reason_part = (
@@ -305,8 +330,7 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
     Shows an alert popup to the user.
     """
     user_id = callback.from_user.id
-    # TODO: API CALL
-    user_obj = None
+    user_obj = await backend_api.get_user_by_tg_id(user_id)
     if not user_obj or not user_obj.is_admin:
         await callback.answer(texts.get("moderation.no_rights"), show_alert=True)
         return True
@@ -328,8 +352,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
         await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
-    # TODO: API CALL
-    pending = None
+    pending = await backend_api.get_pending_profile(str(pending_id))
     if pending is None:
         await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
@@ -339,13 +362,15 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
 
     body = _build_admin_body(pending, pending.user)
 
-    # TODO: API CALL
-    moderator = None
+    moderator = await backend_api.get_user_by_tg_id(callback.from_user.id)
     approved_user = await _apply_pending_profile(pending)
     pending.status = "approved"
     pending.moderator = moderator
     pending.reason = None
-    # TODO: API CALL
+    await backend_api.update_pending_profile(
+        pending.id,
+        {"status": pending.status, "moderator_id": moderator.id, "reason": None},
+    )
 
     await _edit_admin_message(
         bot,
@@ -374,8 +399,7 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
                 user_id=approved_user.tg_id,
                 chat_id=approved_user.tg_id,
             )
-            # TODO: API CALL
-            game = None
+            game = await backend_api.get_active_game()
             await user_dialog_manager.start(
                 MainLoop.title,
                 data={
@@ -409,8 +433,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
-    # TODO: API CALL
-    pending = None
+    pending = await backend_api.get_pending_profile(str(pending_id))
     if pending is None:
         await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
@@ -426,12 +449,14 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     await callback.answer(texts.get("moderation.denied_alert"), show_alert=False)
 
-    # TODO: API CALL
-    moderator = None
+    moderator = await backend_api.get_user_by_tg_id(callback.from_user.id)
     pending.status = "rejected"
     pending.moderator = moderator
     pending.reason = None
-    # TODO: API CALL
+    await backend_api.update_pending_profile(
+        pending.id,
+        {"status": pending.status, "moderator_id": moderator.id, "reason": None},
+    )
 
     status_line = texts.render("moderation.status_denied_waiting", moderator=_moderator_name(callback.from_user))
     body = _build_admin_body(pending, pending.user)
@@ -445,7 +470,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     if pending.is_new_profile:
         pending.user.status = "rejected"
-        # TODO: API CALL
+        await backend_api.update_user(pending.user.id, {"status": "rejected"})
 
     with contextlib.suppress(TelegramForbiddenError):
         await bot.send_message(
@@ -468,8 +493,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     async def _timeout_notify() -> None:
         await asyncio.sleep(600)
-        # TODO: API CALL
-        fresh = None
+        fresh = await backend_api.get_pending_profile(str(pending.id))
         if not fresh:
             return
         if fresh.status != "rejected":
@@ -490,8 +514,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     flags={"block": True, "dialog": False},
 )
 async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContext):
-    # TODO: API CALL
-    moderator = None
+    moderator = await backend_api.get_user_by_tg_id(message.from_user.id)
     if not moderator or not moderator.is_admin:
         return
 
@@ -508,8 +531,7 @@ async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContex
         await message.answer(texts.get("moderation.reason_missing_pending"))
         return
 
-    # TODO: API CALL
-    pending = None
+    pending = await backend_api.get_pending_profile(str(pending_id))
     if not pending:
         await message.answer(texts.get("moderation.pending_not_found"))
         await state.clear()
@@ -532,8 +554,7 @@ async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContex
 
 @router.message(_has_pending_id, flags={"block": True, "dialog": False})
 async def on_rejection_reason(message: Message, bot: Bot, state: FSMContext):
-    # TODO: API CALL
-    moderator = None
+    moderator = await backend_api.get_user_by_tg_id(message.from_user.id)
     if not moderator or not moderator.is_admin:
         return
 
@@ -541,8 +562,7 @@ async def on_rejection_reason(message: Message, bot: Bot, state: FSMContext):
     if not pending_id:
         return
 
-    # TODO: API CALL
-    pending = None
+    pending = await backend_api.get_pending_profile(str(pending_id))
     if not pending:
         return
 

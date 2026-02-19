@@ -6,8 +6,8 @@ from typing import Any, TypeVar
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
-from db.models import User
 from services import normalize_name_component, settings
+from services.backend_api import backend_api
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -58,7 +58,9 @@ class RegisterUserMiddleware(BaseMiddleware):
             if any(getattr(db_user, field) != value for field, value in user_data.items()):
                 for field, value in user_data.items():
                     setattr(db_user, field, value)
-                # TODO: API CALL
+                updated = await backend_api.update_user_by_tg_id(db_user.tg_id, user_data)
+                if updated:
+                    db_user = updated
 
             self._user_cache[cache_key] = {
                 "user": db_user,
@@ -73,8 +75,14 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "family_name": normalize_name_component(user.last_name),
             }
 
-            # TODO: API CALL
-            db_user = None
+            db_user, _ = await backend_api.get_or_create_user(
+                {
+                    "tg_id": user.id,
+                    "tg_username": user.username,
+                    "given_name": user_data["given_name"],
+                    "family_name": user_data["family_name"],
+                }
+            )
 
             self._user_cache[cache_key] = {
                 "user": db_user,

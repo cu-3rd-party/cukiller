@@ -1,4 +1,3 @@
-from typing import Any
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
@@ -49,12 +48,8 @@ class Settings(BaseSettings):
     redis_password: str = Field(default="secure_password", alias="REDIS_PASSWORD")
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
-    # ^ Tortoise ORM
-    tortoise_app: str = Field(default="models", alias="TORTOISE_APP")
-    tortoise_models: tuple[str, ...] = Field(default=("db.models", "aerich.models"), alias="TORTOISE_MODELS")
-    tortoise_generate_schemas: bool = Field(default=False, alias="TORTOISE_GENERATE_SCHEMAS")
-
     matchmaking_service_url: str = Field(default="http://matchmaking:8000", alias="MATCHMAKING_URL")
+    backend_api_url: str = Field(default="http://api:8000", alias="BACKEND_API_URL")
 
     bot: Bot | None = None
     dispatcher: Dispatcher | None = None
@@ -63,24 +58,6 @@ class Settings(BaseSettings):
     @property
     def postgres_dsn(self) -> str:
         return f"postgresql://{self.pg_user}:{self.pg_password}@{self.pg_host}:{self.pg_port}/{self.pg_db}"
-
-    @computed_field
-    @property
-    def tortoise_db_url(self) -> str:
-        return f"postgres://{self.pg_user}:{self.pg_password}@{self.pg_host}:{self.pg_port}/{self.pg_db}"
-
-    @computed_field
-    @property
-    def tortoise_config(self) -> dict[str, Any]:
-        return {
-            "connections": {"default": self.tortoise_db_url},
-            "apps": {
-                self.tortoise_app: {
-                    "models": self.tortoise_models,
-                    "default_connection": "default",
-                }
-            },
-        }
 
     _timezone: ZoneInfo | None = None
 

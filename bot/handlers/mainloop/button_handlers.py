@@ -1,23 +1,32 @@
-import logging
+from __future__ import annotations
 
-from aiogram.fsm.state import State
-from aiogram.types import CallbackQuery
+import logging
+from typing import TYPE_CHECKING
+
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
-from aiogram_dialog.widgets.kbd import Button
 
-from db.models import Game, KillEvent, Player, User
 from handlers import participation
 from handlers.kills_confirmation import (
     ConfirmKillKiller,
     ConfirmKillVictim,
 )
 from services import MatchmakingService, format_exit_cooldown, is_exit_cooldown_active, log_dialog_action, texts
+from services.backend_api import backend_api
 from services.states.leave_game import LeaveGame
 from services.states.my_profile import MyProfile
 from services.states.participation import ParticipationForm
 from services.states.reroll import Reroll
 from services.states.rules import RulesStates
+
+if TYPE_CHECKING:
+    from aiogram.fsm.state import State
+    from aiogram.types import CallbackQuery
+    from aiogram_dialog.widgets.kbd import Button
+
+    from services.backend_api import Model as Game
+    from services.backend_api import Model as KillEvent
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +34,7 @@ logger = logging.getLogger(__name__)
 async def _get_user_and_game(manager: DialogManager) -> tuple[User, Game]:
     user: User = manager.middleware_data["user"]
     game_id = manager.start_data.get("game_id")
-    # TODO: API CALL
-    game: Game = None
+    game = await backend_api.get_game_by_id(game_id) if game_id else None
     return user, game
 
 
@@ -49,8 +57,8 @@ async def _get_pending_event(user_id: int, game_id: int, role: str) -> KillEvent
         "killer": {"killer_id": user_id},
     }[role]
 
-    # TODO: API CALL
-    return None
+    events = await backend_api.list_kill_events(game_id=game_id, status="pending", **filters)
+    return events[0] if events else None
 
 
 @log_dialog_action("I_WAS_KILLED")
@@ -85,8 +93,10 @@ async def on_get_target(callback: CallbackQuery, button: Button, manager: Dialog
     game: Game = manager.middleware_data["game"]
     if not game or not user.is_in_game:
         return
-    # TODO: API CALL
-    player: Player = None
+    players = await backend_api.list_players(game_id=game.id, user_id=user.id)
+    player = players[0] if players else None
+    if not player:
+        return
 
     data = {
         "tg_id": user.tg_id,

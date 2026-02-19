@@ -10,7 +10,7 @@ from datetime import datetime
 from aiohttp import web
 from aiohttp.web import Request, Response
 
-from services import settings
+from services.settings import settings
 from services.metrics import metrics
 
 logger = logging.getLogger(__name__)

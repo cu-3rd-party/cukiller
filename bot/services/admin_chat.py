@@ -5,8 +5,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from db.models import User
-from db.models.chat import Chat
+from services.backend_api import Model, backend_api
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +46,8 @@ class AdminChatService:
         self.bot = bot
 
     @staticmethod
-    async def _get_chat(key: str) -> Chat:
-        # TODO: API CALL
-        chat = None
+    async def _get_chat(key: str) -> Model:
+        chat = await backend_api.get_chat_by_key(key)
         if chat is None:
             raise ChatNotFoundError(key)
         return chat
@@ -99,8 +97,11 @@ class AdminChatService:
         request: "AdminChatService.PendingProfileRequest",
     ) -> Message | None:
         chat = await self._get_chat(chat_key)
-        # TODO: API CALL
-        # TODO: API CALL
+        pending = await backend_api.get_pending_profile(request.pending_id)
+        user = await backend_api.get_user_by_tg_id(request.tg_id)
+        if not pending or not user:
+            logger.warning("Pending profile %s or user %s not found", request.pending_id, request.tg_id)
+            return None
 
         body = _build_body(request.text, request.tag)
         reply_markup = _pending_buttons(request.pending_id, request.tg_id, with_inspect=True)

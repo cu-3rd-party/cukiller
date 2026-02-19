@@ -3,7 +3,7 @@ import logging
 from aiogram.filters import BaseFilter
 from aiogram.types import Update
 
-from db.models import Chat
+from services.backend_api import backend_api
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +13,7 @@ class GroupKeyFilter(BaseFilter):
         self.key = key
 
     async def __call__(self, update: Update, **kwargs: object) -> bool:
-        # TODO: API CALL
-        chat_obj = None
+        chat_obj = await backend_api.get_chat_by_id(update.chat.id)
         if not chat_obj:
             logger.error("Update from unknown chat with id %d", update.chat.id)
             return False

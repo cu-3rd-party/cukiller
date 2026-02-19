@@ -3,7 +3,7 @@ import logging
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 
-from services import settings
+from services.settings import settings
 
 logger = logging.getLogger(__name__)
 

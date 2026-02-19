@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from aiogram import Router
-from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Column
 from aiogram_dialog.widgets.text import Const
 
-from db.models import Game, Player, User
 from handlers import mainloop_dialog
 from services import (
     MainLoop,
@@ -15,9 +16,16 @@ from services import (
     format_exit_cooldown,
     is_exit_cooldown_active,
     log_dialog_action,
+    settings,
     texts,
 )
+from services.backend_api import backend_api
 from services.states.participation import ParticipationForm
+
+if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
+
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +34,10 @@ router = Router()
 
 @log_dialog_action("CONFIRM_PARTICIPATION")
 async def confirm_participation(callback: CallbackQuery, button: Button, manager: DialogManager):
-    # TODO: API CALL
-    game: Game = None
+    game = await backend_api.get_active_game()
+    if not game:
+        await manager.done()
+        return
     user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService()
     if is_exit_cooldown_active(user):
@@ -39,15 +49,16 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
         await manager.done()
         return
     user.is_in_game = True
-    # TODO: API CALL
-    player: Player = None
+    player = await backend_api.create_player(
+        {"user_id": user.id, "game_id": game.id, "rating": settings.DEFAULT_RATING}
+    )
     logger.debug(
         "Created player for user %s game %s with id %s",
         user.id,
         game.id,
         player.id,
     )
-    # TODO: API CALL
+    await backend_api.update_user(user.id, {"is_in_game": True})
     await manager.done()
     await manager.reset_stack()
     user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(

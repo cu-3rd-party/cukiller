@@ -1,20 +1,29 @@
+from __future__ import annotations
+
 import logging
 import math
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from aiogram import Bot, Router
-from aiogram.types import CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.text import Const
 
-from db.models import Chat, KillEvent, Player, User
 from handlers import mainloop_dialog
-from services import MainLoop, add_back_to_queues, modify_rating, settings, texts, trim_name
+from services import MainLoop, add_back_to_queues, modify_rating, texts, trim_name
+from services.backend_api import backend_api
+from services.settings import settings
 from services.states.reroll import Reroll
+
+if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
+
+    from services.backend_api import Model as Player
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +67,12 @@ async def notify_chat(bot: Bot, notification: RerollNotification) -> None:
     reason = secrets.choice(texts.get_list("reroll.fail_reasons"))
     killer_display = notification.killer.full_name or notification.killer.tg_username or texts.get("common.unknown")
     victim_display = notification.victim.full_name or notification.victim.tg_username or texts.get("common.unknown")
+    discussion_chat = await backend_api.get_chat_by_key("discussion")
+    if not discussion_chat:
+        logger.warning("Discussion chat not configured")
+        return
     await bot.send_message(
-        # TODO: API CALL
-        chat_id=None,
+        chat_id=discussion_chat.chat_id,
         text=texts.render(
             "reroll.chat_notified",
             killer=notification.killer.mention_html(),
@@ -96,15 +108,27 @@ def calculate_penalty(creation: datetime) -> float:
 
 async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     requester_user: User = m.middleware_data["user"]
-    # TODO: API CALL
-    killer_player: Player = None
-    # TODO: API CALL
-    kill_event: KillEvent = None
+    killer_players = await backend_api.list_players(game_id=m.start_data.get("game_id"), user_id=requester_user.id)
+    killer_player = killer_players[0] if killer_players else None
+    events = await backend_api.list_kill_events(
+        game_id=m.start_data.get("game_id"),
+        killer_id=requester_user.id,
+        status="pending",
+    )
+    kill_event = events[0] if events else None
+    if not kill_event or not killer_player:
+        return
     kill_event.status = "rejected"
-    # TODO: API CALL
+    await backend_api.update_kill_event(kill_event.id, {"status": kill_event.status})
 
-    # TODO: API CALL
-    victim_player: Player = None
+    victim_players = await backend_api.list_players(game_id=kill_event.game_id, user_id=kill_event.victim_id)
+    victim_player = victim_players[0] if victim_players else None
+    if not victim_player:
+        return
+    if killer_player:
+        killer_player.user = kill_event.killer
+    if victim_player:
+        victim_player.user = kill_event.victim
 
     logger.debug(kill_event)
     killer_delta, victim_delta = await modify_rating(

@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from aiogram import Bot, F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.widgets.kbd import Back, Button, Column, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
-from db.models import Game, User
 from filters.confirmed import ConfirmedFilter
 from filters.user import UserFilter
 from handlers.admin import set_admin_commands
@@ -26,7 +27,13 @@ from handlers.mainloop.button_handlers import (
 )
 from handlers.mainloop.getters import get_main_menu_info, get_target_info
 from services import MainLoop, texts
+from services.backend_api import backend_api
 from services.states.my_profile import MyProfile
+
+if TYPE_CHECKING:
+    from aiogram.types import Message
+
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +191,7 @@ async def confirmed_start(
         )
         return
 
-    # TODO: API CALL
-    game = None
+    game = await backend_api.get_active_game()
     await dialog_manager.start(
         MainLoop.title,
         data={

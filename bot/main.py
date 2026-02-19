@@ -1,11 +1,8 @@
 import asyncio
-import importlib
 import json
 import logging
 import os
-from collections.abc import Iterable
 from pathlib import Path
-from types import ModuleType
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -19,7 +16,6 @@ from aiogram_dialog import setup_dialogs
 from aiohttp import web
 from redis.asyncio import Redis
 
-from db.main import close_db, init_db
 from handlers import router as handlers_router
 from handlers.matchmaking import setup_matchmaking_routers
 from handlers.metrics import metrics_updater, setup_metrics_routes
@@ -30,6 +26,7 @@ from middlewares.private_messages import PrivateMessagesMiddleware
 from middlewares.register import RegisterUserMiddleware
 from middlewares.user import UserMiddleware
 from services import MatchmakingService, kill_timeout_monitor, settings
+from services.backend_api import backend_api
 from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
@@ -114,7 +111,11 @@ async def stop_web_server() -> None:
 
 
 async def on_startup(bot: Bot) -> None:
-    # TODO: API CALL
+    admin_ids = []
+    if settings.admin_ids_raw:
+        admin_ids = [int(item.strip()) for item in settings.admin_ids_raw.split(",") if item.strip().isdigit()]
+    await backend_api.start()
+    await backend_api.bootstrap(settings.admin_chat_id, settings.discussion_chat_id, admin_ids)
     await generate_discussion_invite_link(bot)
     await metrics_updater.start()
     if settings.webhook_url:
@@ -143,7 +144,7 @@ async def on_shutdown(bot: Bot) -> None:
     else:
         await stop_web_server()
     await metrics_updater.stop()
-    # TODO: API CALL
+    await backend_api.close()
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):

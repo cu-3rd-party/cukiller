@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import html
 import logging
+from typing import TYPE_CHECKING
 
 from aiogram import Bot, Router
 from aiogram.enums import ContentType
-from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Dialog, DialogManager, ShowMode, Window
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import MessageInput
@@ -11,7 +13,6 @@ from aiogram_dialog.widgets.kbd import Button, Cancel
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
-from db.models import PendingProfile, User
 from handlers.mainloop.getters import get_advanced_info, get_user
 from handlers.registration_dialog import (
     COURSE_TYPES,
@@ -24,7 +25,13 @@ from handlers.registration_dialog import (
     reg_getter,
 )
 from services import AdminChatService, SafeStringConfig, is_safe, log_dialog_action, normalize_name_component, texts
+from services.backend_api import backend_api
 from services.states.my_profile import EditProfile, MyProfile
+
+if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery, Message
+
+    from services.backend_api import UserModel as User
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +180,7 @@ async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManage
 async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manager: DialogManager):
     user = await get_user(manager)
     user.allow_hugging_on_kill = not bool(user.allow_hugging_on_kill)
-    # TODO: API CALL
+    await backend_api.update_user_by_tg_id(user.tg_id, {"allow_hugging_on_kill": user.allow_hugging_on_kill})
     await callback.answer(texts.get("profile.toggle_hugs_updated"))
     await manager.switch_to(MyProfile.profile)
 
@@ -269,8 +276,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     d = manager.dialog_data
     tg_user = c.from_user
 
-    # TODO: API CALL
-    user = None
+    user = await backend_api.get_user_by_tg_id(tg_user.id)
     if user is None:
         await c.answer(texts.get("profile.no_user_found"), show_alert=True)
         await manager.done()
@@ -278,7 +284,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
 
     if user.tg_username != tg_user.username:
         user.tg_username = tg_user.username
-        # TODO: API CALL
+        await backend_api.update_user_by_tg_id(user.tg_id, {"tg_username": user.tg_username})
 
     changes, changed_fields = _collect_changes(d, user)
 
@@ -287,8 +293,15 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         await manager.done()
         return
 
-    # TODO: API CALL
-    pending = None
+    pending_payload = {
+        "user_id": user.id,
+        "status": "pending",
+        "is_new_profile": False,
+        "changed_fields": changed_fields,
+        "submitted_username": tg_user.username,
+        **changes,
+    }
+    pending = await backend_api.create_pending_profile(pending_payload)
 
     changes_preview = _build_changes_preview(user, changes, changed_fields)
     profile_preview = _build_profile_preview(user, changes)
@@ -322,7 +335,10 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     if admin_message:
         pending.chat_id = admin_message.chat.id
         pending.message_id = admin_message.message_id
-        # TODO: API CALL
+        await backend_api.update_pending_profile(
+            pending.id,
+            {"chat_id": pending.chat_id, "message_id": pending.message_id},
+        )
 
     await c.message.answer(texts.get("profile.change_sent"))
     await manager.done()

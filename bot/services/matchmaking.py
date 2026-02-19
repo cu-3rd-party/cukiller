@@ -4,7 +4,7 @@ from typing import Any
 
 import aiohttp
 
-from services import settings
+from services.settings import settings
 
 # ---------- SERVICE ----------
 

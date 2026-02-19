@@ -1,14 +1,23 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 
-from db.models import Chat, KillEvent, Player
-from services import settings, texts
+from services import texts
+from services.backend_api import backend_api
 from services.kills_confirmation import add_back_to_queues
+from services.settings import settings
+
+if TYPE_CHECKING:
+    from aiogram import Bot
+
+    from services.backend_api import Model as Chat
+    from services.backend_api import Model as KillEvent
 
 logger = logging.getLogger(__name__)
 
@@ -64,36 +73,39 @@ class KillTimeoutMonitor:
             return
 
         cutoff = datetime.now(settings.timezone) - self.deadline
-        # TODO: API CALL
-        events = []
+        events = await backend_api.list_kill_events(status="pending", updated_before=cutoff)
 
         if not events:
             return
 
-        # TODO: API CALL
-        discussion_chat = None
+        discussion_chat = await backend_api.get_chat_by_key("discussion")
 
         for event in events:
             if event.game and event.game.end_date:
                 event.status = self.timeout_status
-                # TODO: API CALL
+                await backend_api.update_kill_event(event.id, {"status": event.status})
                 logger.info("KillEvent %s отменено, так как игра закончилась", event.id)
                 continue
 
-            # TODO: API CALL
-            killer_player = None
-            # TODO: API CALL
-            victim_player = None
+            killer_players = await backend_api.list_players(game_id=event.game_id, user_id=event.killer_id)
+            killer_player = killer_players[0] if killer_players else None
+            victim_players = await backend_api.list_players(game_id=event.game_id, user_id=event.victim_id)
+            victim_player = victim_players[0] if victim_players else None
 
             if not killer_player or not victim_player:
                 logger.warning("Отсутствуют записи об игроках для KillEvent %s", event.id)
                 event.status = self.timeout_status
-                # TODO: API CALL
+                await backend_api.update_kill_event(event.id, {"status": event.status})
                 continue
+
+            if not getattr(event, "killer", None):
+                event.killer = await backend_api.get_user_by_id(event.killer_id)
+            if not getattr(event, "victim", None):
+                event.victim = await backend_api.get_user_by_id(event.victim_id)
 
             await add_back_to_queues(event.killer, event.victim, killer_player, victim_player)
             event.status = self.timeout_status
-            # TODO: API CALL
+            await backend_api.update_kill_event(event.id, {"status": event.status})
             await self._notify_participants(event, discussion_chat)
 
     async def _notify_participants(self, event: KillEvent, discussion_chat: Chat | None) -> None:
