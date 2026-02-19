@@ -64,13 +64,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetOrCreateUserResponse'
+                $ref: '#/components/schemas/User'
         '201':
           description: New user created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetOrCreateUserResponse'
+                $ref: '#/components/schemas/User'
 
   /users:
     get:

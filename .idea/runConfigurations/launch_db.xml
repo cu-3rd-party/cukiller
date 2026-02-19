@@ -28,7 +28,7 @@
             </DockerPortBindingImpl>
           </list>
         </option>
-        <option name="commandLineOptions" value="--health-cmd &quot;pg_isready -h localhost -p 5432 -U admin -d admin&quot; --health-interval 500m --health-retries 10 --health-start-period 500m" />
+        <option name="commandLineOptions" value="--health-cmd &quot;pg_isready -h localhost -p 5432 -U admin -d db&quot; --health-interval 500m --health-retries 10 --health-start-period 500m" />
         <option name="volumeBindings">
           <list>
             <DockerVolumeBindingImpl>

@@ -55,16 +55,6 @@ func DefaultUser() *User {
 	}
 }
 
-func (u *User) WithTgId(tgId int64) *User {
-	u.TgId = tgId
-	return u
-}
-
-func (u *User) WithAdmin(isAdmin bool) *User {
-	u.IsAdmin = isAdmin
-	return u
-}
-
 // UserStore provides CRUD access to database
 type UserStore struct {
 	db *sql.DB
