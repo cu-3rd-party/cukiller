@@ -64,36 +64,36 @@ class KillTimeoutMonitor:
             return
 
         cutoff = datetime.now(settings.timezone) - self.deadline
-        events = await KillEvent.filter(status="pending", created_at__lt=cutoff).prefetch_related(
-            "killer",
-            "victim",
-            "game",
-        )
+        # TODO: API CALL
+        events = []
 
         if not events:
             return
 
-        discussion_chat = await Chat.get_or_none(key="discussion")
+        # TODO: API CALL
+        discussion_chat = None
 
         for event in events:
             if event.game and event.game.end_date:
                 event.status = self.timeout_status
-                await event.save()
+                # TODO: API CALL
                 logger.info("KillEvent %s отменено, так как игра закончилась", event.id)
                 continue
 
-            killer_player = await Player.get_or_none(game_id=event.game_id, user_id=event.killer_id)
-            victim_player = await Player.get_or_none(game_id=event.game_id, user_id=event.victim_id)
+            # TODO: API CALL
+            killer_player = None
+            # TODO: API CALL
+            victim_player = None
 
             if not killer_player or not victim_player:
                 logger.warning("Отсутствуют записи об игроках для KillEvent %s", event.id)
                 event.status = self.timeout_status
-                await event.save()
+                # TODO: API CALL
                 continue
 
             await add_back_to_queues(event.killer, event.victim, killer_player, victim_player)
             event.status = self.timeout_status
-            await event.save()
+            # TODO: API CALL
             await self._notify_participants(event, discussion_chat)
 
     async def _notify_participants(self, event: KillEvent, discussion_chat: Chat | None) -> None:

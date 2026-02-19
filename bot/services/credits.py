@@ -31,7 +31,8 @@ class CreditsInfo(BaseModel):
 
     @classmethod
     async def from_game(cls, game: Game, top_count: int = 3) -> "CreditsInfo":
-        players = await Player.filter(game_id=game.id).order_by("-rating").limit(top_count).prefetch_related("user")
+        # TODO: API CALL
+        players = []
 
         # Rating TOP
         rating_top = cls._format_top([(p.user, p.rating) for p in players], empty="Нет участников")
@@ -44,9 +45,8 @@ class CreditsInfo(BaseModel):
         )
 
         # --- Load all confirmed kill events ---
-        kills = await KillEvent.filter(game_id=game.id, status="confirmed").values(
-            "killer_id", "victim_id", "updated_at"
-        )
+        # TODO: API CALL
+        kills = []
 
         # Build counters
         killer_counts = Counter(k["killer_id"] for k in kills)
@@ -54,7 +54,8 @@ class CreditsInfo(BaseModel):
 
         # Load users for involved players
         all_user_ids = set(killer_counts) | set(victim_counts)
-        users = {u.id: u for u in await User.filter(id__in=all_user_ids)}
+        # TODO: API CALL
+        users = {}
 
         # Killers top / victims top
         killers_top = cls._format_top(
@@ -89,7 +90,8 @@ class CreditsInfo(BaseModel):
     @staticmethod
     async def _build_player_stats(game: Game, users: dict[int, User], kills: list[dict]) -> dict[UUID, PlayerStats]:
         # preload all players
-        all_players = await Player.filter(game_id=game.id).prefetch_related("user").all()
+        # TODO: API CALL
+        all_players = None
         stats = {p.user.id: PlayerStats(rating=p.rating) for p in all_players}
 
         for k in kills:

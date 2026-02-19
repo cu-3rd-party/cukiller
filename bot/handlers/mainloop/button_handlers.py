@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 async def _get_user_and_game(manager: DialogManager) -> tuple[User, Game]:
     user: User = manager.middleware_data["user"]
     game_id = manager.start_data.get("game_id")
-    game: Game = await Game.get(id=game_id)
+    # TODO: API CALL
+    game: Game = None
     return user, game
 
 
@@ -48,7 +49,8 @@ async def _get_pending_event(user_id: int, game_id: int, role: str) -> KillEvent
         "killer": {"killer_id": user_id},
     }[role]
 
-    return await KillEvent.filter(**filters, game_id=game_id, status="pending").first()
+    # TODO: API CALL
+    return None
 
 
 @log_dialog_action("I_WAS_KILLED")
@@ -83,7 +85,8 @@ async def on_get_target(callback: CallbackQuery, button: Button, manager: Dialog
     game: Game = manager.middleware_data["game"]
     if not game or not user.is_in_game:
         return
-    player: Player = await Player.get(game_id=game.id, user_id=user.id)
+    # TODO: API CALL
+    player: Player = None
 
     data = {
         "tg_id": user.tg_id,

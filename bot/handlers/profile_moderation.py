@@ -171,7 +171,7 @@ def _build_user_denied_text(pending: PendingProfile, reason: str | None) -> str:
 
 
 async def _apply_pending_profile(pending: PendingProfile) -> User:
-    await pending.fetch_related("user")
+    # TODO: API CALL
     user = pending.user
     for field in pending.changed_fields:
         setattr(user, field, getattr(pending, field))
@@ -181,7 +181,7 @@ async def _apply_pending_profile(pending: PendingProfile) -> User:
         user.status = "confirmed"
     if "family_name" in pending.changed_fields and pending.family_name:
         user.family_name_required = False
-    await user.save()
+    # TODO: API CALL
     return user
 
 
@@ -264,7 +264,7 @@ async def _process_rejection(  # noqa: PLR0913
     reason = None if reason_text.lower() == "none" else reason_text
     pending.reason = reason
     pending.moderator = moderator
-    await pending.save()
+    # TODO: API CALL
 
     body = _build_admin_body(pending, pending.user)
     reason_part = (
@@ -305,7 +305,8 @@ async def _block_if_not_admin(callback: CallbackQuery) -> bool:
     Shows an alert popup to the user.
     """
     user_id = callback.from_user.id
-    user_obj = await User.get_or_none(tg_id=user_id)
+    # TODO: API CALL
+    user_obj = None
     if not user_obj or not user_obj.is_admin:
         await callback.answer(texts.get("moderation.no_rights"), show_alert=True)
         return True
@@ -327,7 +328,8 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
         await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
-    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
+    # TODO: API CALL
+    pending = None
     if pending is None:
         await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
@@ -337,12 +339,13 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
 
     body = _build_admin_body(pending, pending.user)
 
-    moderator = await User.get_or_none(tg_id=callback.from_user.id)
+    # TODO: API CALL
+    moderator = None
     approved_user = await _apply_pending_profile(pending)
     pending.status = "approved"
     pending.moderator = moderator
     pending.reason = None
-    await pending.save()
+    # TODO: API CALL
 
     await _edit_admin_message(
         bot,
@@ -371,7 +374,8 @@ async def on_confirm_profile(callback: CallbackQuery, bot: Bot, state: FSMContex
                 user_id=approved_user.tg_id,
                 chat_id=approved_user.tg_id,
             )
-            game = await Game().filter(end_date=None).first()
+            # TODO: API CALL
+            game = None
             await user_dialog_manager.start(
                 MainLoop.title,
                 data={
@@ -405,7 +409,8 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
         await callback.answer(texts.get("moderation.invalid_payload"), show_alert=True)
         return
 
-    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
+    # TODO: API CALL
+    pending = None
     if pending is None:
         await callback.answer(texts.get("moderation.request_not_found"), show_alert=True)
         return
@@ -421,11 +426,12 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     await callback.answer(texts.get("moderation.denied_alert"), show_alert=False)
 
-    moderator = await User.get_or_none(tg_id=callback.from_user.id)
+    # TODO: API CALL
+    moderator = None
     pending.status = "rejected"
     pending.moderator = moderator
     pending.reason = None
-    await pending.save()
+    # TODO: API CALL
 
     status_line = texts.render("moderation.status_denied_waiting", moderator=_moderator_name(callback.from_user))
     body = _build_admin_body(pending, pending.user)
@@ -439,7 +445,7 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     if pending.is_new_profile:
         pending.user.status = "rejected"
-        await pending.user.save(update_fields=["status"])
+        # TODO: API CALL
 
     with contextlib.suppress(TelegramForbiddenError):
         await bot.send_message(
@@ -462,7 +468,8 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
 
     async def _timeout_notify() -> None:
         await asyncio.sleep(600)
-        fresh = await PendingProfile.filter(id=pending.id).prefetch_related("user").first()
+        # TODO: API CALL
+        fresh = None
         if not fresh:
             return
         if fresh.status != "rejected":
@@ -483,7 +490,8 @@ async def on_deny_profile(callback: CallbackQuery, bot: Bot, state: FSMContext):
     flags={"block": True, "dialog": False},
 )
 async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContext):
-    moderator = await User.get_or_none(tg_id=message.from_user.id)
+    # TODO: API CALL
+    moderator = None
     if not moderator or not moderator.is_admin:
         return
 
@@ -500,7 +508,8 @@ async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContex
         await message.answer(texts.get("moderation.reason_missing_pending"))
         return
 
-    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
+    # TODO: API CALL
+    pending = None
     if not pending:
         await message.answer(texts.get("moderation.pending_not_found"))
         await state.clear()
@@ -523,7 +532,8 @@ async def on_rejection_reason_state(message: Message, bot: Bot, state: FSMContex
 
 @router.message(_has_pending_id, flags={"block": True, "dialog": False})
 async def on_rejection_reason(message: Message, bot: Bot, state: FSMContext):
-    moderator = await User.get_or_none(tg_id=message.from_user.id)
+    # TODO: API CALL
+    moderator = None
     if not moderator or not moderator.is_admin:
         return
 
@@ -531,7 +541,8 @@ async def on_rejection_reason(message: Message, bot: Bot, state: FSMContext):
     if not pending_id:
         return
 
-    pending = await PendingProfile.filter(id=pending_id).prefetch_related("user").first()
+    # TODO: API CALL
+    pending = None
     if not pending:
         return
 

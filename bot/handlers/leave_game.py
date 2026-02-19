@@ -33,17 +33,15 @@ async def _confirm_pending_victim_event(
     player: Player,
     now: datetime,
 ) -> tuple[int, User | None]:
-    victim_events = await KillEvent.filter(game_id=game.id, victim_id=user.id, status="pending").prefetch_related(
-        "killer"
-    )
+    # TODO: API CALL
+    victim_events = []
     if not victim_events:
         return 0, None
 
     primary_event = victim_events[0]
-    killer_player = await Player.get_or_none(game_id=game.id, user_id=primary_event.killer_id)
-    killer_user = (
-        primary_event.killer if hasattr(primary_event, "killer") else await User.get(id=primary_event.killer_id)
-    )
+    # TODO: API CALL
+    killer_player = None
+    killer_user = None
 
     if killer_player:
         killer_delta, victim_delta = await modify_rating(killer_player, player)
@@ -58,7 +56,7 @@ async def _confirm_pending_victim_event(
     else:
         penalty = calculate_leave_penalty(player.rating)
         player.rating = max(0, player.rating + penalty)
-        await player.save(update_fields=["rating"])
+        # TODO: API CALL
         logger.warning("Предупреждение для %s", primary_event.id)
 
     primary_event.status = "confirmed"
@@ -66,20 +64,21 @@ async def _confirm_pending_victim_event(
     primary_event.victim_confirmed = True
     primary_event.killer_confirmed_at = now
     primary_event.victim_confirmed_at = now
-    await primary_event.save()
+    # TODO: API CALL
 
     for event in victim_events[1:]:
         event.status = "canceled"
-        await event.save()
+        # TODO: API CALL
 
     return penalty, killer_user
 
 
 async def _cancel_killer_events(user: User, game: Game) -> None:
-    killer_events = await KillEvent.filter(game_id=game.id, killer_id=user.id, status="pending").all()
+    # TODO: API CALL
+    killer_events = None
     for event in killer_events:
         event.status = "canceled"
-        await event.save()
+        # TODO: API CALL
         logger.info("Отмена kill_event %s для %s", event.id, user.id)
 
 
@@ -87,7 +86,8 @@ async def _apply_leave_penalty(user: User, game: Game | None, now: datetime) -> 
     if not game:
         return 0, None
 
-    player = await Player.get_or_none(user_id=user.id, game_id=game.id)
+    # TODO: API CALL
+    player = None
     if not player:
         return 0, None
 
@@ -97,7 +97,7 @@ async def _apply_leave_penalty(user: User, game: Game | None, now: datetime) -> 
     if penalty == 0:
         penalty = calculate_leave_penalty(player.rating)
         player.rating = max(0, player.rating + penalty)
-        await player.save(update_fields=["rating"])
+        # TODO: API CALL
 
     return penalty, killer_user
 
@@ -113,14 +113,15 @@ async def _notify_killer(bot: Bot, killer: User) -> None:
 @log_dialog_action("LEAVE_GAME_CONFIRM")
 async def on_confirm_leave(callback: CallbackQuery, button: Button, manager: DialogManager):
     user: User = manager.middleware_data["user"]
-    game: Game | None = manager.middleware_data.get("game") or await Game.filter(end_date=None).first()
+    # TODO: API CALL
+    game: Game | None = None
     now = datetime.now(settings.timezone)
 
     penalty, killer_user = await _apply_leave_penalty(user, game, now)
 
     user.is_in_game = False
     user.exit_cooldown_until = compute_exit_cooldown_until(now)
-    await user.save(update_fields=["is_in_game", "exit_cooldown_until"])
+    # TODO: API CALL
 
     if killer_user:
         await _notify_killer(callback.bot, killer_user)

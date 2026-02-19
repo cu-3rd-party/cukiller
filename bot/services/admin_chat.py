@@ -48,7 +48,8 @@ class AdminChatService:
 
     @staticmethod
     async def _get_chat(key: str) -> Chat:
-        chat = await Chat.get_or_none(key=key)
+        # TODO: API CALL
+        chat = None
         if chat is None:
             raise ChatNotFoundError(key)
         return chat
@@ -98,7 +99,8 @@ class AdminChatService:
         request: "AdminChatService.PendingProfileRequest",
     ) -> Message | None:
         chat = await self._get_chat(chat_key)
-        await User.get_or_create(tg_id=request.tg_id)
+        # TODO: API CALL
+        # TODO: API CALL
 
         body = _build_body(request.text, request.tag)
         reply_markup = _pending_buttons(request.pending_id, request.tg_id, with_inspect=True)

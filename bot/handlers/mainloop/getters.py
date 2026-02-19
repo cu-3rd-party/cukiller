@@ -50,21 +50,25 @@ def _safe_url(value: str | None, *, allow_tg: bool = False) -> str | None:
 
 
 async def get_user(manager: DialogManager):
-    return await User.get(tg_id=manager.start_data.get("user_tg_id"))
+    # TODO: API CALL
+    return None
 
 
 async def get_user_and_game(manager: DialogManager):
     """Load user and game from dialog start data."""
     game_id = manager.start_data.get("game_id")
-    game = await Game.get(id=game_id) if game_id is not None else None
+    # TODO: API CALL
+    game = None
     return await get_user(manager), game
 
 
 async def get_pending_events(game: Game, user: User):
     """Return killer_event and victim_event for a user."""
-    victim_event = await KillEvent.filter(game=game, victim_id=user.id, status="pending").first()
+    # TODO: API CALL
+    victim_event = None
 
-    killer_event = await KillEvent.filter(game=game, killer_id=user.id, status="pending").first()
+    # TODO: API CALL
+    killer_event = None
 
     logger.debug("Found killer event %s and %s", killer_event, victim_event)
     return killer_event, victim_event
@@ -95,7 +99,7 @@ async def extract_target(killer_event: KillEvent | None):
     if not killer_event:
         return texts.get("common.unknown"), None, None, None
 
-    await killer_event.fetch_related("victim")
+    # TODO: API CALL
     victim: User = killer_event.victim
     target_name = victim.full_name or texts.get("common.unknown")
     return (
@@ -130,7 +134,8 @@ def _empty_target_state() -> dict:
 
 async def parse_target_info(game: Game | None, user: User, matchmaking: MatchmakingService):
     """Compute target-related info for the main menu or target window."""
-    player = await Player.filter(user=user, game=game).first()
+    # TODO: API CALL
+    player = None
     if not player or not user.is_in_game:
         return _empty_target_state()
 
@@ -168,7 +173,8 @@ async def parse_target_info(game: Game | None, user: User, matchmaking: Matchmak
 async def get_user_rating(user: User, game: Game):
     if not game:
         return {}
-    player = await Player.filter(game_id=game.id, user_id=user.id).first()
+    # TODO: API CALL
+    player = None
     if not player:
         return {}
     return {

@@ -184,7 +184,8 @@ async def confirmed_start(
         )
         return
 
-    game = await Game().filter(end_date=None).first()
+    # TODO: API CALL
+    game = None
     await dialog_manager.start(
         MainLoop.title,
         data={

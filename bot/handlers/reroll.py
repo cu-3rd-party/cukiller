@@ -59,7 +59,8 @@ async def notify_chat(bot: Bot, notification: RerollNotification) -> None:
     killer_display = notification.killer.full_name or notification.killer.tg_username or texts.get("common.unknown")
     victim_display = notification.victim.full_name or notification.victim.tg_username or texts.get("common.unknown")
     await bot.send_message(
-        chat_id=(await Chat.get(key="discussion")).chat_id,
+        # TODO: API CALL
+        chat_id=None,
         text=texts.render(
             "reroll.chat_notified",
             killer=notification.killer.mention_html(),
@@ -95,16 +96,15 @@ def calculate_penalty(creation: datetime) -> float:
 
 async def on_confirm_reroll(c: CallbackQuery, b: Button, m: DialogManager):
     requester_user: User = m.middleware_data["user"]
-    killer_player: Player = await Player.get_or_none(user_id=requester_user.id, game_id=m.start_data["game_id"])
-    kill_event: KillEvent = await KillEvent.get_or_none(
-        game_id=m.start_data["game_id"],
-        killer_id=requester_user.id,
-        status="pending",
-    ).prefetch_related("killer", "victim")
+    # TODO: API CALL
+    killer_player: Player = None
+    # TODO: API CALL
+    kill_event: KillEvent = None
     kill_event.status = "rejected"
-    await kill_event.save()
+    # TODO: API CALL
 
-    victim_player: Player = await Player.get_or_none(game_id=m.start_data["game_id"], user_id=kill_event.victim.id)
+    # TODO: API CALL
+    victim_player: Player = None
 
     logger.debug(kill_event)
     killer_delta, victim_delta = await modify_rating(

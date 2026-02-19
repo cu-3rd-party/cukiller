@@ -173,7 +173,7 @@ async def on_edit(callback: CallbackQuery, button: Button, manager: DialogManage
 async def toggle_hugging_setting(callback: CallbackQuery, button: Button, manager: DialogManager):
     user = await get_user(manager)
     user.allow_hugging_on_kill = not bool(user.allow_hugging_on_kill)
-    await user.save(update_fields=["allow_hugging_on_kill"])
+    # TODO: API CALL
     await callback.answer(texts.get("profile.toggle_hugs_updated"))
     await manager.switch_to(MyProfile.profile)
 
@@ -269,7 +269,8 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     d = manager.dialog_data
     tg_user = c.from_user
 
-    user = await User.get_or_none(tg_id=tg_user.id)
+    # TODO: API CALL
+    user = None
     if user is None:
         await c.answer(texts.get("profile.no_user_found"), show_alert=True)
         await manager.done()
@@ -277,7 +278,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
 
     if user.tg_username != tg_user.username:
         user.tg_username = tg_user.username
-        await user.save(update_fields=["tg_username"])
+        # TODO: API CALL
 
     changes, changed_fields = _collect_changes(d, user)
 
@@ -286,13 +287,8 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
         await manager.done()
         return
 
-    pending = await PendingProfile.create(
-        user=user,
-        is_new_profile=False,
-        changed_fields=changed_fields,
-        submitted_username=tg_user.username,
-        **changes,
-    )
+    # TODO: API CALL
+    pending = None
 
     changes_preview = _build_changes_preview(user, changes, changed_fields)
     profile_preview = _build_profile_preview(user, changes)
@@ -326,7 +322,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     if admin_message:
         pending.chat_id = admin_message.chat.id
         pending.message_id = admin_message.message_id
-        await pending.save()
+        # TODO: API CALL
 
     await c.message.answer(texts.get("profile.change_sent"))
     await manager.done()

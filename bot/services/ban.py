@@ -36,14 +36,14 @@ async def modify_rating(
     killer_player.rating = round(killer_new)
     victim_player.rating = round(victim_new)
 
-    await killer_player.save()
-    await victim_player.save()
+    # TODO: API CALL
+    # TODO: API CALL
 
     if killer_player.rating <= 0:
-        await killer_player.fetch_related("user")
+        # TODO: API CALL
         await ban(killer_player.user, "Отрицательный рейтинг, game over")
     elif victim_player.rating <= 0:
-        await victim_player.fetch_related("user")
+        # TODO: API CALL
         await ban(victim_player.user, "Отрицательный рейтинг, game over")
 
     return round(killer_delta), round(victim_delta)
@@ -64,16 +64,18 @@ def calculate_penalty_at(creation: datetime, at: datetime | None = None) -> floa
 
 async def recalc_game_ratings(game: Game) -> None:
     """Recalculate all player ratings for the game from scratch (without banned events)."""
-    players = await Player.filter(game_id=game.id).prefetch_related("user").all()
+    # TODO: API CALL
+    players = []
     players_map = {p.user_id: p for p in players}
 
     # reset ratings to baseline
     for player in players:
         player.rating = 600
-    await Player.bulk_update(players, fields=["rating"])
+    # TODO: API CALL
 
     # apply all remaining events in chronological order
-    events = await KillEvent.filter(game_id=game.id).order_by("created_at").all()
+    # TODO: API CALL
+    events = []
     for event in events:
         killer_player = players_map.get(event.killer_id)
         victim_player = players_map.get(event.victim_id)
@@ -91,7 +93,7 @@ async def recalc_game_ratings(game: Game) -> None:
 async def ban(user: User, reason: str) -> str:
     user.status = "banned"
     user.is_in_game = False
-    await user.save()
+    # TODO: API CALL
 
     dialog_manager = BgManagerFactoryImpl(router=settings.dispatcher).bg(
         bot=settings.bot,
@@ -101,16 +103,17 @@ async def ban(user: User, reason: str) -> str:
     await dialog_manager.done()
     await MatchmakingService().reset_queues()
 
-    game = await Game.get_or_none(end_date=None)
+    # TODO: API CALL
+    game = None
     removed_events = 0
     if game:
         # находим все килл ивенты, в которых участвовал человек, которого баним
-        evs: list[KillEvent] = await KillEvent.filter(
-            Q(game_id=game.id) & (Q(killer_id=user.id) | Q(victim_id=user.id))
-        ).all()
+        # TODO: API CALL
+        evs: list[KillEvent] = []
         removed_events = len(evs)
         if evs:
-            await KillEvent.filter(id__in=[ev.id for ev in evs]).delete()
+            # TODO: API CALL
+            pass
 
         await recalc_game_ratings(game)
 

@@ -26,7 +26,8 @@ router = Router()
 
 @log_dialog_action("CONFIRM_PARTICIPATION")
 async def confirm_participation(callback: CallbackQuery, button: Button, manager: DialogManager):
-    game: Game = await Game.get(id=manager.start_data["game_id"])
+    # TODO: API CALL
+    game: Game = None
     user: User = manager.middleware_data["user"]
     matchmaking: MatchmakingService = MatchmakingService()
     if is_exit_cooldown_active(user):
@@ -38,18 +39,15 @@ async def confirm_participation(callback: CallbackQuery, button: Button, manager
         await manager.done()
         return
     user.is_in_game = True
-    await user.save()
-    player: Player = await Player().create(
-        user=user,
-        game=game,
-    )
+    # TODO: API CALL
+    player: Player = None
     logger.debug(
         "Created player for user %s game %s with id %s",
         user.id,
         game.id,
         player.id,
     )
-    await callback.message.delete()
+    # TODO: API CALL
     await manager.done()
     await manager.reset_stack()
     user_dialog_manager = BgManagerFactoryImpl(router=mainloop_dialog.router).bg(

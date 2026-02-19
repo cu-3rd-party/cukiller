@@ -13,7 +13,8 @@ class GroupKeyFilter(BaseFilter):
         self.key = key
 
     async def __call__(self, update: Update, **kwargs: object) -> bool:
-        chat_obj = await Chat().get_or_none(chat_id=update.chat.id)
+        # TODO: API CALL
+        chat_obj = None
         if not chat_obj:
             logger.error("Update from unknown chat with id %d", update.chat.id)
             return False

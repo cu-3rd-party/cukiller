@@ -16,4 +16,5 @@ class GameMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> T:
-        return await handler(event, {**data, "game": await Game.filter(end_date=None).first()})
+        # TODO: API CALL
+        return None

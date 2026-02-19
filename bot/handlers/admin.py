@@ -77,9 +77,12 @@ async def set_admin_commands(bot: Bot, chat_id: int):
 
 @router.message(AdminFilter(), Command(commands=["stats"]))
 async def stats(message: Message, bot: Bot):
-    user_count = await User().all().count()
-    user_confirmed_count = await User().filter(status="confirmed").count()
-    current_game = await Game().filter(end_date=None).first()
+    # TODO: API CALL
+    user_count = None
+    # TODO: API CALL
+    user_confirmed_count = None
+    # TODO: API CALL
+    current_game = None
 
     if current_game:
         # Get current game statistics
@@ -144,17 +147,9 @@ async def on_final_confirmation(
     manager.dialog_data["confirm"] = True
 
     creation_date = datetime.now(settings.timezone)
-    game = await Game().create(
-        name=manager.dialog_data.get("name") or "test",
-        start_date=creation_date,
-    )
-    users = (
-        await User()
-        .filter(is_in_game=False, status="confirmed")
-        .filter(Q(exit_cooldown_until__isnull=True) | Q(exit_cooldown_until__lte=creation_date))
-        .only("tg_id", "tg_username", "given_name", "family_name")
-        .all()
-    )
+    # TODO: API CALL
+    game = None
+    users = []
 
     logger.debug("Notifying %s about new game %s", len(users), game.id)
 
@@ -203,7 +198,7 @@ async def on_final_confirmation(
 async def on_reset_game_creation(callback: CallbackQuery, button: Button, manager: DialogManager):
     manager.dialog_data["confirm"] = False
 
-    await manager.switch_to(StartGame.name)
+    # TODO: API CALL
 
 
 router.include_router(
@@ -235,11 +230,13 @@ router.include_router(
 
 @router.message(AdminFilter(), Command(commands=["creategame"]))
 async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
-    if await Game().filter(end_date=None).exists():
+    # TODO: API CALL
+    if False:
         msg = await message.reply(text=texts.get("admin.creategame.already_running"))
         await asyncio.sleep(10)
-        await msg.delete()
+        # TODO: API CALL
         return
+    # TODO: API CALL
     await dialog_manager.start(StartGame.name, show_mode=ShowMode.AUTO)
 
 
@@ -247,7 +244,7 @@ async def creategame(message: Message, bot: Bot, dialog_manager: DialogManager):
 async def getservertime(message: Message):
     msg = await message.reply(texts.render("admin.server_time", server_time=datetime.now(settings.timezone)))
     await asyncio.sleep(10)
-    await msg.delete()
+    # TODO: API CALL
 
 
 def parse_game_stage(game: Game) -> str:
@@ -260,7 +257,8 @@ def parse_game_stage(game: Game) -> str:
 
 
 async def get_games_data(**kwargs: object):
-    games = await Game().filter(end_date=None).all()
+    # TODO: API CALL
+    games = None
     return {
         "games": [
             {
@@ -276,7 +274,8 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs: object
     game_id = dialog_manager.dialog_data.get("game_id")
     if not game_id:
         return {}
-    game = await Game.get(id=game_id)
+    # TODO: API CALL
+    game = None
     return {
         "game_name": game.name,
         "show_end_game": game.start_date is not None and game.end_date is None,
@@ -293,32 +292,32 @@ async def on_game_selected(callback: CallbackQuery, widget: Select, manager: Dia
 @log_dialog_action("ADMIN_GAME_ACTION_CLICKED")
 async def on_action_clicked(callback: CallbackQuery, widget: Button, manager: DialogManager):
     action = widget.widget_id
-    game = await Game.get(id=manager.dialog_data["game_id"])
+    # TODO: API CALL
+    game = None
     logger.info(action)
     if action == "start_game":
         await handle_start_game(callback, game)
     elif action == "end_game":
         await handle_end_game(callback.bot, manager.middleware_data["dispatcher"], game)
     logger.info(game.start_date)
-    await callback.message.delete()
-    await manager.switch_to(EditGame.edit)
+    # TODO: API CALL
+    # TODO: API CALL
 
 
 async def handle_start_game(callback: CallbackQuery, game: Game):
     game.start_date = datetime.now(settings.timezone)
-    await game.save()
+    # TODO: API CALL
     await MatchmakingService().reset_queues()
 
 
 async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
     """Handle game ending and send credits to all participants."""
     game.end_date = datetime.now(settings.timezone)
-    await game.save()
+    # TODO: API CALL
     await MatchmakingService().reset_queues()
 
-    participants, info, discussion = await asyncio.gather(
-        User().all(), CreditsInfo.from_game(game), Chat.get(key="discussion")
-    )
+    # TODO: API CALL
+    participants, info, discussion = [], None, None
 
     send_tasks = [
         *[user_endgame(bot, dp, user, info) for user in participants],
@@ -331,7 +330,7 @@ async def handle_end_game(bot: Bot, dp: Dispatcher, game: Game):
         if isinstance(result, Exception):
             logger.error("Failed to send credits to user %s: %s", user.id, result)
 
-    await User().filter(is_in_game=True).update(is_in_game=False)
+    # TODO: API CALL
 
 
 async def user_endgame(bot: Bot, dp: Dispatcher, user: User, info: CreditsInfo):
@@ -391,8 +390,10 @@ async def reset_dialog(bot: Bot, dp: Dispatcher, user_id: int):
 
 async def game_info_getter(dialog_manager: DialogManager, **kwargs: object):
     game_id = dialog_manager.dialog_data["game_id"]
-    game = await Game().get(id=game_id)
-    participants_count = await Player().filter(game=game_id).count()
+    # TODO: API CALL
+    game = None
+    # TODO: API CALL
+    participants_count = None
     return {
         "game_info": texts.render(
             "admin.game_info",
@@ -466,6 +467,7 @@ router.include_router(
 
 @router.message(AdminFilter(), Command(commands=["editgame"]))
 async def editgame(message: Message, dialog_manager: DialogManager):
+    # TODO: API CALL
     await dialog_manager.start(EditGame.game_id, show_mode=ShowMode.AUTO)
 
 
@@ -486,16 +488,17 @@ async def endgame(
     dispatcher: Dispatcher,
     dialog_manager: DialogManager,
 ):
-    active_game = await Game().filter(end_date=None).first()
+    # TODO: API CALL
+    active_game = None
     if not active_game:
         msg = await message.answer(texts.get("admin.no_active_games"))
         await asyncio.sleep(1)
-        await msg.delete()
+        # TODO: API CALL
         return
     await handle_end_game(bot, dispatcher, active_game)
     msg = await message.answer(texts.get("admin.game_finished"))
     await asyncio.sleep(1)
-    await msg.delete()
+    # TODO: API CALL
 
 
 @router.message(Command(commands=["cancel"]))
@@ -524,7 +527,8 @@ async def ban(
         await message.answer(texts.get("admin.ban.tg_id_must_be_int"))
         return
 
-    user = await User.get_or_none(tg_id=user_id)
+    # TODO: API CALL
+    user = None
     if not user:
         await message.answer(texts.get("admin.ban.user_not_found"))
         return
@@ -543,9 +547,8 @@ async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
         await message.answer(texts.get("admin.rollbackkill.id_must_be_uuid"))
         return
 
-    kill_event: KillEvent | None = await KillEvent.get_or_none(id=kill_event_id).prefetch_related(
-        "game", "killer", "victim"
-    )
+    # TODO: API CALL
+    kill_event: KillEvent | None = None
     if not kill_event:
         await message.answer(texts.get("admin.rollbackkill.not_found"))
         return
@@ -559,12 +562,14 @@ async def rollbackkill(message: Message, bot: Bot, command: CommandObject):
     kill_event.killer_confirmed_at = None
     kill_event.victim_confirmed = False
     kill_event.victim_confirmed_at = None
-    await kill_event.save()
+    # TODO: API CALL
 
     await recalc_game_ratings(kill_event.game)
 
-    killer_player = await Player.get_or_none(user_id=kill_event.killer.id, game_id=kill_event.game.id)
-    victim_player = await Player.get_or_none(user_id=kill_event.victim.id, game_id=kill_event.game.id)
+    # TODO: API CALL
+    killer_player = None
+    # TODO: API CALL
+    victim_player = None
 
     await AdminChatService(bot).send_message(
         key="discussion",

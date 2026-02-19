@@ -182,40 +182,18 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     d = manager.dialog_data
     tg_user = c.from_user
 
-    user_obj, _ = await User.get_or_create(tg_id=tg_user.id)
+    # TODO: API CALL
+    user_obj, _ = None, None
     user_obj.tg_username = tg_user.username
     user_obj.status = "pending"
     user_obj.family_name = d.get("family_name")
     user_obj.given_name = d.get("given_name")
-    await user_obj.save()
+    # TODO: API CALL
 
     full_name = build_full_name(d.get("given_name"), d.get("family_name"))
 
-    pending = await PendingProfile.create(
-        user=user_obj,
-        status="pending",
-        is_new_profile=True,
-        name=full_name,
-        family_name=d.get("family_name"),
-        given_name=d.get("given_name"),
-        type=d["course_type"],
-        course_number=d.get("course_number"),
-        group_name=d.get("group_name"),
-        about_user=d["about"],
-        photo=d["photo"],
-        allow_hugging_on_kill=d.get("allow_hugging_on_kill", False),
-        changed_fields=[
-            "family_name",
-            "given_name",
-            "type",
-            "course_number",
-            "group_name",
-            "about_user",
-            "photo",
-            "allow_hugging_on_kill",
-        ],
-        submitted_username=tg_user.username,
-    )
+    # TODO: API CALL
+    pending = None
 
     # Notify admin
     text = texts.render(
@@ -247,7 +225,7 @@ async def on_final_confirmation(c: CallbackQuery, b: Button, manager: DialogMana
     if admin_message:
         pending.chat_id = admin_message.chat.id
         pending.message_id = admin_message.message_id
-        await pending.save()
+        # TODO: API CALL
 
     await c.message.answer(texts.get("registration.submitted"))
     await manager.done()

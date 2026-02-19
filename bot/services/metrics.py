@@ -74,9 +74,12 @@ class BotMetrics:
     async def update_user_metrics(self):
         """Update user-related metrics from the database."""
         try:
-            total_users = await User().all().count()
-            confirmed_users = await User().filter(status="confirmed").count()
-            pending_users = await User().filter(status="pending").count()
+            # TODO: API CALL
+            total_users = None
+            # TODO: API CALL
+            confirmed_users = None
+            # TODO: API CALL
+            pending_users = None
 
             self.user_total.labels(status="total").set(total_users)
             self.user_total.labels(status="confirmed").set(confirmed_users)
@@ -94,9 +97,12 @@ class BotMetrics:
     async def update_game_metrics(self):
         """Update game-related metrics from the database."""
         try:
-            total_games = await Game().all().count()
-            active_games = await Game().filter(end_date=None).count()
-            completed_games = await Game().filter(end_date__not=None).count()
+            # TODO: API CALL
+            total_games = None
+            # TODO: API CALL
+            active_games = None
+            # TODO: API CALL
+            completed_games = None
 
             self.games_total.labels(status="total").set(total_games)
             self.games_total.labels(status="active").set(active_games)
@@ -114,9 +120,11 @@ class BotMetrics:
     async def update_player_metrics(self):
         """Update player-related metrics from the database."""
         try:
-            games = await Game().all()
+            # TODO: API CALL
+            games = None
             for game in games:
-                players_count = await Player().filter(game=game.id).count()
+                # TODO: API CALL
+                players_count = None
                 game_status = "active" if game.end_date is None else "completed"
 
                 self.players_total.labels(game_id=str(game.id), game_status=game_status).set(players_count)

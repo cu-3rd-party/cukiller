@@ -114,7 +114,7 @@ async def stop_web_server() -> None:
 
 
 async def on_startup(bot: Bot) -> None:
-    await init_db()
+    # TODO: API CALL
     await generate_discussion_invite_link(bot)
     await metrics_updater.start()
     if settings.webhook_url:
@@ -143,7 +143,7 @@ async def on_shutdown(bot: Bot) -> None:
     else:
         await stop_web_server()
     await metrics_updater.stop()
-    await close_db()
+    # TODO: API CALL
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):

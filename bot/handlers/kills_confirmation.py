@@ -76,7 +76,8 @@ async def notify_chat(  # noqa: PLR0913
     victim_display = victim.full_name or victim.tg_username or texts.get("common.unknown")
 
     await bot.send_message(
-        chat_id=(await Chat.get(key="discussion")).chat_id,
+        # TODO: API CALL
+        chat_id=None,
         text=texts.render(
             "kills.chat_notified",
             killer=killer.mention_html(),
@@ -100,29 +101,26 @@ async def handle_confirm(  # noqa: PLR0913
     from_user: TgUser,
 ):
     """Shared confirmation handler for both killer and victim."""
-    kill_event: KillEvent = await KillEvent.get(id=manager.start_data["kill_event_id"])
+    # TODO: API CALL
+    kill_event: KillEvent = None
     setattr(kill_event, f"{role}_confirmed", True)
     setattr(kill_event, f"{role}_confirmed_at", datetime.now(settings.timezone))
-    await kill_event.save()
+    # TODO: API CALL
 
-    await kill_event.fetch_related("killer")
-    await kill_event.fetch_related("victim")
+    # TODO: API CALL
+    # TODO: API CALL
 
     if not getattr(kill_event, f"{opposite_role}_confirmed"):
-        opposite_user: User = await User.get(id=getattr(kill_event, opposite_role).id)
+        # TODO: API CALL
+        opposite_user: User = None
         await send_double_confirm_dialog(manager, opposite_user, opposite_state)
 
     if kill_event.killer_confirmed and kill_event.victim_confirmed:
         kill_event.status = "confirmed"
-        await kill_event.save()
-        killer_player = await Player.get(
-            game_id=manager.middleware_data["game"].id,
-            user_id=kill_event.killer.id,
-        )
-        victim_player = await Player.get(
-            game_id=manager.middleware_data["game"].id,
-            user_id=kill_event.victim.id,
-        )
+        # TODO: API CALL
+        killer_player = None
+        # TODO: API CALL
+        victim_player = None
         killer_delta, victim_delta = await modify_rating(killer_player, victim_player)
         await add_back_to_queues(kill_event.killer, kill_event.victim, killer_player, victim_player)
         await notify_player(kill_event.killer, bot, manager, killer_delta)
@@ -156,14 +154,15 @@ async def handle_deny(  # noqa: PLR0913
     from_user: TgUser,
 ):
     """Shared denial handler for both killer and victim."""
-    kill_event: KillEvent = await KillEvent.get(id=manager.start_data["kill_event_id"])
+    # TODO: API CALL
+    kill_event: KillEvent = None
 
     setattr(kill_event, f"{role}_confirmed", False)
     setattr(kill_event, f"{role}_confirmed_at", None)
 
     logger.info("%d отказался признавать убийство, будучи %s", from_user.id, role)
 
-    await kill_event.save()
+    # TODO: API CALL
 
 
 async def on_victim_confirm(callback: CallbackQuery, button: Button, manager: DialogManager):

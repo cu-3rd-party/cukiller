@@ -26,14 +26,18 @@ async def get_queue_info(request: web.Request) -> web.StreamResponse:
     # A dedicated DB queue schema would be more reliable than filtering by KillEvent.
     if request.headers.get("secret-key") != request.app["settings"].secret_key:
         return web.StreamResponse(status=403)
-    game = await Game.filter(end_date=None).first()
+    # TODO: API CALL
+    game = None
     found_victims = set()
     found_killers = set()
-    for ke in await KillEvent.filter(game=game).all():
+    # TODO: API CALL
+    for ke in []:
         found_killers.add(ke.killer)
         found_victims.add(ke.victim)
-    potential_killers = await User.filter(is_in_game=True, id__not_in=found_killers).all()
-    potential_victims = await User.filter(is_in_game=True, id__not_in=found_victims).all()
+    # TODO: API CALL
+    potential_killers = None
+    # TODO: API CALL
+    potential_victims = None
     return web.json_response(
         status=200,
         data={
@@ -52,18 +56,16 @@ async def handle_match(request: web.Request) -> web.StreamResponse:
 
     match_quality = data.get("quality", 0.0)
 
-    killer_user, _ = await User.get_or_create(tg_id=int(data["killer"]))
-    victim_user, _ = await User.get_or_create(tg_id=int(data["victim"]))
+    # TODO: API CALL
+    killer_user, _ = None, None
+    # TODO: API CALL
+    victim_user, _ = None, None
 
-    game = await Game.filter(end_date=None).first()
+    # TODO: API CALL
+    game = None
 
-    ke = await KillEvent.create(
-        game=game,
-        killer=killer_user,
-        victim=victim_user,
-        status="pending",
-        is_approved=False,
-    )
+    # TODO: API CALL
+    ke = None
 
     try:
         await request.app["admin_chat"].send_message(

@@ -58,7 +58,7 @@ class RegisterUserMiddleware(BaseMiddleware):
             if any(getattr(db_user, field) != value for field, value in user_data.items()):
                 for field, value in user_data.items():
                     setattr(db_user, field, value)
-                await db_user.save()
+                # TODO: API CALL
 
             self._user_cache[cache_key] = {
                 "user": db_user,
@@ -73,7 +73,8 @@ class RegisterUserMiddleware(BaseMiddleware):
                 "family_name": normalize_name_component(user.last_name),
             }
 
-            db_user = await User().create(tg_id=user.id, **user_data)
+            # TODO: API CALL
+            db_user = None
 
             self._user_cache[cache_key] = {
                 "user": db_user,
