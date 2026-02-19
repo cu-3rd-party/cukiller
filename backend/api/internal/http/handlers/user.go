@@ -200,7 +200,7 @@ func (r *UserUpdateRequest) applyToUser(u *store.User) error {
 	return nil
 }
 
-type UserListResponse struct {
+type UsersListResponse struct {
 	Items  []store.User `json:"items"`
 	Limit  int          `json:"limit"`
 	Offset int          `json:"offset"`
@@ -272,7 +272,7 @@ func (h *UserHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, UserListResponse{
+	c.JSON(http.StatusOK, UsersListResponse{
 		Items:  users,
 		Limit:  limit,
 		Offset: offset,

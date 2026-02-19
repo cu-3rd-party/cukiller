@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
 
@@ -287,6 +290,36 @@ func (s *UserStore) Delete(ctx context.Context, id uuid.UUID) bool {
 	return err == nil && rows > 0
 }
 
+func (s *UserStore) ListByGameID(ctx context.Context, gameID uuid.UUID) ([]User, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "list_by_game_id").
+		Str("game_id", gameID.String()).
+		Msg("db operation")
+
+	rows, err := s.db.QueryContext(ctx, userSelectQuery+`
+	JOIN players p ON p.user_id = users.id
+	WHERE p.game_id = $1
+	ORDER BY users.created_at`, gameID)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	users := []User{}
+	for rows.Next() {
+		entry, err := scanUser(rows)
+		if err != nil {
+			return nil, false
+		}
+		users = append(users, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return users, true
+}
+
 func (s *UserStore) Upsert(ctx context.Context, entry *User) bool {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -370,4 +403,124 @@ func (s *UserStore) Upsert(ctx context.Context, entry *User) bool {
 	}
 
 	return true
+}
+
+type UserListFilters struct {
+	Status   string
+	IsInGame *bool
+	IsAdmin  *bool
+	Limit    int
+	Offset   int
+}
+
+func (s *UserStore) List(ctx context.Context, filters UserListFilters) ([]User, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "list").
+		Msg("db operation")
+
+	query := strings.Builder{}
+	query.WriteString(userSelectQuery)
+	args := make([]any, 0, 4)
+	clauses := make([]string, 0, 3)
+
+	if filters.Status != "" {
+		clauses = append(clauses, fmt.Sprintf("status = $%d", len(args)+1))
+		args = append(args, filters.Status)
+	}
+	if filters.IsInGame != nil {
+		clauses = append(clauses, fmt.Sprintf("is_in_game = $%d", len(args)+1))
+		args = append(args, *filters.IsInGame)
+	}
+	if filters.IsAdmin != nil {
+		clauses = append(clauses, fmt.Sprintf("is_admin = $%d", len(args)+1))
+		args = append(args, *filters.IsAdmin)
+	}
+
+	if len(clauses) > 0 {
+		query.WriteString("\nWHERE ")
+		query.WriteString(strings.Join(clauses, " AND "))
+	}
+
+	if filters.Limit <= 0 {
+		filters.Limit = 100
+	}
+	if filters.Offset < 0 {
+		filters.Offset = 0
+	}
+	args = append(args, filters.Limit, filters.Offset)
+	query.WriteString(fmt.Sprintf("\nORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)-1, len(args)))
+
+	rows, err := s.db.QueryContext(ctx, query.String(), args...)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	users := make([]User, 0)
+	for rows.Next() {
+		entry, err := scanUser(rows)
+		if err != nil {
+			return nil, false
+		}
+		users = append(users, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return users, true
+}
+
+func (s *UserStore) Count(ctx context.Context, status string) (int, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "count").
+		Str("status", status).
+		Msg("db operation")
+
+	query := "SELECT COUNT(*) FROM users"
+	args := make([]any, 0, 1)
+	if status != "" {
+		query += " WHERE status = $1"
+		args = append(args, status)
+	}
+
+	var total int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, false
+	}
+	return total, true
+}
+
+func (s *UserStore) GetByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]User, bool) {
+	log.Debug().
+		Str("store", "user").
+		Str("op", "get_by_ids").
+		Int("count", len(ids)).
+		Msg("db operation")
+
+	users := make(map[uuid.UUID]User)
+	if len(ids) == 0 {
+		return users, true
+	}
+
+	rows, err := s.db.QueryContext(ctx, userSelectQuery+`
+	WHERE id = ANY($1)`, pq.Array(ids))
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		entry, err := scanUser(rows)
+		if err != nil {
+			return nil, false
+		}
+		users[entry.Id] = entry
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return users, true
 }
