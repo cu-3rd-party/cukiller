@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "pyproject.toml"
+      - "./e2e/pyproject.toml"
+      - "./bot/pyproject.toml"
       - ".github/workflows/uv-lock-check.yml"
 
 permissions:

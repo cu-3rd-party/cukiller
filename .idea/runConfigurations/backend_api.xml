@@ -1,0 +1,22 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="backend/api" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="cukiller" />
+    <working_directory value="$PROJECT_DIR$/backend/api" />
+    <envs>
+      <env name="DB_HOST" value="localhost" />
+      <env name="DB_PASSWORD" value="admin" />
+      <env name="DB_PORT" value="5432" />
+      <env name="DB_USER" value="admin" />
+      <env name="LOGLEVEL" value="DEBUG" />
+      <env name="SECRET_KEY" value="very-secret-key" />
+      <env name="TZ" value="Europe/Moscow" />
+    </envs>
+    <kind value="FILE" />
+    <package value="cukiller/api" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/backend/api/cmd/server/main.go" />
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="launch db" run_configuration_type="docker-deploy" />
+    </method>
+  </configuration>
+</component>
