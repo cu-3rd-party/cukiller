@@ -1,0 +1,11 @@
+apiVersion: 1
+
+dashboards:
+  - name: cukiller
+    orgId: 1
+    folder: Cukiller
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
