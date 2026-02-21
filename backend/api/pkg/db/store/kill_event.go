@@ -14,20 +14,20 @@ import (
 
 // KillEvent represents kill event object in the database
 type KillEvent struct {
-	Id                uuid.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	KillerConfirmed   bool
-	KillerConfirmedAt sql.NullTime
-	VictimConfirmed   bool
-	VictimConfirmedAt sql.NullTime
-	Status            string
-	ModeratedAt       sql.NullTime
-	IsApproved        bool
-	GameId            uuid.UUID
-	KillerId          uuid.UUID
-	ModeratorId       uuid.NullUUID
-	VictimId          uuid.UUID
+	Id                uuid.UUID     `json:"id"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	KillerConfirmed   bool          `json:"killer_confirmed"`
+	KillerConfirmedAt sql.NullTime  `json:"killer_confirmed_at"`
+	VictimConfirmed   bool          `json:"victim_confirmed"`
+	VictimConfirmedAt sql.NullTime  `json:"victim_confirmed_at"`
+	Status            string        `json:"status"`
+	ModeratedAt       sql.NullTime  `json:"moderated_at"`
+	IsApproved        bool          `json:"is_approved"`
+	GameId            uuid.UUID     `json:"game_id"`
+	KillerId          uuid.UUID     `json:"killer_id"`
+	ModeratorId       uuid.NullUUID `json:"moderator_id"`
+	VictimId          uuid.UUID     `json:"victim_id"`
 }
 
 func DefaultKillEvent() KillEvent {

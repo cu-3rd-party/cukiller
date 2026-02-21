@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     web_server_host: str = Field(default="127.0.0.1", alias="BOT_WEB_SERVER_HOST")
     webhook_url: str | None = Field(default=None, alias="BOT_WEBHOOK_URL")
     webhook_path: str | None = Field(default=None, alias="BOT_WEBHOOK_PATH")
+    skip_external_services: bool = Field(default=False, alias="SKIP_EXTERNAL_SERVICES")
+    skip_polling: bool = Field(default=False, alias="SKIP_POLLING")
 
     # ^ Bot
     bot_name: str = Field(default="cu_killer_bot", alias="BOT_NAME")
@@ -49,7 +51,7 @@ class Settings(BaseSettings):
     redis_db: int = Field(default=0, alias="REDIS_DB")
 
     matchmaking_service_url: str = Field(default="http://matchmaking:8000", alias="MATCHMAKING_URL")
-    backend_api_url: str = Field(default="http://api:8000", alias="BACKEND_API_URL")
+    backend_api_url: str = Field(default="http://api:8080", alias="BACKEND_API_URL")
 
     bot: Bot | None = None
     dispatcher: Dispatcher | None = None

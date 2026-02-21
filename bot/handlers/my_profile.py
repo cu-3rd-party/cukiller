@@ -146,7 +146,7 @@ async def get_profile_info(dialog_manager: DialogManager, **kwargs: dict[str, ob
         "photo": MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id=user.photo)),
         "advanced_info": get_advanced_info(user),
         "profile_link": user.tg_id and f"tg://user?id={user.tg_id}",
-        "hugs_allowed_label": hugging_allowed_label(user.allow_hugging_on_kill),
+        "hugs_allowed_label": hugging_allowed_label(value=user.allow_hugging_on_kill),
     }
 
 

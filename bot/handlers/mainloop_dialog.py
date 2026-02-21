@@ -12,7 +12,6 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from filters.confirmed import ConfirmedFilter
 from filters.user import UserFilter
-from handlers.admin import set_admin_commands
 from handlers.mainloop.button_handlers import (
     confirm_participation,
     on_get_target,
@@ -177,6 +176,8 @@ async def confirmed_start(
     user: User,
 ):
     if user and user.is_admin:
+        from handlers.admin import set_admin_commands  # noqa: PLC0415
+
         await set_admin_commands(bot, message.chat.id)
     await dialog_manager.reset_stack()
 

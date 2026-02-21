@@ -14,12 +14,12 @@ import (
 
 // Player represents player object in the database
 type Player struct {
-	Id        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	GameId    uuid.UUID
-	UserId    uuid.UUID
-	Rating    int
+	Id        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	GameId    uuid.UUID `json:"game_id"`
+	UserId    uuid.UUID `json:"user_id"`
+	Rating    int       `json:"rating"`
 }
 
 func DefaultPlayer() Player {

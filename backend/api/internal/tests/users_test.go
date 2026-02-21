@@ -226,3 +226,39 @@ func TestUserUpdateById(t *testing.T) {
 	assert.NoError(t, json.NewDecoder(patchRec.Body).Decode(&updated))
 	assert.Equal(t, "Doe", updated.FamilyName)
 }
+
+func TestUserGetOrCreateSetsUUID(t *testing.T) {
+	_, router := setupUserRouter(t)
+	tgID := time.Now().UnixNano()
+
+	payload := map[string]any{
+		"tg_id":       tgID,
+		"tg_username": "new-user",
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal request: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/users/get-or-create", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+
+	var created store.User
+	assert.NoError(t, json.NewDecoder(rec.Body).Decode(&created))
+	assert.NotEqual(t, uuid.Nil, created.Id)
+
+	req = httptest.NewRequest(http.MethodPost, "/users/get-or-create", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var fetched store.User
+	assert.NoError(t, json.NewDecoder(rec.Body).Decode(&fetched))
+	assert.Equal(t, created.Id, fetched.Id)
+}

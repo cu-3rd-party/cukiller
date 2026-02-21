@@ -70,6 +70,7 @@ func (h *SystemHandler) upsertAdmin(c *gin.Context, tgID int64) error {
 	user := store.User{
 		TgId:    tgID,
 		IsAdmin: true,
+		Status:  "active",
 	}
 	if existing, ok := h.UserStore.GetByTgId(c, tgID); ok {
 		user.Id = existing.Id

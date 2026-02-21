@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from aiogram.filters import BaseFilter
 
+from services.logging import log_filter
+
 if TYPE_CHECKING:
     from aiogram.types import Message
 
@@ -21,5 +23,6 @@ class PendingFilter(BaseFilter):
 
 
 class ProfileNonexistentFilter(BaseFilter):
+    @log_filter("ProfileNonexistentFilter")
     async def __call__(self, message: Message, user: User, **kwargs: object) -> bool:
         return user is None or (user is not None and (user.status in {"active", "rejected"}))

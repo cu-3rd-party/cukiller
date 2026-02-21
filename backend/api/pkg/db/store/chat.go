@@ -12,11 +12,11 @@ import (
 
 // Chat represents chat object in the database
 type Chat struct {
-	Id        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	ChatId    int64
-	Key       string
+	Id        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	ChatId    int64     `json:"chat_id"`
+	Key       string    `json:"key"`
 }
 
 func DefaultChat() *Chat {

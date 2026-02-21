@@ -14,26 +14,26 @@ import (
 
 // PendingProfile represents pending profile object in the database
 type PendingProfile struct {
-	Id                 uuid.UUID
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
-	GivenName          string
-	FamilyName         string
-	Type               string
-	CourseNumber       uint8
-	GroupName          string
-	Photo              string
-	AboutUser          string
-	Status             string
-	IsNewProfile       bool
-	Reason             string
-	ChangedFields      []byte
-	ChatId             int64
-	MessageId          int64
-	SubmittedUsername  string
-	UserId             uuid.UUID
-	ModeratorId        uuid.UUID
-	AllowHuggingOnKill bool
+	Id                 uuid.UUID `json:"id"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	GivenName          string    `json:"given_name"`
+	FamilyName         string    `json:"family_name"`
+	Type               string    `json:"type"`
+	CourseNumber       uint8     `json:"course_number"`
+	GroupName          string    `json:"group_name"`
+	Photo              string    `json:"photo"`
+	AboutUser          string    `json:"about_user"`
+	Status             string    `json:"status"`
+	IsNewProfile       bool      `json:"is_new_profile"`
+	Reason             string    `json:"reason"`
+	ChangedFields      []byte    `json:"changed_fields"`
+	ChatId             int64     `json:"chat_id"`
+	MessageId          int64     `json:"message_id"`
+	SubmittedUsername  string    `json:"submitted_username"`
+	UserId             uuid.UUID `json:"user_id"`
+	ModeratorId        uuid.UUID `json:"moderator_id"`
+	AllowHuggingOnKill bool      `json:"allow_hugging_on_kill"`
 }
 
 func DefaultPendingProfile() PendingProfile {

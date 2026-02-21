@@ -15,24 +15,24 @@ import (
 
 // User represents user object in the database
 type User struct {
-	Id                 uuid.UUID
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
-	TgId               int64
-	TgUsername         string
-	Type               string
-	CourseNumber       uint8
-	GroupName          string
-	IsInGame           bool
-	IsAdmin            bool
-	Photo              string
-	AboutUser          string
-	Status             string
-	AllowHuggingOnKill bool
-	ExitCooldownUntil  time.Time
-	GivenName          string
-	FamilyName         string
-	FamilyNameRequired bool
+	Id                 uuid.UUID `json:"id"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	TgId               int64     `json:"tg_id"`
+	TgUsername         string    `json:"tg_username"`
+	Type               string    `json:"type"`
+	CourseNumber       uint8     `json:"course_number"`
+	GroupName          string    `json:"group_name"`
+	IsInGame           bool      `json:"is_in_game"`
+	IsAdmin            bool      `json:"is_admin"`
+	Photo              string    `json:"photo"`
+	AboutUser          string    `json:"about_user"`
+	Status             string    `json:"status"`
+	AllowHuggingOnKill bool      `json:"allow_hugging_on_kill"`
+	ExitCooldownUntil  time.Time `json:"exit_cooldown_until"`
+	GivenName          string    `json:"given_name"`
+	FamilyName         string    `json:"family_name"`
+	FamilyNameRequired bool      `json:"family_name_required"`
 }
 
 func DefaultUser() *User {
@@ -99,6 +99,10 @@ func (s *UserStore) Create(ctx context.Context, entry *User) bool {
 		)
 		RETURNING id, created_at, updated_at
 	`
+
+	if entry.Id == uuid.Nil {
+		entry.Id = uuid.New()
+	}
 
 	log.Debug().
 		Str("store", "user").

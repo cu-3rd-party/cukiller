@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
 
 type UserHandler struct {
@@ -42,7 +43,8 @@ func (h *UserHandler) GetOrCreate(c *gin.Context) {
 	user, found := h.UserStore.GetByTgId(c, req.TgId)
 
 	if !found {
-		user = &store.User{}
+		user = store.DefaultUser()
+		user.Status = "active" // Setting default user status
 	}
 
 	req.applyToUser(user)
@@ -53,6 +55,10 @@ func (h *UserHandler) GetOrCreate(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, user)
+		log.Debug().
+			Str("username", user.TgUsername).
+			Str("status", user.Status).
+			Msg("new user")
 		return
 	}
 

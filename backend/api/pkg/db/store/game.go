@@ -12,12 +12,12 @@ import (
 
 // Game represents game object in the database
 type Game struct {
-	Id        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-	StartDate sql.NullTime
-	EndDate   sql.NullTime
+	Id        uuid.UUID    `json:"id"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	Name      string       `json:"name"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
 }
 
 func DefaultGame() Game {

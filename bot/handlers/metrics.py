@@ -7,11 +7,11 @@ import contextlib
 import logging
 from datetime import datetime
 
-from aiohttp import web
-from aiohttp.web import Request, Response
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse, Response
 
-from services.settings import settings
 from services.metrics import metrics
+from services.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +28,19 @@ async def metrics_endpoint(request: Request) -> Response:
         # Generate and return metrics
         metrics_data: bytes = metrics.get_metrics()
         return Response(
-            body=metrics_data,
-            content_type="text/plain; version=0.0.4",
+            content=metrics_data,
+            media_type="text/plain; version=0.0.4",
         )
     except Exception as e:
         logger.exception("Error generating metrics")
         return Response(
-            text=f"Error generating metrics: {e}",
-            status=500,
-            content_type="text/plain",
+            content=f"Error generating metrics: {e}",
+            status_code=500,
+            media_type="text/plain",
         )
 
 
-async def health_check(request: Request) -> Response:
+async def health_check(request: Request) -> JSONResponse:
     """
     Health check endpoint.
     Returns basic health information.
@@ -55,26 +55,26 @@ async def health_check(request: Request) -> Response:
             "service": "cukiller-bot",
         }
 
-        return web.json_response(health_data)
+        return JSONResponse(health_data)
     except Exception as e:
         logger.exception("Health check failed")
-        return web.json_response(
+        return JSONResponse(
             {
                 "status": "unhealthy",
                 "timestamp": datetime.now(settings.timezone).isoformat(),
                 "error": str(e),
                 "service": "cukiller-bot",
             },
-            status=503,
+            status_code=503,
         )
 
 
-def setup_metrics_routes(app: web.Application) -> None:
+def setup_metrics_routes(router: APIRouter) -> None:
     """
     Set up metrics and health check routes.
     """
-    app.router.add_get("/metrics", metrics_endpoint)
-    app.router.add_get("/health", health_check)
+    router.add_api_route("/metrics", metrics_endpoint, methods=["GET"])
+    router.add_api_route("/health", health_check, methods=["GET"])
     logger.info("Metrics routes configured: /metrics, /health")
 
 

@@ -2,23 +2,36 @@ import asyncio
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
 from uuid import UUID
 
-from aiogram import Bot, Dispatcher
+import uvicorn
+from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram_dialog import setup_dialogs
-from aiohttp import web
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.responses import Response
 from redis.asyncio import Redis
 
-from handlers import router as handlers_router
+from handlers.admin import router as admin_router
+from handlers.join_request import router as join_request_router
+from handlers.kills_confirmation import router as kills_confirmation_router
+from handlers.leave_game import router as leave_game_router
+from handlers.mainloop_dialog import router as mainloop_dialog_router
+from handlers.matchmaking import router as matchmaking_router
 from handlers.matchmaking import setup_matchmaking_routers
 from handlers.metrics import metrics_updater, setup_metrics_routes
+from handlers.my_profile import router as my_profile_router
+from handlers.participation import router as participation_router
+from handlers.profile_moderation import router as profile_moderation_router
+from handlers.registration_dialog import router as registration_dialog_router
+from handlers.reroll import router as reroll_router
+from handlers.rules import router as rules_router
 from middlewares.environment import EnvironmentMiddleware
 from middlewares.game import GameMiddleware
 from middlewares.logging import VerboseLoggingMiddleware
@@ -49,18 +62,18 @@ def register_all_middlewares(dp: Dispatcher) -> None:
 
 
 def register_all_handlers(dp: Dispatcher) -> None:
-    routers = []
-
-    dp.include_router(handlers_router)
-
-    if routers:
-        dp.include_routers(*routers)
-    else:
-        logger.warning("Не найдено ни одного роутера для регистрации")
-
-
-# Global web server instance
-_web_server_state: dict[str, web.AppRunner | None] = {"runner": None}
+    dp.include_router(admin_router)
+    dp.include_router(join_request_router)
+    dp.include_router(kills_confirmation_router)
+    dp.include_router(leave_game_router)
+    dp.include_router(mainloop_dialog_router)
+    dp.include_router(matchmaking_router)
+    dp.include_router(my_profile_router)
+    dp.include_router(participation_router)
+    dp.include_router(profile_moderation_router)
+    dp.include_router(registration_dialog_router)
+    dp.include_router(reroll_router)
+    dp.include_router(rules_router)
 
 
 def _normalize_webhook_path() -> str:
@@ -77,40 +90,10 @@ def _normalize_webhook_path() -> str:
     return path
 
 
-async def start_web_server(bot: Bot, dp: Dispatcher) -> None:
-    """Start the HTTP web server for metrics/matchmaking and webhook endpoints."""
-    app = web.Application()
-    setup_metrics_routes(app)
-    setup_matchmaking_routers(app, bot)
-    if settings.webhook_url:
-        webhook_path = _normalize_webhook_path()
-        SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=webhook_path)
-        setup_application(app, dp, bot=bot)
-        logger.info("Webhook endpoint registered on %s", webhook_path)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    site = web.TCPSite(runner, settings.web_server_host, settings.web_server_port)
-    await site.start()
-
-    _web_server_state["runner"] = runner
-    logger.info(
-        "HTTP web server started on port %d for metrics endpoint",
-        settings.web_server_port,
-    )
-
-
-async def stop_web_server() -> None:
-    """Stop the HTTP web server."""
-    runner = _web_server_state["runner"]
-    if runner:
-        await runner.cleanup()
-        _web_server_state["runner"] = None
-        logger.info("HTTP web server stopped")
-
-
 async def on_startup(bot: Bot) -> None:
+    if settings.skip_external_services:
+        logger.warning("SKIP_EXTERNAL_SERVICES=1 -> skipping backend bootstrap, matchmaking checks, and timeouts")
+        return
     admin_ids = []
     if settings.admin_ids_raw:
         admin_ids = [int(item.strip()) for item in settings.admin_ids_raw.split(",") if item.strip().isdigit()]
@@ -125,24 +108,20 @@ async def on_startup(bot: Bot) -> None:
         await bot.set_webhook(
             url=settings.webhook_url,
             allowed_updates=settings.dispatcher.resolve_used_update_types(),
+            secret_token=settings.secret_key,
         )
-    else:
-        if settings.dispatcher is None:
-            msg = "Dispatcher is not initialized for polling setup"
-            raise RuntimeError(msg)
-        await start_web_server(bot, settings.dispatcher)
     await MatchmakingService().healthcheck()
     await MatchmakingService().reset_queues()
     await kill_timeout_monitor.start(bot)
 
 
 async def on_shutdown(bot: Bot) -> None:
+    if settings.skip_external_services:
+        return
     await kill_timeout_monitor.stop()
     await revoke_discussion_invite_link(bot)
     if settings.webhook_url:
         await bot.delete_webhook()
-    else:
-        await stop_web_server()
     await metrics_updater.stop()
     await backend_api.close()
 
@@ -172,8 +151,8 @@ def enhanced_json_dumper(obj: object) -> str:
     return json.dumps(obj, cls=EnhancedJSONEncoder)
 
 
-async def run_bot() -> None:
-    storage = RedisStorage(
+def _build_storage() -> RedisStorage:
+    return RedisStorage(
         redis=Redis(
             host=settings.redis_host,
             port=settings.redis_port,
@@ -187,11 +166,13 @@ async def run_bot() -> None:
         json_loads=enhanced_json_loader,
     )
 
+
+def _build_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
-    dp = Dispatcher(storage=storage)
+    dp = Dispatcher(storage=_build_storage())
 
     settings.bot = bot
     settings.dispatcher = dp
@@ -203,20 +184,69 @@ async def run_bot() -> None:
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
+    return bot, dp
+
+
+async def run_bot() -> None:
+    bot, dp = _build_bot_and_dispatcher()
+
+    if settings.skip_polling:
+        logger.warning("SKIP_POLLING=1 -> skipping Telegram polling/webhook setup")
+        return
+
+    try:
+        await bot.delete_webhook()
+        await dp.start_polling(bot)
+    finally:
+        await dp.storage.close()
+        await bot.session.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.basicConfig(
+        level=os.environ.get("LOGLEVEL", "INFO").upper(),
+        format="%(levelname)s:\t[%(asctime)s] - %(message)s",
+    )
+
+    bot, dp = _build_bot_and_dispatcher()
+    app.state.bot = bot
+    app.state.dp = dp
+    setup_matchmaking_routers(app, bot)
+
     if settings.webhook_url:
-        try:
-            await start_web_server(bot, dp)
-            await asyncio.Event().wait()
-        finally:
-            await stop_web_server()
-            await dp.storage.close()
-            await bot.session.close()
+        await bot.set_webhook(settings.webhook_url, secret_token=settings.secret_key)
+        logger.info("Webhook set: %s", settings.webhook_url)
     else:
-        try:
-            await dp.start_polling(bot)
-        finally:
-            await dp.storage.close()
-            await bot.session.close()
+        await bot.delete_webhook()
+        logger.info("Webhook deleted (polling mode)")
+
+    await on_startup(bot)
+
+    try:
+        yield
+    finally:
+        await on_shutdown(bot)
+        await dp.storage.close()
+        await bot.session.close()
+
+
+app = FastAPI(lifespan=lifespan)
+api_router = APIRouter()
+setup_metrics_routes(api_router)
+app.include_router(api_router)
+
+WEBHOOK_PATH = _normalize_webhook_path()
+
+
+@app.post(WEBHOOK_PATH)
+async def handle_webhook(request: Request) -> Response:
+    if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != settings.secret_key:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    update = types.Update(**await request.json())
+    await app.state.dp.feed_webhook_update(app.state.bot, update)
+    return Response(status_code=200)
 
 
 async def main() -> None:
@@ -226,11 +256,29 @@ async def main() -> None:
     )
     logger.info("Запущен бот в проекте: %s", settings.project_name)
 
-    await run_bot()
+    server_config = uvicorn.Config(
+        app,
+        host=settings.web_server_host,
+        port=settings.web_server_port,
+        lifespan="off",
+        log_level=os.environ.get("LOGLEVEL", "info").lower(),
+    )
+    server = uvicorn.Server(server_config)
+    server_task = asyncio.create_task(server.serve())
+    try:
+        await run_bot()
+    finally:
+        server.should_exit = True
+        await server_task
 
 
 if __name__ == "__main__":
     try:
+        if settings.webhook_url:
+            msg = "WEBHOOK_URL is set. Run the webhook server with: uvicorn main:app --host 0.0.0.0 --port 8000"
+            raise SystemExit(  # noqa: TRY301
+                msg
+            )
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Бот остановлен!")

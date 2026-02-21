@@ -553,3 +553,22 @@ def get_list(key: str) -> tuple[str, ...]:
         msg = f"Неизвестный ключ: {key}"
         raise KeyError(msg) from exc
     return tuple(values)
+
+
+class Texts:
+    PROFILE_FIELD_LABELS = PROFILE_FIELD_LABELS
+
+    @staticmethod
+    def get(key: str) -> str:
+        return get(key)
+
+    @staticmethod
+    def render(key: str, **kwargs: object) -> str:
+        return render(key, **kwargs)
+
+    @staticmethod
+    def get_list(key: str) -> tuple[str, ...]:
+        return get_list(key)
+
+
+texts = Texts()
