@@ -10,7 +10,7 @@
   "panels": [
     {
       "type": "timeseries",
-      "title": "Users by Status",
+      "title": "Messages Received (rate)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -18,20 +18,20 @@
       "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
       "targets": [
         {
-          "expr": "sum by (status) (cukiller_users_total)",
-          "legendFormat": "{{status}}",
+          "expr": "sum by (event_type) (rate(cukiller_messages_received_total[5m]))",
+          "legendFormat": "{{event_type}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "ops"
         }
       }
     },
     {
       "type": "timeseries",
-      "title": "Games by Status",
+      "title": "Messages Sent (rate)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -39,20 +39,20 @@
       "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
       "targets": [
         {
-          "expr": "sum by (status) (cukiller_games_total)",
-          "legendFormat": "{{status}}",
+          "expr": "sum by (method) (rate(cukiller_messages_sent_total[5m]))",
+          "legendFormat": "{{method}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "ops"
         }
       }
     },
     {
       "type": "timeseries",
-      "title": "Players by Game Status",
+      "title": "Actions (rate)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -60,29 +60,8 @@
       "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
       "targets": [
         {
-          "expr": "sum by (game_status) (cukiller_players_total)",
-          "legendFormat": "{{game_status}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        }
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "Messages Processed (rate)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
-      "targets": [
-        {
-          "expr": "sum by (handler_type) (rate(cukiller_messages_processed_total[5m]))",
-          "legendFormat": "{{handler_type}}",
+          "expr": "sum by (action_type) (rate(cukiller_actions_total[5m]))",
+          "legendFormat": "{{action_type}}",
           "refId": "A"
         }
       ],
@@ -99,7 +78,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
       "targets": [
         {
           "expr": "sum by (command) (rate(cukiller_commands_executed_total[5m]))",
@@ -120,11 +99,32 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (le, operation_type) (rate(cukiller_response_time_seconds_bucket[5m])))",
           "legendFormat": "{{operation_type}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Response Time avg",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(cukiller_response_time_seconds_sum[5m])) / sum(rate(cukiller_response_time_seconds_count[5m]))",
+          "legendFormat": "avg",
           "refId": "A"
         }
       ],

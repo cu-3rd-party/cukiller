@@ -31,12 +31,75 @@
     },
     {
       "type": "timeseries",
-      "title": "Request Rate by Status",
+      "title": "Users by Status",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum by (status) (cukiller_db_users_total)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Games by Status",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum by (status) (cukiller_db_games_total)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Players",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum by (scope) (cukiller_db_players_total)",
+          "legendFormat": "{{scope}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Request Rate by Status",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
       "targets": [
         {
           "expr": "sum by (status) (rate(calendar_http_requests_total[5m]))",
@@ -57,7 +120,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
       "targets": [
         {
           "expr": "sum(rate(calendar_http_requests_total{status=~\"5..\"}[5m]))",
@@ -78,7 +141,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (le, method, path) (rate(calendar_http_request_duration_seconds_bucket[5m])))",
@@ -99,7 +162,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "gridPos": {"x": 0, "y": 32, "w": 24, "h": 8},
       "targets": [
         {
           "expr": "sum(rate(calendar_http_request_duration_seconds_sum[5m])) / sum(rate(calendar_http_request_duration_seconds_count[5m]))",

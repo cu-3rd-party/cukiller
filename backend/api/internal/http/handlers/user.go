@@ -42,14 +42,8 @@ func (h *UserHandler) GetOrCreate(c *gin.Context) {
 
 	user, found := h.UserStore.GetByTgId(c, req.TgId)
 
-	if !found {
-		user = store.DefaultUser()
-		user.Status = "active" // Setting default user status
-	}
-
-	req.applyToUser(user)
-
 	if found {
+		user.TgUsername = req.TgUsername
 		if ok := h.UserStore.Upsert(c, user); !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update user"})
 			return
@@ -62,6 +56,8 @@ func (h *UserHandler) GetOrCreate(c *gin.Context) {
 		return
 	}
 
+	user = store.DefaultUser()
+	req.applyToUser(user)
 	if ok := h.UserStore.Create(c, user); !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create user"})
 		return

@@ -3,59 +3,40 @@ Prometheus metrics collection for the
 """
 
 import logging
+from typing import Any, Awaitable, Callable, TypeVar
 
-from prometheus_client import Counter, Gauge, Histogram, Info, generate_latest
-
-from services.backend_api import backend_api
+from aiogram import Bot
+from prometheus_client import Counter, Histogram, Info, generate_latest
 
 logger = logging.getLogger(__name__)
+
+
+T = TypeVar("T")
 
 
 class BotMetrics:
     """Bot metrics collector for Prometheus."""
 
     def __init__(self) -> None:
-        # User metrics
-        self.user_total = Gauge(
-            "cukiller_users_total",
-            "Total number of users in the database",
-            ["status"],
-        )
-        self.user_registered = Counter(
-            "cukiller_users_registered_total",
-            "Total number of user registrations",
-        )
-
-        # Game metrics
-        self.games_total = Gauge("cukiller_games_total", "Total number of games", ["status"])
-        self.games_created = Counter("cukiller_games_created_total", "Total number of games created")
-
-        # Player metrics
-        self.players_total = Gauge(
-            "cukiller_players_total",
-            "Total number of players",
-            ["game_id", "game_status"],
-        )
-        self.players_joined = Counter(
-            "cukiller_players_joined_total",
-            "Total number of player joins",
-            ["game_id"],
-        )
-
         # Bot activity metrics
-        self.messages_processed = Counter(
-            "cukiller_messages_processed_total",
-            "Total number of messages processed",
-            ["handler_type"],
+        self.messages_received = Counter(
+            "cukiller_messages_received_total",
+            "Total number of incoming updates processed by the bot",
+            ["event_type"],
+        )
+        self.messages_sent = Counter(
+            "cukiller_messages_sent_total",
+            "Total number of outgoing messages sent by the bot",
+            ["method"],
         )
         self.commands_executed = Counter(
             "cukiller_commands_executed_total",
             "Total number of commands executed",
             ["command"],
         )
-        self.admin_actions = Counter(
-            "cukiller_admin_actions_total",
-            "Total number of admin actions",
+        self.actions = Counter(
+            "cukiller_actions_total",
+            "Total number of bot actions executed",
             ["action_type"],
         )
 
@@ -71,95 +52,25 @@ class BotMetrics:
         self.bot_info = Info("cukiller_bot_info", "Information about the bot")
         self.bot_info.info({"version": "0.1.0", "name": "cukiller-bot"})
 
-    async def update_user_metrics(self):
-        """Update user-related metrics from the database."""
-        try:
-            total_users = await backend_api.count_users()
-            confirmed_users = await backend_api.count_users(status="confirmed")
-            pending_users = await backend_api.count_users(status="pending")
+    def increment_message_received(self, event_type: str):
+        """Increment the message received counter."""
+        self.messages_received.labels(event_type=event_type).inc()
+        logger.debug("Incremented message received counter for %s", event_type)
 
-            self.user_total.labels(status="total").set(total_users)
-            self.user_total.labels(status="confirmed").set(confirmed_users)
-            self.user_total.labels(status="pending").set(pending_users)
-
-            logger.debug(
-                "Updated user metrics: total=%s, confirmed=%s, pending=%s",
-                total_users,
-                confirmed_users,
-                pending_users,
-            )
-        except Exception:
-            logger.exception("Failed to update user metrics")
-
-    async def update_game_metrics(self):
-        """Update game-related metrics from the database."""
-        try:
-            total_games = await backend_api.count_games()
-            active_games = await backend_api.count_games(status="active")
-            completed_games = await backend_api.count_games(status="completed")
-
-            self.games_total.labels(status="total").set(total_games)
-            self.games_total.labels(status="active").set(active_games)
-            self.games_total.labels(status="completed").set(completed_games)
-
-            logger.debug(
-                "Updated game metrics: total=%s, active=%s, completed=%s",
-                total_games,
-                active_games,
-                completed_games,
-            )
-        except Exception:
-            logger.exception("Failed to update game metrics")
-
-    async def update_player_metrics(self):
-        """Update player-related metrics from the database."""
-        try:
-            games = await backend_api.list_games()
-            for game in games:
-                players_count = await backend_api.count_players(game_id=game.id)
-                game_status = "active" if game.end_date is None else "completed"
-
-                self.players_total.labels(game_id=str(game.id), game_status=game_status).set(players_count)
-
-            logger.debug("Updated player metrics for %s games", len(games))
-        except Exception:
-            logger.exception("Failed to update player metrics")
-
-    async def update_all_metrics(self):
-        """Update all metrics from the database."""
-        await self.update_user_metrics()
-        await self.update_game_metrics()
-        await self.update_player_metrics()
-
-    def increment_user_registration(self):
-        """Increment the user registration counter."""
-        self.user_registered.inc()
-        logger.debug("Incremented user registration counter")
-
-    def increment_game_creation(self):
-        """Increment the game creation counter."""
-        self.games_created.inc()
-        logger.debug("Incremented game creation counter")
-
-    def increment_player_join(self, game_id: int):
-        """Increment the player join counter for a specific game."""
-        self.players_joined.labels(game_id=str(game_id)).inc()
-        logger.debug("Incremented player join counter for game %s", game_id)
-
-    def increment_message_processed(self, handler_type: str):
-        """Increment the message processed counter."""
-        self.messages_processed.labels(handler_type=handler_type).inc()
-        logger.debug("Incremented message processed counter for %s", handler_type)
+    def increment_message_sent(self, method: str):
+        """Increment the message sent counter."""
+        self.messages_sent.labels(method=method).inc()
+        logger.debug("Incremented message sent counter for %s", method)
 
     def increment_command_executed(self, command: str):
         """Increment the command executed counter."""
         self.commands_executed.labels(command=command).inc()
         logger.debug("Incremented command executed counter for %s", command)
 
-    def increment_admin_action(self, action_type: str):
-        """Increment the admin action counter."""
-        self.admin_actions.labels(action_type=action_type).inc()
-        logger.debug("Incremented admin action counter for %s", action_type)
+    def increment_action(self, action_type: str):
+        """Increment the action counter."""
+        self.actions.labels(action_type=action_type).inc()
+        logger.debug("Incremented action counter for %s", action_type)
 
     def record_response_time(self, operation_type: str, duration: float):
         """Record response time for an operation."""
@@ -170,6 +81,33 @@ class BotMetrics:
     def get_metrics() -> bytes:
         """Get the current metrics in Prometheus format."""
         return generate_latest()
+
+    def instrument_bot(self, bot: Bot) -> None:
+        if getattr(bot, "_metrics_instrumented", False):
+            return
+
+        bot._metrics_instrumented = True
+
+        async def _wrap_send(
+            method_name: str,
+            original: Callable[..., Awaitable[T]],
+            *args: Any,
+            **kwargs: Any,
+        ) -> T:
+            self.increment_message_sent(method_name)
+            return await original(*args, **kwargs)
+
+        original_send_message = bot.send_message
+        original_send_photo = bot.send_photo
+
+        async def send_message_wrapper(*args: Any, **kwargs: Any) -> Any:
+            return await _wrap_send("send_message", original_send_message, *args, **kwargs)
+
+        async def send_photo_wrapper(*args: Any, **kwargs: Any) -> Any:
+            return await _wrap_send("send_photo", original_send_photo, *args, **kwargs)
+
+        bot.send_message = send_message_wrapper  # type: ignore[method-assign]
+        bot.send_photo = send_photo_wrapper  # type: ignore[method-assign]
 
 
 # Global metrics instance

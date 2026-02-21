@@ -44,6 +44,7 @@ from services.discussion_invite import (
     generate_discussion_invite_link,
     revoke_discussion_invite_link,
 )
+from services.metrics import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,7 @@ def _build_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+    metrics.instrument_bot(bot)
     dp = Dispatcher(storage=_build_storage())
 
     settings.bot = bot

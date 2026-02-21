@@ -6,9 +6,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/calendar ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/backend-api ./cmd/server
 
 FROM gcr.io/distroless/base-debian12
-COPY --from=builder /bin/calendar /bin/calendar
+COPY --from=builder /bin/backend-api /bin/backend-api
 EXPOSE 8080
-ENTRYPOINT ["/bin/calendar"]
+ENTRYPOINT ["/bin/backend-api"]

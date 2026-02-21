@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from aiogram.types import CallbackQuery, Message
 
+from services.metrics import metrics
 logger = logging.getLogger("dialog_actions")
 
 
@@ -41,6 +42,7 @@ def log_dialog_action(
                 data,
             )
 
+            metrics.increment_action(action_name)
             return await func(*args, **kwargs)
 
         return wrapper

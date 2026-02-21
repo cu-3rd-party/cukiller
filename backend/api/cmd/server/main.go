@@ -36,17 +36,28 @@ func main() {
 		}
 	}()
 
-	go api.Metrics(cfg.EnableMetrics)
+	userStore := store.NewUserStore(dbConn)
+	chatStore := store.NewChatStore(dbConn)
+	gameStore := store.NewGameStore(dbConn)
+	killEventStore := store.NewKillEventStore(dbConn)
+	pendingProfileStore := store.NewPendingProfileStore(dbConn)
+	playerStore := store.NewPlayerStore(dbConn)
+
+	go api.Metrics(cfg.EnableMetrics, api.MetricsConfig{
+		User:   &userStore,
+		Game:   &gameStore,
+		Player: &playerStore,
+	})
 
 	router := api.NewRouter(api.Config{
 		BasePath:       cfg.APIBasePath,
 		HealthCheck:    db.GetHealthcheck(dbConn),
-		User:           store.NewUserStore(dbConn),
-		Chat:           store.NewChatStore(dbConn),
-		Game:           store.NewGameStore(dbConn),
-		KillEvent:      store.NewKillEventStore(dbConn),
-		PendingProfile: store.NewPendingProfileStore(dbConn),
-		Player:         store.NewPlayerStore(dbConn),
+		User:           userStore,
+		Chat:           chatStore,
+		Game:           gameStore,
+		KillEvent:      killEventStore,
+		PendingProfile: pendingProfileStore,
+		Player:         playerStore,
 	})
 
 	addr := ":" + cfg.Port

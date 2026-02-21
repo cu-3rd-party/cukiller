@@ -49,7 +49,7 @@ func DefaultUser() *User {
 		IsAdmin:            false,
 		Photo:              "",
 		AboutUser:          "",
-		Status:             "",
+		Status:             "active",
 		AllowHuggingOnKill: false,
 		ExitCooldownUntil:  time.Time{},
 		GivenName:          "",

@@ -22,9 +22,6 @@ async def metrics_endpoint(request: Request) -> Response:
     Returns metrics in Prometheus format.
     """
     try:
-        # Update metrics from database before serving
-        await metrics.update_all_metrics()
-
         # Generate and return metrics
         metrics_data: bytes = metrics.get_metrics()
         return Response(
@@ -46,9 +43,6 @@ async def health_check(request: Request) -> JSONResponse:
     Returns basic health information.
     """
     try:
-        # Update basic metrics to check database connectivity
-        await metrics.update_user_metrics()
-
         health_data = {
             "status": "healthy",
             "timestamp": datetime.now(settings.timezone).isoformat(),
@@ -112,7 +106,6 @@ class MetricsUpdater:
         """Main update loop."""
         while self._running:
             try:
-                await metrics.update_all_metrics()
                 await asyncio.sleep(self.update_interval)
             except asyncio.CancelledError:
                 break

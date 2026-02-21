@@ -78,7 +78,7 @@ func TestEchoMissingMessage(t *testing.T) {
 func TestMetricsRouteToggle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	router := NewMetricsRouter()
+	router := NewMetricsRouter(MetricsConfig{})
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
