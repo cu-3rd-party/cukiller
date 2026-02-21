@@ -6,6 +6,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject, Update
 
 from services.metrics import metrics
+
 logger = logging.getLogger("user_actions")
 T = TypeVar("T")
 

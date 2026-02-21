@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from aiogram.types import CallbackQuery, Message
 
 from services.metrics import metrics
+
 logger = logging.getLogger("dialog_actions")
 
 
