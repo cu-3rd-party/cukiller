@@ -153,6 +153,7 @@ def enhanced_json_dumper(obj: object) -> str:
 
 
 def _build_storage() -> RedisStorage:
+    logger.debug("build storage")
     return RedisStorage(
         redis=Redis(
             host=settings.redis_host,
@@ -169,6 +170,7 @@ def _build_storage() -> RedisStorage:
 
 
 def _build_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
+    logger.debug("build bot and dispatcher")
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -197,8 +199,11 @@ async def run_bot() -> None:
         return
 
     try:
-        await bot.delete_webhook()
+        logger.info("Starting polling...")
+        logger.debug(bot)
+        logger.debug(dp)
         await dp.start_polling(bot)
+        logger.info("Stopped polling")
     finally:
         await dp.storage.close()
         await bot.session.close()
@@ -207,9 +212,10 @@ async def run_bot() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.basicConfig(
-        level=os.environ.get("LOGLEVEL", "INFO").upper(),
+        level=os.environ.get("LOGLEVEL", "DEBUG").upper(),
         format="%(levelname)s:\t[%(asctime)s] - %(message)s",
     )
+    logger.debug("lifespan called")
 
     bot, dp = _build_bot_and_dispatcher()
     app.state.bot = bot
@@ -252,10 +258,7 @@ async def handle_webhook(request: Request) -> Response:
 
 
 async def main() -> None:
-    logging.basicConfig(
-        level=os.environ.get("LOGLEVEL", "INFO").upper(),
-        format="%(levelname)s:\t[%(asctime)s] - %(message)s",
-    )
+    logger.debug("main called")
     logger.info("Запущен бот в проекте: %s", settings.project_name)
 
     server_config = uvicorn.Config(
@@ -263,7 +266,7 @@ async def main() -> None:
         host=settings.web_server_host,
         port=settings.web_server_port,
         lifespan="off",
-        log_level=os.environ.get("LOGLEVEL", "info").lower(),
+        log_level=os.environ.get("LOGLEVEL", "debug").lower(),
     )
     server = uvicorn.Server(server_config)
     server_task = asyncio.create_task(server.serve())
@@ -275,12 +278,20 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=os.environ.get("LOGLEVEL", "debug").upper(),
+        format="%(levelname)s:\t[%(asctime)s] - %(message)s",
+    )
     try:
         if settings.webhook_url:
-            msg = "WEBHOOK_URL is set. Run the webhook server with: uvicorn main:app --host 0.0.0.0 --port 8000"
-            raise SystemExit(  # noqa: TRY301
-                msg
+            uvicorn.run(
+                app,
+                host=settings.web_server_host,
+                port=settings.web_server_port,
+                log_level=os.environ.get("LOGLEVEL", "debug").lower(),
             )
-        asyncio.run(main())
+        else:
+            asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logger.info("Бот остановлен!")
+    logger.debug("cleanly shutting down")

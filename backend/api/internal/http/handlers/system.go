@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"github.com/rs/zerolog/log"
 )
 
 type SystemHandler struct {
@@ -24,6 +26,9 @@ type BootstrapRequest struct {
 func (h *SystemHandler) Bootstrap(c *gin.Context) {
 	var req BootstrapRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error().
+			Str("err", err.Error()).
+			Msg("Failed to bind JSON body in /system/bootstrap")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("failed to parse/validate body: %s", err),
 		})
