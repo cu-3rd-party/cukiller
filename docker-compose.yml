@@ -182,7 +182,7 @@ services:
     env_file:
       - ./env/db.env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
       - ./schema:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     healthcheck:
@@ -307,7 +307,7 @@ services:
       - cukiller
 
 volumes:
-  postgres_data:
+  db_data:
   prometheus_data:
   grafana_data:
   redis_data:
