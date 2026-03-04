@@ -265,7 +265,6 @@ async def main() -> None:
         app,
         host=settings.web_server_host,
         port=settings.web_server_port,
-        lifespan="off",
         log_level=os.environ.get("LOGLEVEL", "debug").lower(),
     )
     server = uvicorn.Server(server_config)
