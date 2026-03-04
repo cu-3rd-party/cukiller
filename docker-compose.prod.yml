@@ -1,0 +1,317 @@
+services:
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/redis.env
+      - ./env/bot.env
+    depends_on:
+      db:
+        condition: service_healthy
+      matchmaking:
+        condition: service_started
+      api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 128MB
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8000/health || exit 1"]
+      interval: 3s
+      timeout: 1s
+      start_period: 15s
+      retries: 100
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - cukiller
+
+  api:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/backend.env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD-SHELL", "wget -qO- http://api:8080/health/ >/dev/null 2>&1 || exit 1"]
+#      start_period: 1s
+#      retries: 10
+#      timeout: 1s
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    networks:
+      - cukiller
+
+  matchmaking:
+    build:
+      context: ./backend/matchmaking
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/matchmaking.env
+    depends_on:
+      - db
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    networks:
+      - cukiller
+
+  graphgetter:
+    build:
+      context: ./backend/graphgetter
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+    depends_on:
+      - db
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - cukiller
+
+  stats:
+    build:
+      context: ./backend/stats
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    env_file:
+      - ./env/base.env
+      - ./env/db.env
+      - ./env/stats.env
+    depends_on:
+      - db
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - cukiller
+
+  stats-web:
+    build:
+      context: ./frontend/stats-web
+      dockerfile: Dockerfile
+      args:
+        VITE_BASE: /stats/
+    env_file:
+      - ./env/stats-web.env
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    expose:
+      - "80"
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - cukiller
+
+  db:
+    image: postgres:18-alpine
+    expose:
+      - "5432"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    env_file:
+      - ./env/db.env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./schema:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p $${POSTGRES_PORT:-5432} -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+      start_period: 1s
+    networks:
+      - cukiller
+
+  redis:
+    image: redis:8.2.2-alpine3.22
+    expose:
+      - "6379"
+    env_file:
+      - ./env/redis.env
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    command: >
+      sh -c "redis-server
+      --bind 0.0.0.0
+      --port \"$${REDIS_PORT:-6379}\"
+      $${REDIS_REQUIREPASS:+--requirepass \"$${REDIS_REQUIREPASS}\"}
+      --appendonly \"$${REDIS_APPENDONLY:-yes}\""
+    restart: unless-stopped
+    networks:
+      - cukiller
+
+  adminer:
+    image: adminer
+    depends_on:
+      - db
+    expose:
+      - "8080"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: 64MB
+    restart: unless-stopped
+    networks:
+      - cukiller
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    depends_on:
+      - bot
+    restart: unless-stopped
+    networks:
+      - cukiller
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    env_file:
+      - ./env/grafana.env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    expose:
+      - "3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - cukiller
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 256MB
+    restart: unless-stopped
+    depends_on:
+      - adminer
+      - api
+      - bot
+      - db
+      - grafana
+      - graphgetter
+      - matchmaking
+      - prometheus
+      - redis
+      - stats
+      - stats-web
+    networks:
+      - cukiller
+
+volumes:
+  db_data:
+  prometheus_data:
+  grafana_data:
+  redis_data:
+
+networks:
+  cukiller:
+    driver: bridge
