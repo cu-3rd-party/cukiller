@@ -95,6 +95,7 @@ class BackendAPI:
         params: dict[str, QueryParamValue] | None = None,
         json_data: dict[str, SerializeValue] | None = None,
     ) -> tuple[int, JsonValue | None]:
+        logger.debug("Sending %s request to %s with params=%s data=%s", method, path, params, json_data)
         if self._client is None:
             await self.start()
         if self._client is None:

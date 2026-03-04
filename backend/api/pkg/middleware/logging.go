@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +16,20 @@ func Logging() gin.HandlerFunc {
 		path := c.FullPath()
 		if path == "" {
 			path = c.Request.URL.Path
+		}
+
+		var bodyPreview string
+		if log.Debug().Enabled() && c.Request.Body != nil {
+			bodyBytes, err := io.ReadAll(c.Request.Body)
+			if err == nil {
+				const maxBodySize = 4096
+				if len(bodyBytes) > maxBodySize {
+					bodyPreview = string(bodyBytes[:maxBodySize]) + "...(truncated)"
+				} else {
+					bodyPreview = string(bodyBytes)
+				}
+				c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			}
 		}
 
 		c.Next()
@@ -30,5 +46,16 @@ func Logging() gin.HandlerFunc {
 			Dur("latency", latency).
 			Str("client_ip", clientIP).
 			Msg("http request")
+
+		if log.Debug().Enabled() {
+			log.Debug().
+				Str("method", method).
+				Str("path", path).
+				Str("body", bodyPreview).
+				Int("status", status).
+				Dur("latency", latency).
+				Str("client_ip", clientIP).
+				Msg("http request (advanced)")
+		}
 	}
 }
