@@ -3,7 +3,8 @@ Prometheus metrics collection for the
 """
 
 import logging
-from typing import Any, Awaitable, Callable, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import ParamSpec, TypeVar, cast
 
 from aiogram import Bot
 from prometheus_client import Counter, Histogram, Info, generate_latest
@@ -11,6 +12,7 @@ from prometheus_client import Counter, Histogram, Info, generate_latest
 logger = logging.getLogger(__name__)
 
 
+P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -86,13 +88,13 @@ class BotMetrics:
         if getattr(bot, "_metrics_instrumented", False):
             return
 
-        bot._metrics_instrumented = True
+        bot._metrics_instrumented = True  # noqa: SLF001
 
         async def _wrap_send(
             method_name: str,
-            original: Callable[..., Awaitable[T]],
-            *args: Any,
-            **kwargs: Any,
+            original: Callable[P, Awaitable[T]],
+            *args: P.args,
+            **kwargs: P.kwargs,
         ) -> T:
             self.increment_message_sent(method_name)
             return await original(*args, **kwargs)
@@ -100,11 +102,13 @@ class BotMetrics:
         original_send_message = bot.send_message
         original_send_photo = bot.send_photo
 
-        async def send_message_wrapper(*args: Any, **kwargs: Any) -> Any:
-            return await _wrap_send("send_message", original_send_message, *args, **kwargs)
+        async def send_message_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            wrapped = cast("Callable[P, Awaitable[T]]", original_send_message)
+            return await _wrap_send("send_message", wrapped, *args, **kwargs)
 
-        async def send_photo_wrapper(*args: Any, **kwargs: Any) -> Any:
-            return await _wrap_send("send_photo", original_send_photo, *args, **kwargs)
+        async def send_photo_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            wrapped = cast("Callable[P, Awaitable[T]]", original_send_photo)
+            return await _wrap_send("send_photo", wrapped, *args, **kwargs)
 
         bot.send_message = send_message_wrapper  # type: ignore[method-assign]
         bot.send_photo = send_photo_wrapper  # type: ignore[method-assign]

@@ -1,6 +1,8 @@
 import sys
 import unittest
+from collections.abc import Callable
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 from bot.handlers.mainloop.getters import get_advanced_info
 
@@ -53,8 +55,8 @@ def _install_stub_modules() -> None:
     services.format_exit_cooldown = lambda *args, **kwargs: ""
     services.is_exit_cooldown_active = lambda *args, **kwargs: False
 
-    def _log_getter(*args, **kwargs):
-        def _decorator(func):
+    def _log_getter(*args: object, **kwargs: object) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             return func
 
         return _decorator
@@ -81,7 +83,7 @@ _install_stub_modules()
 
 
 class GetAdvancedInfoTests(unittest.TestCase):
-    def _user(self, **overrides):
+    def _user(self, **overrides: object) -> SimpleNamespace:
         data = {
             "type": "",
             "course_number": None,

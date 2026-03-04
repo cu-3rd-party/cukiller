@@ -150,7 +150,7 @@ async def on_final_confirmation(
     manager.dialog_data["confirm"] = True
 
     creation_date = datetime.now(settings.timezone)
-    game = await backend_api.create_game({"name": manager.dialog_data["name"]})
+    game = await backend_api.create_game({"name": manager.dialog_data["name"], "start_date": creation_date})
     users = await backend_api.list_users(status="confirmed")
 
     logger.debug("Notifying %s about new game %s", len(users), game.id)
@@ -250,12 +250,20 @@ async def getservertime(message: Message):
 
 
 def parse_game_stage(game: Game) -> str:
-    if game.end_date:
+    if _get_game_end_date(game):
         return texts.get("admin.game_stage.finished")
-    if game.start_date:
+    if _get_game_start_date(game):
         return texts.get("admin.game_stage.started")
-    logger.warning("start: %s; end: %s", game.start_date, game.end_date)
+    logger.warning("start: %s; end: %s", _get_game_start_date(game), _get_game_end_date(game))
     return texts.get("admin.game_stage.error")
+
+
+def _get_game_start_date(game: Game) -> datetime | None:
+    return getattr(game, "start_date", None)
+
+
+def _get_game_end_date(game: Game) -> datetime | None:
+    return getattr(game, "end_date", None)
 
 
 async def get_games_data(**kwargs: object):
@@ -278,7 +286,7 @@ async def get_selected_game_data(dialog_manager: DialogManager, **kwargs: object
     game = await backend_api.get_game_by_id(game_id)
     return {
         "game_name": game.name,
-        "show_end_game": game.start_date is not None and game.end_date is None,
+        "show_end_game": _get_game_start_date(game) is not None and _get_game_end_date(game) is None,
     }
 
 
@@ -396,8 +404,8 @@ async def game_info_getter(dialog_manager: DialogManager, **kwargs: object):
             "admin.game_info",
             game_name=game.name,
             game_id=game_id,
-            start_date=game.start_date,
-            end_date=game.end_date,
+            start_date=_get_game_start_date(game),
+            end_date=_get_game_end_date(game),
             participants_count=participants_count,
         )
     }
