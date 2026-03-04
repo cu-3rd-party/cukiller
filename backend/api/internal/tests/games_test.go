@@ -201,6 +201,51 @@ func TestGamesActiveNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
+func TestGamesCreateMakesActiveAvailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dbConn := db.SetupDb(t)
+
+	gameStore := store.NewGameStore(dbConn)
+	router := api.NewRouter(api.Config{
+		Game:   gameStore,
+		User:   store.NewUserStore(dbConn),
+		Player: store.NewPlayerStore(dbConn),
+	})
+
+	startDate := time.Now().UTC().Add(365 * 24 * time.Hour).Truncate(time.Second)
+	payload := map[string]any{
+		"name":       "integration-active-game",
+		"start_date": startDate,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal request: %v", err)
+	}
+
+	createReq := httptest.NewRequest(http.MethodPost, "/games", bytes.NewReader(body))
+	createReq.Header.Set("Content-Type", "application/json")
+	createRec := httptest.NewRecorder()
+	router.ServeHTTP(createRec, createReq)
+	assert.Equal(t, http.StatusCreated, createRec.Code)
+
+	var created gameResponse
+	assert.NoError(t, json.Unmarshal(createRec.Body.Bytes(), &created))
+	assert.NotEqual(t, uuid.Nil, created.Id)
+
+	defer gameStore.Delete(t.Context(), created.Id)
+
+	activeReq := httptest.NewRequest(http.MethodGet, "/games/active", nil)
+	activeRec := httptest.NewRecorder()
+	router.ServeHTTP(activeRec, activeReq)
+	assert.NotEqual(t, http.StatusNotFound, activeRec.Code)
+
+	if activeRec.Code == http.StatusOK {
+		var activeResp gameResponse
+		assert.NoError(t, json.Unmarshal(activeRec.Body.Bytes(), &activeResp))
+		assert.Equal(t, created.Id, activeResp.Id)
+	}
+}
+
 func TestGameParticipants(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	dbConn := db.SetupDb(t)
