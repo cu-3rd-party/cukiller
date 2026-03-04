@@ -191,6 +191,17 @@ def _build_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     return bot, dp
 
 
+def _ensure_app_state(app: FastAPI) -> tuple[Bot, Dispatcher]:
+    bot: Bot | None = getattr(app.state, "bot", None)
+    dp: Dispatcher | None = getattr(app.state, "dp", None)
+    if bot is not None and dp is not None:
+        return bot, dp
+    bot, dp = _build_bot_and_dispatcher()
+    app.state.bot = bot
+    app.state.dp = dp
+    return bot, dp
+
+
 async def run_bot() -> None:
     bot, dp = _build_bot_and_dispatcher()
 
@@ -217,9 +228,7 @@ async def lifespan(app: FastAPI):
     )
     logger.debug("lifespan called")
 
-    bot, dp = _build_bot_and_dispatcher()
-    app.state.bot = bot
-    app.state.dp = dp
+    bot, dp = _ensure_app_state(app)
     setup_matchmaking_routers(app, bot)
 
     if settings.webhook_url:
@@ -260,6 +269,9 @@ async def handle_webhook(request: Request) -> Response:
 async def main() -> None:
     logger.debug("main called")
     logger.info("Запущен бот в проекте: %s", settings.project_name)
+
+    _ensure_app_state(app)
+    setup_matchmaking_routers(app, app.state.bot)
 
     server_config = uvicorn.Config(
         app,
