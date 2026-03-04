@@ -21,7 +21,7 @@ services:
       resources:
         limits:
           cpus: 0.25
-          memory: 128MB
+          memory: 1G
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:8000/health || exit 1"]
